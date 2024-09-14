@@ -1,0 +1,98 @@
+.top-bar {
+    background-color: #AF2630;
+    position: fixed;
+    color: #6b6a6a; 
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px; /* Optional: Adds horizontal padding */
+    box-sizing: border-box; /* Ensures padding doesn't affect total width */
+  }
+
+  .search-bar {
+    background-color: #C1696F;
+    position: relative;
+    width: 20%; /* Set a fixed width or adjust as needed */
+  }
+
+  .search-bar input[type="text"] {
+    width: 100%; /* Take up the full width of the container */
+    padding: 10px 40px 10px 10px; /* Adjust padding to make space for the button */
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    box-sizing: border-box; /* Ensures padding doesn't affect total width */
+  }
+
+  .search-bar button[type="button"] {
+    position: absolute; /* Position the button absolutely within the search-bar */
+    right: 5px; /* Adjust as needed for spacing from the right edge */
+    top: 50%;
+    transform: translateY(-50%); /* Vertically center the button */
+    border: none;
+    background: transparent; /* Remove default button background */
+    cursor: pointer;
+    padding: 0; /* Remove default padding */
+  }
+
+  .search-bar button[type="button"] img {
+    width: 20px; /* Adjust the width as needed */
+    height: 20px; /* Adjust the height as needed */
+  }
+
+  /* Optional: Add hover effect for the button */
+  .search-bar button[type="button"]:hover img {
+    filter: brightness(0.8);
+  }
+  .side-bar {
+    background-color: #D9D9D9;
+    position: fixed;
+    color: #AF2630; 
+    top: 50px;
+    left: 0;
+    width: 90px;
+    height: 100%; 
+    display: flex;
+    flex-direction: column; /* Add this to stack elements vertically */
+    align-items: center;
+    justify-content: flex-start; /* Update this to start from the top */
+    padding: 0 20px; /* Optional: Adds horizontal padding */
+    box-sizing: border-box; /* Ensures padding doesn't affect total width */
+  }
+
+  .Home, .homeownerstatus {
+    margin-bottom: 20px; /* Add some space between elements */
+    text-align: center; /* Center the text and image */
+    font-size: 15px;
+    font-weight: bold;
+    font-family: 'Inter';
+  }
+  .Home img, .homeownerstatus img {
+    width: 60px; /* Adjust the width as needed */
+    height: 60px; /* Adjust the height as needed */
+  }
+
+  .Home button, .homeownerstatus button {
+    background-color: #D9D9D9;
+    margin: 0 auto; /* Center the button */
+    border: none;
+    
+  }
+  .Home p, .homeownerstatus p {
+margin-top: 5px; /* Add some space between the button and text */
+}
+
+  /* Optional: Responsive adjustments */
+  @media (max-width: 600px) {
+    .search-bar {
+      width: 100%;
+    }
+    .top-bar {
+      padding: 0 10px;
+    }
+  }
