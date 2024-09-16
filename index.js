@@ -11,7 +11,7 @@ app.get('/images/:imageName', (req, res) => {
   res.sendFile(__dirname + '/images/' + imageName);
 });
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'Monitoring system', 'register.html'));
+  res.sendFile(path.join(__dirname, '..', 'Monitoring system', 'Webpages', 'login.html'));
 });
 app.listen(3000, () => {
   console.log('Server started on port 3000');
