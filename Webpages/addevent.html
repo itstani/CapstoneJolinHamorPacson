@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="styles.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <style>
+    .top-bar {
+      background-color: #AF2630;
+      position: fixed;
+      color: #6b6a6a; 
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 50px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+
+    .search-bar {
+      background-color: #C1696F;
+      position: relative;
+      width: 20%;
+    }
+
+    .search-bar input[type="text"] {
+      width: 100%;
+      padding: 10px 40px 10px 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    .search-bar button[type="button"] {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .search-bar button[type="button"] img {
+      width: 20px;
+      height: 20px;
+    }
+
+    .search-bar button[type="button"]:hover img {
+      filter: brightness(0.8);
+    }
+
+    .side-bar {
+      background-color: #D9D9D9;
+      position: fixed;
+      color: #AF2630;
+      top: 50px;
+      left: 0;
+      width: 90px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+
+    .Home, .homeownerstatus, .analytics, .Calendar {
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: bold;
+      font-family: 'Inter';
+    }
+
+    .Home img, .homeownerstatus img, .analytics img, .Calendar img {
+      width: 60px;
+      height: 60px;
+    }
+
+    .Home button, .homeownerstatus button, .analytics button, .Calendar button {
+      background-color: #D9D9D9;
+      margin: 0 auto;
+      border: none;
+      transition: background-color 0.3s;
+    }
+
+    .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
+      background-color: #ccc;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .Welcome {
+      font-size: 30px;
+      font-family: 'Inter';
+      color: #AF2630;
+      font-weight: bold;
+      padding-left: 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .Welcome h1 {
+      margin: 0;
+      padding-left: 40px;
+    }
+
+    .avidalogo {
+      width: 700px;
+      height: 250px;
+      margin-left: 20px;
+      padding-top: 30px;
+    }
+
+    /* Reserve Section in Columns */
+    .reserve {
+      display: flex;
+      justify-content: center; /* Centers content horizontally */
+      gap: 20%; /* Space between the buttons */
+      text-align: center;
+      flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
+    }
+    .container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Aligns the content to the left */
+    padding-left: 25%; /* Add padding from the left side */
+}
+
+        .column {
+            margin-bottom: 20px; /* Space between rows */
+        }
+
+        .col-12 {
+            width: 100%; 
+            text-align: left; /* Center the content horizontally */
+            padding-left: 10%;
+        }
+
+        form {
+    background-color: #AF2630;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px; /* Keeps the form width limited */
+    margin: 20px auto; /* Center the form */
+    color: white;
+    padding-left: 5%; /* Minimal padding on the left */
+}
+
+
+      form h2 {
+          margin-bottom: 20px;
+      }
+
+      form label, form input {
+          display: block;
+          margin-bottom: 10px;
+          width: 100%;
+      }
+
+      input[type="text"], input[type="date"] {
+          padding: 10px;
+          border: none;
+          border-radius: 5px;
+          width: calc(100% - 20px);
+      }
+              /* Amenity Buttons Hover Effect */
+          .amenities div {
+              display: inline-block;
+              align-items: center;
+          }
+          
+          .amenities input[type="radio"] {
+            display: none; /* Hide default radio button */
+        }
+
+          .amenities label {
+              cursor: pointer;
+              transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+          }
+
+          .amenities label img {
+              width: 100px;
+              height: 100px;
+              border-radius: 10px;
+              transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+          }
+
+          .amenities input[type="radio"]:checked + label img {
+              transform: scale(1.1); /* Enlarge the button when selected */
+              border: 3px solid #AF2630; /* Add border on hover */
+              box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
+          }
+
+          .amenities label:hover img {
+              transform: scale(1.1); /* Enlarge the button */
+              border: 3px solid #AF2630; /* Add border on hover */
+              box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
+              
+          }
+
+        .homeowner {
+            display: flex;
+            align-items: center; /* Aligns items vertically */
+            gap: 10px; /* Adds space between the radio buttons */
+        }
+
+        .homeowner input[type="radio"] {
+            display: none; /* Hide default radio button */
+        }
+
+        .homeowner label {
+            font-size: 16px;
+            padding: 10px 20px;
+            border: 5px solid #c44c57;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            background-color: white;
+            color: #C1696F;
+        }
+
+        .homeowner input[type="radio"]:checked + label {
+            background-color: #c44c57;
+            color: white;
+        }
+
+        /* Hover effect for radio buttons */
+        .homeowner label:hover {
+            background-color: #c44c57;
+            color: white;
+        }
+
+
+        .guests, .homeowner {
+            margin-bottom: 20px;
+        }
+
+        .guests input {
+            width: calc(100% - 20px);
+        }
+
+        .create-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #c44c57;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .create-button:hover {
+            background-color: #b93e4b;
+        }
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 600px) {
+      .search-bar {
+        width: 100%;
+      }
+
+      .top-bar {
+        padding: 0 10px;
+      }
+
+      .reserve {
+        flex-direction: column; /* Stack buttons vertically on small screens */
+        gap: 20px;
+      }
+
+      .reservetext1 {
+        font-size: 30px; /* Adjust the size for smaller screens */
+      }
+    }
+    </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="search-bar">
+      <input type="text" placeholder="Search...">
+      <button type="button" id="searchbutton" name="searchbutton" aria-label="Search">
+        <img src="images/Searchicon.png">
+      </button>
+    </div>
+  </div> 
+
+  <div class="side-bar">
+    <div class="Home">
+      <button type="button" id="homebutton" name="homebutton" aria-label="home">
+        <img src="images/house.png">
+      </button>
+      <p>Home</p>
+    </div>
+  </div>
+
+  <div class="Welcome">
+    <h1>Add new event</h1>
+    <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
+  </div>
+  <form>
+    <h2>New Event Details</h2>
+
+    <label for="nameofevent">Name of new event:</label>
+    <input type="text" id="nameofevent" name="nameofevent">
+
+    <label for="dateofevent">Date of event:</label>
+    <input type="date" id="dateofevent" name="dateofevent">
+
+    <div class="amenities">
+      <div>
+        <label>Choose an amenity</label>
+          <input type="radio" id="amenityPool" name="amenity" value="Pool" hidden>
+          <label for="amenityPool">
+              <img src="images/pool.png" alt="Pool">
+          </label>
+      </div>
+      <div>
+          <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse" hidden>
+          <label for="amenityClubhouse">
+              <img src="images/Clubhouse.png" alt="Clubhouse">
+          </label>
+      </div>
+      <div>
+          <input type="radio" id="amenityCourt" name="amenity" value="Court" hidden>
+          <label for="amenityCourt">
+              <img src="images/Court.png" alt="Court">
+          </label>
+      </div>
+  </div>
+  
+
+    <div class="guests">
+        <label for="numberofguests">Number of guests:</label>
+        <input type="text" id="numberofguests" name="numberofguests">
+    </div>
+    <div class="homeonwerstatuslabel">
+      <label for="homeownerStatus">Homeowner status:</label>
+    </div>
+    <div class="homeowner">
+      <input type="radio" id="homeownerYes" name="homeownerStatus" value="Yes">
+      <label for="homeownerYes">Yes</label>
+  
+      <input type="radio" id="homeownerNo" name="homeownerStatus" value="No">
+      <label for="homeownerNo">No</label>
+  </div>
+  
+
+    <button type="button" class="create-button">Create</button>
+</form>
+
+
+
+  </div>
+</body>
+</html>
+
