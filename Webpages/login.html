@@ -100,8 +100,34 @@
             
 
         }
+        .regis-here {
+            font-size: 20px;
+            font-family: 'inter';
+            margin-top: 15px;
+            cursor: pointer;
+            color: #AF2630;
+            text-decoration: underline;
+            padding-left: 5px;
+        }
 
     </style>
+    <script>
+        function handleLogin(event) {
+            event.preventDefault(); // Prevent the default form submission behavior
+            
+            // Get the value of the email input field
+            const email = document.getElementById("email").value;
+            
+            // Check if the email is for the admin
+            if (email === "admin@example.com") {
+                // Redirect to the admin welcome page
+                window.location.href = "Main.html";
+            } else {
+                // Redirect to the addevent page for regular users
+                window.location.href = "welcome.html";
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="top-bar"></div>
@@ -111,7 +137,8 @@
             <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
         </div>
 
-        <form>
+        <!-- Update the form to call handleLogin function on submit -->
+        <form action="/login" method="POST" onsubmit="handleLogin(event)">
             <div class="column">
                 <div class="col-12">
                     <input type="text" class="rounded-input" placeholder="Enter Email" name="email" id="email">
@@ -131,18 +158,17 @@
                 <p class="alternateLogin">Or Login using: </p>
                     <button type="button" class="fbbutton" id="fbbutton" name="fbbutton" aria-label="fb">
                         <img src="images/fblogo.png">
-                        </button>
+                    </button>
     
-         
                     <button type="button" class="gbutton" id="gbutton" name="gbutton" aria-label="google">
                         <img src="images/googlelogo.png">
-                        </button>
-
-                
+                    </button>
             </div>
 
+            <div class="regis-here" onclick="window.location.href='register.html'">
+                Sign up here
+            </div>
         </form>
-        
     </div>
 
 </body>

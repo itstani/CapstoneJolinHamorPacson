@@ -97,10 +97,19 @@
             font-size: 20px;
             font-family: 'inter';
             text-align: center;
-            
-
         }
 
+        /* Style for the "Or login here" label */
+        .login-here {
+            font-size: 20px;
+            font-family: 'inter';
+            margin-top: 15px;
+            cursor: pointer;
+            color: #AF2630;
+            text-decoration: underline;
+            align-items: center;
+        }
+        
     </style>
 </head>
 <body>
@@ -111,7 +120,7 @@
             <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
         </div>
 
-        <form>
+        <form id="registerForm" method="POST">
             <div class="column">
                 <div class="col-12">
                     <input type="text" class="rounded-input" placeholder="Enter Username" name="un" id="un">
@@ -138,21 +147,70 @@
 
             <div class="altregis">
                 <p class="alternateregister">Or register using: </p>
-                    <button type="button" class="fbbutton" id="fbbutton" name="fbbutton" aria-label="fb">
-                        <img src="images/fblogo.png">
-                        </button>
-    
-         
-                    <button type="button" class="gbutton" id="gbutton" name="gbutton" aria-label="google">
-                        <img src="images/googlelogo.png">
-                        </button>
+                <button type="button" class="fbbutton" id="fbbutton" name="fbbutton" aria-label="fb">
+                    <img src="images/fblogo.png">
+                </button>
 
-                
+                <button type="button" class="gbutton" id="gbutton" name="gbutton" aria-label="google">
+                    <img src="images/googlelogo.png">
+                </button>
+            </div>
+
+            <!-- Added login option -->
+            <div class="login-here" onclick="window.location.href='login.html'">
+                Or login here
             </div>
 
         </form>
         
+        <script>
+            const form = document.getElementById('registerForm');
+        
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();  // Prevent the default form submission
+        
+                const username = document.getElementById('un').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('pw').value;
+                const confirmPassword = document.getElementById('cpw').value;
+        
+                // Simple password confirmation check
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+        
+                // Send form data to the backend using fetch
+                const response = await fetch('http://localhost:3000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password
+                    }),
+                });
+        
+                const result = await response.json();
+        
+                if (result.success) {
+                    // Create a new window with a success message
+                    const successWindow = window.open('', '_blank', 'width=200,height=100');
+                    successWindow.document.write('<h2>Login/Register Successful!</h2>');
+        
+                    // Redirect the user to the login page after 2 seconds
+                    setTimeout(function() {
+                        window.location.href = 'login.html';
+                        successWindow.close();
+                    }, 2000);
+                } else {
+                    // Display error message if username or email already exists
+                    alert(result.message);
+                }
+            });
+        </script>
     </div>
-
 </body>
 </html>
