@@ -119,10 +119,10 @@
     }
 
     .avidalogo {
-      width: 700px;
-      height: 250px;
+      width: 400px;
+      height: 130px;
       margin-left: 20px;
-      padding-top: 30px;
+      padding-top: 60px;
     }
 
     /* Reserve Section in Columns */
@@ -150,16 +150,22 @@
             text-align: left; /* Center the content horizontally */
             padding-left: 10%;
         }
+        .form-image-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start; /* Align form and image at the top */
+        gap: 30px; /* Space between the form and image */
+        padding-left: 7%; /* Add some padding from the left */
+      }
 
         form {
           background-color: #AF2630;
           padding: 20px;
           border-radius: 10px;
           max-width: 500px; /* Keeps the form width limited */
-          margin: 20px 7%; /* Center the form */
+          width: 50%; /* Set width to make room for the image */
           color: white;
-          
-      }
+        }
 
 
       form h2 {
@@ -177,27 +183,40 @@
           border: none;
           border-radius: 5px;
           width: calc(100% - 20px);
+          border-color: white;
+          font-family: 'inter';
+          color: #C1696F;
       }
               /* Amenity Buttons Hover Effect */
           .amenities div {
               display: inline-block;
               align-items: center;
           }
+
+          .amenities img{
+            border-color: white;
+          }
+
+          
           
           .amenities input[type="radio"] {
             display: none; /* Hide default radio button */
         }
 
-          .amenities label {
-              cursor: pointer;
-              transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
-          }
+        .amenities label img {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            border: 3px solid #AF2630; /* Adds a solid border */
+            transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+        }
 
           .amenities label img {
               width: 100px;
               height: 100px;
               border-radius: 10px;
               transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+
           }
 
           .amenities input[type="radio"]:checked + label img {
@@ -269,7 +288,24 @@
         .create-button:hover {
             background-color: #b93e4b;
         }
-    /* Responsive adjustments for smaller screens */
+        .preview-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    justify-items: start; /* Aligns the image to the left */
+}
+        .amenity-preview {
+            width: 40%;
+            height: auto;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 3px solid #AF2630; 
+            padding-right:0; 
+            margin: 15px 0; 
+            box-sizing: border-box; 
+            position: relative;
+            left: -10%;
+        }
+  
     @media (max-width: 600px) {
       .search-bar {
         width: 100%;
@@ -280,12 +316,20 @@
       }
 
       .reserve {
-        flex-direction: column; /* Stack buttons vertically on small screens */
+        flex-direction: column; 
         gap: 20px;
       }
 
       .reservetext1 {
-        font-size: 30px; /* Adjust the size for smaller screens */
+        font-size: 30px; 
+      }
+      .amenity-preview {
+            width: 100%;
+            height: auto; 
+        }
+        .form-image-container {
+        flex-direction: column; 
+        gap: 20px;
       }
     }
     </style>
@@ -313,60 +357,122 @@
     <h1>Add new event</h1>
     <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
   </div>
-  <form>
-    <h2>New Event Details</h2>
 
-    <label for="nameofevent">Name of new event:</label>
-    <input type="text" id="nameofevent" name="nameofevent">
 
-    <label for="dateofevent">Date of event:</label>
-    <input type="date" id="dateofevent" name="dateofevent">
-
-    <div class="amenities">
-      <div>
-        <label>Choose an amenity</label>
-          <input type="radio" id="amenityPool" name="amenity" value="Pool" hidden>
-          <label for="amenityPool">
-              <img src="images/pool.png" alt="Pool">
-          </label>
-      </div>
-      <div>
-          <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse" hidden>
-          <label for="amenityClubhouse">
-              <img src="images/Clubhouse.png" alt="Clubhouse">
-          </label>
-      </div>
-      <div>
-          <input type="radio" id="amenityCourt" name="amenity" value="Court" hidden>
-          <label for="amenityCourt">
-              <img src="images/Court.png" alt="Court">
-          </label>
-      </div>
-  </div>
+  <div class="form-image-container">
+    <!-- Form Section -->
+    <form action="/add-event" method="POST">
+      <h2>New Event Details</h2>
+      <input type="hidden" id="username" name="username">
+    <input type="hidden" id="email" name="email">
   
-
-    <div class="guests">
-        <label for="numberofguests">Number of guests:</label>
-        <input type="text" id="numberofguests" name="numberofguests">
-    </div>
-    <div class="homeonwerstatuslabel">
-      <label for="homeownerStatus">Homeowner status:</label>
-    </div>
-    <div class="homeowner">
-      <input type="radio" id="homeownerYes" name="homeownerStatus" value="Yes">
-      <label for="homeownerYes">Yes</label>
+    <label for="eventName">Event Name:</label>
+    <input type="text" id="eventName" name="eventName" required><br>
   
-      <input type="radio" id="homeownerNo" name="homeownerStatus" value="No">
-      <label for="homeownerNo">No</label>
-  </div>
+    <label for="eventDate">Date of Event:</label>
+    <input type="date" id="eventDate" name="eventDate" required><br>
   
-
-    <button type="button" class="create-button">Create</button>
-</form>
-
-
-
+      <div class="amenities">
+        <div>
+          <label>Choose an amenity</label>
+            <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
+            <label for="amenityPool">
+                <img src="images/pool.png" alt="Pool">
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse">
+            <label for="amenityClubhouse">
+                <img src="images/clubhouse.png" alt="Clubhouse">
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="amenityCourt" name="amenity" value="Court">
+            <label for="amenityCourt">
+                <img src="images/court.png" alt="Court">
+            </label>
+        </div>
+      </div>
+  
+      <div class="guests">
+          <label for="numberofguests">Number of guests:</label>
+          <input type="text" id="guests" name="guests">
+      </div>
+  
+      <div class="homeonwerstatuslabel">
+        <label for="homeownerStatus">Homeowner status:</label>
+      </div>
+  
+      <div class="homeowner">
+        <input type="radio" id="homeownerYes" name="homeownerStatus" value="Yes">
+        <label for="homeownerYes">Yes</label>
+    
+        <input type="radio" id="homeownerNo" name="homeownerStatus" value="No">
+        <label for="homeownerNo">No</label>
+      </div>
+  
+      <button type="button" class="create-button">Create</button>
+    </form>
+  
+    <!-- Preview Image -->
+    <img id="amenityPreview" src="images/poolimg.png" alt="Amenity Preview" class="amenity-preview">
   </div>
+
+  <script>
+    const amenities = document.querySelectorAll('input[name="amenity"]');
+    const previewImage = document.getElementById('amenityPreview');
+
+    // Event listener for changing the image preview
+    amenities.forEach(amenity => {
+      amenity.addEventListener('change', function() {
+        if (this.checked) {
+          let selectedImage;
+          switch (this.value) {
+            case 'Pool':
+              selectedImage = 'images/poolimg.png';
+              break;
+            case 'Clubhouse':
+              selectedImage = 'images/clubhouseimg.jpg';
+              break;
+            case 'Court':
+              selectedImage = 'images/courtimg.jpg';
+              break;
+          }
+          previewImage.src = selectedImage;
+        }
+      });
+    });
+    document.getElementById('eventForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const eventData = {
+                eventName: document.getElementById('eventName').value,
+                eventDate: document.getElementById('eventDate').value,
+                guests: document.getElementById('guests').value,
+                homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
+            };
+
+            try {
+                const response = await fetch('/addevent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Event created successfully!');
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while creating the event.');
+            }
+        });
+    </script>
 </body>
 </html>
 
