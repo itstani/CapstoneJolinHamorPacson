@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .event-container {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .event-container h3 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Event Details</h1>
+    
+    <% if (events.length > 0) { %>
+        <% events.forEach(event => { %>
+            <div class="event-container">
+                <h3><%= event.eventName %></h3>
+                <p><strong>Date:</strong> <%= event.eventDate %></p>
+                <p><strong>Amenity:</strong> <%= event.amenity %></p>
+                <p><strong>Number of Guests:</strong> <%= event.guests %></p>
+                <p><strong>Homeowner Status:</strong> <%= event.homeownerStatus %></p>
+                <p><strong>Created By:</strong> <%= event.createdBy.username %> (<%= event.createdBy.email %>)</p>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p>No events found.</p>
+    <% } %>
+
+</body>
+</html>

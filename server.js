@@ -89,7 +89,7 @@ app.post('/register', async (req, res) => {
 // API route to add a new event
 app.post('/add-event', async (req, res) => {
     console.log("Request body:", req.body);
-    const { eventName, eventDate, amenity, guests, homeownerStatus } = req.body;
+    const { hostName, eventName, eventDate, eventTime, amenity, guests, homeownerStatus } = req.body;
 
     // Check if the user is logged in
     if (!req.session.user) {
@@ -99,13 +99,17 @@ app.post('/add-event', async (req, res) => {
     const { username, email } = req.session.user;
 
     // Validate the input data
-    if (!eventName || !eventDate || !amenity || !guests || !homeownerStatus) {
+    if (!hostName || !eventName || !eventDate || !eventTime || !amenity || !guests || !homeownerStatus) {
         return res.json({ message: 'Missing required fields', success: false });
     }
 
+    // Combine date and time
+    const eventDateTime = new Date(`${eventDate}T${eventTime}`);
+
     const newEvent = {
+        hostName, // Store full name
         eventName,
-        eventDate,
+        eventDateTime, // Combine both date and time
         amenity,
         guests: parseInt(guests, 10),
         homeownerStatus,
@@ -120,10 +124,35 @@ app.post('/add-event', async (req, res) => {
         console.log("Inserted event:", result);
         res.json({ message: 'Event created successfully', success: true });
     } catch (error) {
-        console.error("Error inserting event:", error);
-        res.json({ message: 'Failed to create event', success: false });
+        console.error("Error adding event:", error);
+        res.json({ message: 'Error creating event', success: false });
+    }
+    if (eventCreationSuccessful) {
+        res.json({ success: true });
+    } else {
+        res.json({ success: false, message: 'Error creating event' });
     }
 });
+
+
+app.get('/eventfin', async (req, res) => {
+    try {
+        await client.connect();
+        const database = client.db(dbName);
+        const eventsCollection = database.collection('events');
+
+
+        const events = await eventsCollection.find({}).toArray();
+
+      
+        res.render('eventfin', { events });
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        res.status(500).send('An error occurred while fetching events');
+    }
+
+});
+
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);

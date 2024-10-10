@@ -365,9 +365,14 @@
       <h2>New Event Details</h2>
       <input type="hidden" id="username" name="username">
     <input type="hidden" id="email" name="email">
+
+    <label for="hostName">Host Name:</label>
+  <input type="text" id="hostName" name="hostName" required><br>
   
     <label for="eventName">Event Name:</label>
     <input type="text" id="eventName" name="eventName" required><br>
+
+    
   
     <label for="eventDate">Date of Event:</label>
     <input type="date" id="eventDate" name="eventDate" required><br>
@@ -411,7 +416,8 @@
         <label for="homeownerNo">No</label>
       </div>
   
-      <button type="button" class="create-button">Create</button>
+      <button type="submit" class="create-button">Create</button>
+
     </form>
   
     <!-- Preview Image -->
@@ -443,35 +449,40 @@
       });
     });
     document.getElementById('eventForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
+    event.preventDefault(); // Prevent default form submission
 
-            const eventData = {
-                eventName: document.getElementById('eventName').value,
-                eventDate: document.getElementById('eventDate').value,
-                guests: document.getElementById('guests').value,
-                homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
-            };
+    const userData = {
+        username: localStorage.getItem('username'),  // Replace with your login logic if different
+        email: localStorage.getItem('email'),
+        hostName: document.getElementById('hostName').value,
+        eventName: document.getElementById('eventName').value,
+        eventDate: document.getElementById('eventDate').value,
+        amenity: document.querySelector('input[name="amenity"]:checked').value,
+        guests: document.getElementById('guests').value,
+        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value,
+    };
 
-            try {
-                const response = await fetch('/addevent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(eventData)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('Event created successfully!');
-                } else {
-                    alert('Error: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while creating the event.');
-            }
+    try {
+        const response = await fetch('/add-event', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
         });
+
+        const result = await response.json();
+        if (result.success) {
+            window.location.href = '/eventfin.html'; // Redirect to eventfin after success
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error('Error submitting the event:', error);
+    }
+});
+
+
     </script>
 </body>
 </html>
