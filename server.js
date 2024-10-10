@@ -4,9 +4,6 @@ const bodyParser = require('body-parser');
 const { MongoClient } = require('mongodb');
 const path = require('path');
 const session = require('express-session');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
 
 const app = express();
 const port = 3000;
@@ -29,95 +26,6 @@ app.use(session({
     cookie: { secure: false } // Set to true if using https
 }));
 
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Serialize and deserialize user
-passport.serializeUser((user, done) => {
-    done(null, user);
-});
-
-passport.deserializeUser((user, done) => {
-    done(null, user);
-});
-
-// Configure Google Strategy
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: '/auth/google/callback'
-}, async (token, tokenSecret, profile, done) => {
-    try {
-        await client.connect();
-        const database = client.db(dbName);
-        const usersCollection = database.collection('acc');
-
-        let user = await usersCollection.findOne({ googleId: profile.id });
-
-        if (!user) {
-            user = await usersCollection.insertOne({
-                username: profile.displayName,
-                email: profile.emails[0].value,
-                googleId: profile.id,
-            });
-        }
-
-        done(null, user);
-    } catch (err) {
-        done(err, null);
-    }
-}));
-
-// Configure Facebook Strategy
-passport.use(new FacebookStrategy({
-    clientID: process.env.FACEBOOK_APP_ID,
-    clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: '/auth/facebook/callback',
-    profileFields: ['id', 'displayName', 'emails']
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        await client.connect();
-        const database = client.db(dbName);
-        const usersCollection = database.collection('acc');
-
-        let user = await usersCollection.findOne({ facebookId: profile.id });
-
-        if (!user) {
-            user = await usersCollection.insertOne({
-                username: profile.displayName,
-                email: profile.emails ? profile.emails[0].value : '',
-                facebookId: profile.id,
-            });
-        }
-
-        done(null, user);
-    } catch (err) {
-        done(err, null);
-    }
-}));
-
-// Routes for Google and Facebook authentication
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
-    res.redirect('/dashboard');
-});
-
-app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
-
-app.get('/auth/facebook/callback', passport.authenticate('facebook', { failureRedirect: '/' }), (req, res) => {
-    res.redirect('/dashboard');
-});
-
-// Protected dashboard route
-app.get('/dashboard', (req, res) => {
-    if (req.isAuthenticated()) {
-        res.json({ message: 'Welcome to your dashboard', user: req.user });
-    } else {
-        res.redirect('/');
-    }
-});
-
 // Serve the login page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'Webpages/login.html'));
@@ -139,6 +47,42 @@ app.post('/login', async (req, res) => {
         }
     } catch (error) {
         res.json({ message: 'An error occurred', success: false });
+    }
+});
+
+// API route to handle user registration
+app.post('/register', async (req, res) => {
+    const { username, email, password } = req.body;
+
+    // Validate input data
+    if (!username || !email || !password) {
+        return res.json({ message: 'Missing required fields', success: false });
+    }
+
+    try {
+        await client.connect();
+        const database = client.db(dbName);
+        const usersCollection = database.collection('acc');
+
+        // Check if the user already exists
+        const existingUser = await usersCollection.findOne({ email });
+        if (existingUser) {
+            return res.json({ message: 'Email is already registered', success: false });
+        }
+
+        // Insert new user into the database
+        const newUser = {
+            username,
+            email,
+            password, // In a production system, you should hash the password before saving it
+            createdAt: new Date(),
+        };
+        await usersCollection.insertOne(newUser);
+
+        res.json({ message: 'Registration successful', success: true });
+    } catch (error) {
+        console.error("Error during registration:", error);
+        res.json({ message: 'Registration failed', success: false });
     }
 });
 
@@ -181,7 +125,6 @@ app.post('/add-event', async (req, res) => {
     }
 });
 
-// Start the server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
