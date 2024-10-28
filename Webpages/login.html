@@ -114,39 +114,40 @@
     </style>
     <script>
         async function handleLogin(event) {
-            event.preventDefault(); // Prevent form from reloading the page
+    event.preventDefault(); // Prevent form from reloading the page
 
-            // Get the input values
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("pw").value;
+    // Get the input values
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("pw").value;
 
-            // Send the login request to the server
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
+    // Send the login request to the server
+    const response = await fetch('/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+    });
 
-            const userData = await response.json();
+    const userData = await response.json();
 
-            // Check if login is successful
-            if (userData.success) {
-                // Store the user's data in localStorage
-                localStorage.setItem('username', userData.username);
-                localStorage.setItem('email', userData.email);
+    // Check if login is successful
+    if (userData.success) {
+        // Store the user's data in localStorage
+        localStorage.setItem('username', userData.username);
+        localStorage.setItem('email', userData.email);
 
-                // Redirect based on the user type (admin or regular)
-                if (userData.email === "admin@example.com") {
-                    window.location.href = "Main.html";  // Admin page
-                } else {
-                    window.location.href = "welcome.html";  // Regular user page
-                }
-            } else {
-                alert('Login failed: ' + userData.message);
-            }
+        // Redirect based on whether the user is admin or not
+        if (userData.isAdmin) {
+            window.location.href = "Main.html";  // Admin page
+        } else {
+            window.location.href = "welcome.html";  // Regular user page
         }
+    } else {
+        alert('Login failed: ' + userData.message);
+    }
+}
+
     </script>
 </head>
 <body>

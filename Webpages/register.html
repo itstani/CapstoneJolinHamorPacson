@@ -123,7 +123,12 @@
         <form id="registerForm" method="POST">
             <div class="column">
                 <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Username" name="un" id="un">
+                    <input type="text" class="rounded-input" placeholder="Enter First Name" name="un" id="un">
+                </div>
+            </div>
+            <div class="column">
+                <div class="col-12">
+                    <input type="text" class="rounded-input" placeholder="Enter Last Name" name="ln" id="ln">
                 </div>
             </div>
             <div class="column">
@@ -158,6 +163,7 @@
                 event.preventDefault();  // Prevent the default form submission
         
                 const username = document.getElementById('un').value;
+                const lastname = document.getElementById('ln').value;
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('pw').value;
                 const confirmPassword = document.getElementById('cpw').value;
@@ -175,9 +181,10 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        username: username,
+                        username: username, // dapat firstname pero d ko pa nachange
+                        lastname: lastname,
                         email: email,
-                        password: password
+                        password: password //homeowner monthly status to be verified by admin if paid or not nasa backend naka auto set 'to be verified' pag naayos na admin side pwede iverify'
                     }),
                 });
         

@@ -346,12 +346,13 @@
 
   <div class="side-bar">
     <div class="Home">
-      <button type="button" id="homebutton" name="homebutton" aria-label="home">
-        <img src="images/house.png">
+      <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='welcome.html'">
+        <img src="images/house.png" alt="Home">
       </button>
       <p>Home</p>
     </div>
   </div>
+  
 
   <div class="Welcome">
     <h1>Add new event</h1>
@@ -361,7 +362,8 @@
 
   <div class="form-image-container">
     <!-- Form Section -->
-    <form action="/add-event" method="POST">
+    <form id="eventForm" method="POST"> <!-- eto lang pala problema ahahaha naka form event -->
+     
       <h2>New Event Details</h2>
       <input type="hidden" id="username" name="username">
     <input type="hidden" id="email" name="email">
@@ -372,7 +374,10 @@
     <label for="eventName">Event Name:</label>
     <input type="text" id="eventName" name="eventName" required><br>
 
+    <label for="eventTime">Event Time:</label>
+    <input type="time" id="eventTime" name="eventTime" required><br>
     
+
   
     <label for="eventDate">Date of Event:</label>
     <input type="date" id="eventDate" name="eventDate" required><br>
@@ -428,62 +433,67 @@
     const amenities = document.querySelectorAll('input[name="amenity"]');
     const previewImage = document.getElementById('amenityPreview');
 
-    // Event listener for changing the image preview
+    // Event listener for changing the image preview based on selected amenity
     amenities.forEach(amenity => {
-      amenity.addEventListener('change', function() {
-        if (this.checked) {
-          let selectedImage;
-          switch (this.value) {
-            case 'Pool':
-              selectedImage = 'images/poolimg.png';
-              break;
-            case 'Clubhouse':
-              selectedImage = 'images/clubhouseimg.jpg';
-              break;
-            case 'Court':
-              selectedImage = 'images/courtimg.jpg';
-              break;
-          }
-          previewImage.src = selectedImage;
-        }
-      });
-    });
-    document.getElementById('eventForm').addEventListener('submit', async function(event) {
-    event.preventDefault(); // Prevent default form submission
-
-    const userData = {
-        username: localStorage.getItem('username'),  // Replace with your login logic if different
-        email: localStorage.getItem('email'),
-        hostName: document.getElementById('hostName').value,
-        eventName: document.getElementById('eventName').value,
-        eventDate: document.getElementById('eventDate').value,
-        amenity: document.querySelector('input[name="amenity"]:checked').value,
-        guests: document.getElementById('guests').value,
-        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value,
-    };
-
-    try {
-        const response = await fetch('/add-event', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(userData)
+        amenity.addEventListener('change', function() {
+            if (this.checked) {
+                let selectedImage;
+                switch (this.value) {
+                    case 'Pool':
+                        selectedImage = 'images/poolimg.png';
+                        break;
+                    case 'Clubhouse':
+                        selectedImage = 'images/clubhouseimg.jpg';
+                        break;
+                    case 'Court':
+                        selectedImage = 'images/courtimg.jpg';
+                        break;
+                }
+                previewImage.src = selectedImage;
+            }
         });
+    });
 
-        const result = await response.json();
-        if (result.success) {
-            window.location.href = '/eventfin.html'; // Redirect to eventfin after success
-        } else {
-            alert(result.message);
-        }
-    } catch (error) {
-        console.error('Error submitting the event:', error);
-    }
-});
+    
+    document.getElementById('eventForm').addEventListener('submit', async function(event) {
+        event.preventDefault();  // Prevent default form submission
+        
+        // Gather form data
+        const eventData = {
+            username: localStorage.getItem('username'),  //local storage dtb user and email of event creator
+            email: localStorage.getItem('email'),        
+            hostName: document.getElementById('hostName').value, // Get host name
+            eventName: document.getElementById('eventName').value, // Get event name
+            eventDate: document.getElementById('eventDate').value, // Get event date
+            eventTime: document.getElementById('eventTime').value, // Get event time
+            amenity: document.querySelector('input[name="amenity"]:checked').value, // Get selected amenity
+            guests: document.getElementById('guests').value, // Number of guests
+            homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value // Homeowner status
+        };
 
+        sessionStorage.setItem('eventData', JSON.stringify(eventData));
+            // Send event data to the backend via fetch
+            const response = await fetch('http://localhost:3000/addevent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(eventData) 
+            });
+           
+            const result = await response.json(); 
 
-    </script>
+            if (result.success) {
+ 
+                    // Redirect the user 
+                    
+                        window.location.href = 'eventfin.html';
+                } 
+            });
+        
+            
+</script>
+
 </body>
 </html>
 

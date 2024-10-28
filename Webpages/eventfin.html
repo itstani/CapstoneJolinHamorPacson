@@ -3,40 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Details</title>
+    <title>Event Confirmation</title>
     <style>
+        
         body {
             font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        .event-container {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
+
+        .confirmation-container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 400px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            color: #333;
+            text-align: center;
+        }
+
+        .confirmation-container h2 {
+            color: #AF2630;
+        }
+
+        .confirmation-detail {
+            text-align: left;
+            margin: 15px 0;
+            font-size: 16px;
+        }
+
+        .proceed-button {
+            background-color: #c44c57;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
             border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
-        .event-container h3 {
-            margin-top: 0;
+        .back-button {
+            background-color: #c44c57;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .proceed-button:hover {
+            background-color: #b93e4b;
         }
     </style>
 </head>
 <body>
-    <h1>Event Details</h1>
+    <div class="confirmation-container">
+        <h2>Event Confirmation</h2>
+        <div id="confirmationDetails" class="confirmation-detail"></div>
+        <button id="proceedButton" class="proceed-button">Proceed to Payment</button>
+        <button id="backButton" class="back-button">Back</button>
+    </div>
     
-    <% if (events.length > 0) { %>
-        <% events.forEach(event => { %>
-            <div class="event-container">
-                <h3><%= event.eventName %></h3>
-                <p><strong>Date:</strong> <%= event.eventDate %></p>
-                <p><strong>Amenity:</strong> <%= event.amenity %></p>
-                <p><strong>Number of Guests:</strong> <%= event.guests %></p>
-                <p><strong>Homeowner Status:</strong> <%= event.homeownerStatus %></p>
-                <p><strong>Created By:</strong> <%= event.createdBy.username %> (<%= event.createdBy.email %>)</p>
-            </div>
-        <% }) %>
-    <% } else { %>
-        <p>No events found.</p>
-    <% } %>
-
-</body>
+    <script>
+        // Retrieve event data from sessionStorage
+        const eventData = JSON.parse(sessionStorage.getItem('eventData'));
+    
+        // Display the event details
+        const confirmationDetails = document.getElementById('confirmationDetails');
+        if (eventData) {
+            confirmationDetails.innerHTML = `
+                <p><strong>Host Name:</strong> ${eventData.hostName}</p>
+                <p><strong>Event Name:</strong> ${eventData.eventName}</p>
+                <p><strong>Event Date:</strong> ${eventData.eventDate}</p>
+                <p><strong>Event Time:</strong> ${eventData.eventTime}</p>
+                <p><strong>Amenity:</strong> ${eventData.amenity}</p>
+                <p><strong>Number of Guests:</strong> ${eventData.guests}</p>
+                <p><strong>Homeowner Status:</strong> ${eventData.homeownerStatus}</p>
+            `;
+        } else {
+            confirmationDetails.innerHTML = '<p>Error: No event data available.</p>';
+        }
+    
+        // redirect to final payment nakalagay muna welcome wala pa html para sa final
+        document.getElementById('proceedButton').addEventListener('click', () => {
+            window.location.href = 'welcome.html';
+        });
+    
+        // back button remove recent event from dtb
+        document.getElementById('backButton').addEventListener('click', async () => {
+            const username = eventData.username;
+    
+            const response = await fetch('http://localhost:3000/delEvent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username })
+            });
+    
+            const result = await response.json();
+            if (result.success) {
+                alert('Most recent event deleted successfully.');
+            } else {
+                alert(  result.message);
+            }
+    
+            window.location.href = 'addevent.html';
+        });
+    </script>
+    </body>
+    
 </html>
