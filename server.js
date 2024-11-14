@@ -22,10 +22,10 @@ app.use("/images", express.static(path.join(__dirname, "images")));
 // Session setup
 app.use(
   session({
-    secret: "your-secret-key", // Change this to a secure key
+    secret: "N3$Pxm/mXm1eYY", // Change this to a secure key
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }, // Set to true if using https
+    cookie: { secure: true }, // Set to true if using https
   })
 );
 
@@ -44,18 +44,19 @@ app.post("/login", async (req, res) => {
     const user = await usersCollection.findOne({ email });
 
     if (user) {
-      // Compare the entered password with the stored hashed password
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (isPasswordValid) {
-        const isAdmin = user.email === "admin@example.com"; // Check if the user is admin
+        const isAdmin = user.email === "admin@gmail.com"; // Check if the user is admin
         req.session.user = { username: user.username, email: user.email };
+        
         res.json({
           message: "Login successful",
           success: true,
           username: user.username,
           email: user.email,
           isAdmin,
+          redirectUrl: isAdmin ? "../main.html" : "../welcome.html" // Set redirect URL based on role
         });
       } else {
         res.json({ message: "Invalid email or password", success: false });
