@@ -1,0 +1,38 @@
+[{
+  "_id": {
+    "$oid": "67281dc78949a876bb27477a"
+  },
+  "hostName": "Ethan",
+  "eventName": "BDAY",
+  "eventDate": "2024-11-09",
+  "eventTime": "17:30",
+  "amenity": "Pool",
+  "guests": 20,
+  "homeownerStatus": "Yes",
+  "createdBy": {
+    "username": "Ethan",
+    "email": "tani@gmail.com"
+  },
+  "createdAt": {
+    "$date": "2024-11-04T01:05:11.131Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "672822bdf550935773d020c4"
+  },
+  "hostName": "Kwan",
+  "eventName": "Bday ko",
+  "eventDate": "2024-11-10",
+  "eventTime": "17:00",
+  "amenity": "Court",
+  "guests": 20,
+  "homeownerStatus": "Yes",
+  "createdBy": {
+    "username": "Ethan",
+    "email": "tani@gmail.com"
+  },
+  "createdAt": {
+    "$date": "2024-11-04T01:26:21.944Z"
+  }
+}]

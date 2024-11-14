@@ -1,252 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="styles.css"/>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
     <style>
-    .top-bar {
-      background-color: #AF2630;
-      position: fixed;
-      color: #6b6a6a; 
-      top: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: 50px; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 20px;
-      box-sizing: border-box;
-    }
-
-    .search-bar {
-      background-color: #C1696F;
-      position: relative;
-      width: 20%;
-    }
-
-    .search-bar input[type="text"] {
-      width: 100%;
-      padding: 10px 40px 10px 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-
-    .search-bar button[type="button"] {
-      position: absolute;
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .search-bar button[type="button"] img {
-      width: 20px;
-      height: 20px;
-    }
-
-    .search-bar button[type="button"]:hover img {
-      filter: brightness(0.8);
-    }
-
-    .side-bar {
-      background-color: #D9D9D9;
-      position: fixed;
-      color: #AF2630;
-      top: 50px;
-      left: 0;
-      width: 90px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0 20px;
-      box-sizing: border-box;
-    }
-
-    .Home, .homeownerstatus, .analytics, .Calendar {
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 15px;
-      font-weight: bold;
-      font-family: 'Inter';
-    }
-
-    .Home img, .homeownerstatus img, .analytics img, .Calendar img {
-      width: 60px;
-      height: 60px;
-    }
-
-    .Home button, .homeownerstatus button, .analytics button, .Calendar button {
-      background-color: #D9D9D9;
-      margin: 0 auto;
-      border: none;
-      transition: background-color 0.3s;
-    }
-
-    .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
-      background-color: #ccc;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-
-    .Welcome {
-      font-size: 30px;
-      font-family: 'Inter';
-      color: #AF2630;
-      font-weight: bold;
-      padding-left: 5%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .Welcome h1 {
-      margin: 0;
-      padding-left: 40px;
-    }
-
-    .avidalogo {
-      width: 700px;
-      height: 250px;
-      margin-left: 20px;
-      padding-top: 30px;
-    }
-
-    /* Reserve Section in Columns */
-    .reserve {
-      display: flex;
-      justify-content: center; /* Centers content horizontally */
-      gap: 20%; /* Space between the buttons */
-      text-align: center;
-      flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
-    }
-
-    .reservetext1 {
-      font-size: 40px;
-      font-family: 'Inter';
-      color: #3E0408;
-      font-weight: bold;
-      margin-top: 20px;
-      text-align: center;
-      width: 100%; /* Ensure the text takes up full width */
-    }
-
-    .reserve-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .reserve button {
-      border: 2px solid #3E0408;
-      background: transparent;
-      padding: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .reserve button:hover {
-      background-color: #3E0408;
-      color: #ffffff;
-      transform: scale(1.1);
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-
-    .reserve button img {
-      width: 300px;
-      height: 300px;
-    }
-
-    .reserve button:hover img {
-      filter: brightness(1.2);
-    }
-
-    .reservetext, .raisetext {
-      font-size: 20px;
-      font-family: 'Inter';
-      color: #3E0408;
-      font-weight: bold;
-      margin-top: 10px;
-      padding-top: 20px;
-      
-    }
-
-    /* Responsive adjustments for smaller screens */
-    @media (max-width: 600px) {
-      .search-bar {
-        width: 100%;
-      }
-
       .top-bar {
-        padding: 0 10px;
+        background-color: #af2630;
+        position: fixed;
+        color: #6b6a6a;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 20px;
+        box-sizing: border-box;
       }
 
+      .search-bar {
+        background-color: #c1696f;
+        position: relative;
+        width: 20%;
+      }
+
+      .search-bar input[type="text"] {
+        width: 100%;
+        padding: 10px 40px 10px 10px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+
+      .search-bar button[type="button"] {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .search-bar button[type="button"] img {
+        width: 20px;
+        height: 20px;
+      }
+
+      .search-bar button[type="button"]:hover img {
+        filter: brightness(0.8);
+      }
+
+      .side-bar {
+        background-color: #d9d9d9;
+        position: fixed;
+        color: #af2630;
+        top: 50px;
+        left: 0;
+        width: 90px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0 20px;
+        box-sizing: border-box;
+      }
+
+      .Home,
+      .homeownerstatus,
+      .analytics,
+      .Calendar {
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        font-family: "Inter";
+      }
+
+      .Home img,
+      .homeownerstatus img,
+      .analytics img,
+      .Calendar img {
+        width: 60px;
+        height: 60px;
+      }
+
+      .Home button,
+      .homeownerstatus button,
+      .analytics button,
+      .Calendar button {
+        background-color: #d9d9d9;
+        margin: 0 auto;
+        border: none;
+        transition: background-color 0.3s;
+      }
+
+      .Home button:hover,
+      .homeownerstatus button:hover,
+      .analytics button:hover,
+      .Calendar button:hover {
+        background-color: #ccc;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .Welcome {
+        font-size: 30px;
+        font-family: "Inter";
+        color: #af2630;
+        font-weight: bold;
+        padding-left: 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .Welcome h1 {
+        margin: 0;
+        padding-left: 40px;
+      }
+
+      .avidalogo {
+        width: 700px;
+        height: 250px;
+        margin-left: 20px;
+        padding-top: 30px;
+      }
+
+      /* Reserve Section in Columns */
       .reserve {
-        flex-direction: column; /* Stack buttons vertically on small screens */
-        gap: 20px;
+        display: flex;
+        justify-content: center; /* Centers content horizontally */
+        gap: 20%; /* Space between the buttons */
+        text-align: center;
+        flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
       }
 
       .reservetext1 {
-        font-size: 30px; /* Adjust the size for smaller screens */
+        font-size: 40px;
+        font-family: "Inter";
+        color: #3e0408;
+        font-weight: bold;
+        margin-top: 20px;
+        text-align: center;
+        width: 100%; /* Ensure the text takes up full width */
       }
-    }
+
+      .reserve-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .reserve button {
+        border: 2px solid #3e0408;
+        background: transparent;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .reserve button:hover {
+        background-color: #3e0408;
+        color: #ffffff;
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .reserve button img {
+        width: 300px;
+        height: 300px;
+      }
+
+      .reserve button:hover img {
+        filter: brightness(1.2);
+      }
+
+      .reservetext,
+      .raisetext {
+        font-size: 20px;
+        font-family: "Inter";
+        color: #3e0408;
+        font-weight: bold;
+        margin-top: 10px;
+        padding-top: 20px;
+      }
+
+      /* Responsive adjustments for smaller screens */
+      @media (max-width: 600px) {
+        .search-bar {
+          width: 100%;
+        }
+
+        .top-bar {
+          padding: 0 10px;
+        }
+
+        .reserve {
+          flex-direction: column; /* Stack buttons vertically on small screens */
+          gap: 20px;
+        }
+
+        .reservetext1 {
+          font-size: 30px; /* Adjust the size for smaller screens */
+        }
+      }
     </style>
-</head>
-<body>
-  <div class="top-bar">
-    <div class="search-bar">
-      <input type="text" placeholder="Search...">
-      <button type="button" id="searchbutton" name="searchbutton" aria-label="Search">
-        <img src="images/Searchicon.png">
-      </button>
-    </div>
-  </div> 
-
-  <div class="side-bar">
-    <div class="Home">
-      <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='welcome.html'">
-        <img src="images/house.png" alt="Home">
-      </button>
-      <p>Home</p>
-    </div>
-  </div>
-
-  <div class="Welcome">
-    <h1>Welcome home!</h1>
-    <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
-  </div>
-
-  <div class="reserve">
-    <p class="reservetext1">What would you like to do?</p>
-    
-    <div class="reserve-item">
-      <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
-        <img src="images/pool.png">
-      </button>
-      <p class="reservetext">Reserve for an Outing or an event?</p>
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="search-bar">
+        <input type="text" placeholder="Search..." />
+        <button
+          type="button"
+          id="searchbutton"
+          name="searchbutton"
+          aria-label="Search"
+        >
+          <img src="images/Searchicon.png" />
+        </button>
+      </div>
     </div>
 
-    <div class="reserve-item">
-      <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
-        <img src="images/admin.png">
-      </button>
-      <p class="raisetext">Raise your concern to an admin</p>
+    <div class="side-bar">
+      <div class="Home">
+        <button
+          type="button"
+          id="homebutton"
+          name="homebutton"
+          aria-label="home"
+          onclick="window.location.href='welcome.html'"
+        >
+          <img src="images/house.png" alt="Home" />
+        </button>
+        <p>Home</p>
+      </div>
+      <!-- New Profile Button -->
+      <div class="Profile">
+        <button
+          type="button"
+          id="profilebutton"
+          name="profilebutton"
+          aria-label="profile"
+          onclick="window.location.href='profile.html'"
+        >
+          <img src="images/Profile.png" alt="Profile" />
+        </button>
+        <p>Profile</p>
+      </div>
     </div>
-  </div>
-</body>
+
+    <div class="Welcome">
+      <h1>Welcome home!</h1>
+      <img
+        src="/images/AvidaSettingsLogo.png"
+        alt="Avida Settings Logo"
+        class="avidalogo"
+      />
+    </div>
+
+    <div class="reserve">
+      <p class="reservetext1">What would you like to do?</p>
+
+      <div class="reserve-item">
+        <button
+          type="button"
+          class="poolbutton"
+          id="poolbutton"
+          name="poolbutton"
+          aria-label="pool"
+          onclick="window.location.href='addevent.html'"
+        >
+          <img src="images/pool.png" />
+        </button>
+        <p class="reservetext">Reserve for an Outing or an event?</p>
+      </div>
+
+      <div class="reserve-item">
+        <button
+          type="button"
+          class="adminbutton"
+          id="adminbutton"
+          name="adminbutton"
+          aria-label="admin"
+        >
+          <img src="images/admin.png" />
+        </button>
+        <p class="raisetext">Raise your concern to an admin</p>
+      </div>
+    </div>
+  </body>
 </html>
-

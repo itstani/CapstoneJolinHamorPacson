@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Final Payment</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f3f3f3;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .payment-container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        max-width: 400px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        color: #333;
+      }
+      h2 {
+        color: #af2630;
+        text-align: center;
+      }
+      .detail,
+      .payment-method,
+      .confirm-button {
+        margin-top: 15px;
+      }
+      .detail p {
+        margin: 5px 0;
+      }
+      .payment-method label {
+        display: block;
+        margin: 8px 0;
+      }
+      .confirm-button {
+        display: block;
+        width: 100%;
+        background-color: #c44c57;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        text-align: center;
+      }
+      .confirm-button:hover {
+        background-color: #b93e4b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="payment-container">
+      <h2>Finalize Your Payment</h2>
+      <div class="detail">
+        <p>
+          <strong>Event Name:</strong>
+          <span id="eventName">Birthday Party</span>
+        </p>
+        <p>
+          <strong>Event Date:</strong> <span id="eventDate">2023-12-01</span>
+        </p>
+        <p><strong>Amount Due:</strong> ₱<span id="amountDue">2000</span></p>
+      </div>
+
+      <div class="payment-method">
+        <h3>Choose Payment Method:</h3>
+        <label
+          ><input type="radio" name="paymentMethod" value="gcash" />
+          GCash</label
+        >
+        <label
+          ><input type="radio" name="paymentMethod" value="card" /> Credit
+          Card</label
+        >
+        <label
+          ><input type="radio" name="paymentMethod" value="cash" /> Cash</label
+        >
+      </div>
+
+      <button class="confirm-button" id="confirmButton">Confirm Payment</button>
+    </div>
+
+    <script>
+      // Populate payment details (from session or query)
+      const eventData = JSON.parse(sessionStorage.getItem("eventData"));
+      if (eventData) {
+        document.getElementById("eventName").innerText = eventData.eventName;
+        document.getElementById("eventDate").innerText = eventData.eventDate;
+        document.getElementById("amountDue").innerText = eventData.amountDue;
+      } else {
+        alert("No event data found.");
+      }
+
+      // Handle payment method confirmation
+      document
+        .getElementById("confirmButton")
+        .addEventListener("click", async () => {
+          const selectedMethod = document.querySelector(
+            'input[name="paymentMethod"]:checked'
+          );
+          if (!selectedMethod) {
+            alert("Please select a payment method.");
+            return;
+          }
+
+          const paymentMethod = selectedMethod.value;
+          const amountDue = document.getElementById("amountDue").innerText;
+
+          if (paymentMethod === "gcash") {
+            // Handle GCash payment API
+            alert("Proceeding with GCash payment...");
+            // Send a request to server to handle GCash payment
+          } else if (paymentMethod === "card") {
+            // Handle Credit Card payment process here
+            alert("Proceeding with Credit Card payment...");
+            // Send a request to server to handle Credit Card payment
+          } else if (paymentMethod === "cash") {
+            // Simply confirm cash payment
+            alert("Payment confirmed with Cash.");
+            // Send a request to server to record Cash payment
+          }
+        });
+    </script>
+  </body>
+</html>

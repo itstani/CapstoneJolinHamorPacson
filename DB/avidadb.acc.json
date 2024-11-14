@@ -1,0 +1,13 @@
+[{
+  "_id": {
+    "$oid": "6724b4a576e8b603e034b0c9"
+  },
+  "username": "Ethan",
+  "lastname": "Jolin",
+  "email": "tani@gmail.com",
+  "password": "Edj1026!",
+  "status": "to be verified",
+  "createdAt": {
+    "$date": "2024-11-01T10:59:49.845Z"
+  }
+}]
