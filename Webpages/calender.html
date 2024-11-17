@@ -189,13 +189,16 @@
         }
         
         for (let i = 1; i <= daysInMonth; i++) {
-            const currentDate = ${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')};
+            const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const hasEvents = eventsByDate[currentDate];
 
-            daysGrid.innerHTML += <div class="day" data-date="${currentDate}" onclick="displayEventDetails('${currentDate}')">
-                ${i} ${hasEvents ? '<span class="event-indicator">•</span>' : ''}
-            </div>;
+            daysGrid.innerHTML += `
+                <div class="day" data-date="${currentDate}" onclick="displayEventDetails('${currentDate}')">
+                    ${i} ${hasEvents ? '<span class="event-indicator">•</span>' : ''}
+                </div>
+            `;
         }
+
     }
 
         document.getElementById('prevMonth').addEventListener('click', () => {
@@ -252,20 +255,30 @@
 
 function displayEventDetails(date) {
     const events = eventsByDate[date];
-    let eventDetailsHtml = <div class="event-popup">;
+    let eventDetailsHtml = `
+        <div class="event-popup">
+    `;
 
     if (events) {
         events.forEach(event => {
-            eventDetailsHtml += <p><strong>${event.name}</strong> at ${event.time}</p>;
+            eventDetailsHtml += `
+                <p><strong>${event.name}</strong> at ${event.time}</p>
+            `;
         });
     } else {
-        eventDetailsHtml += <p>No events for this day.</p>;
+        eventDetailsHtml += `
+            <p>No events for this day.</p>
+        `;
     }
 
-    eventDetailsHtml += <button onclick="closeEventPopup()">Close</button></div>;
-    
+    eventDetailsHtml += `
+        <button onclick="closeEventPopup()">Close</button>
+        </div>
+    `;
+
     document.body.insertAdjacentHTML('beforeend', eventDetailsHtml);
 }
+
 
 function closeEventPopup() {
     const popup = document.querySelector('.event-popup');
