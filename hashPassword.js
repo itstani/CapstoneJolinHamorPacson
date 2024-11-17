@@ -9,4 +9,4 @@ async function hashPassword(plainPassword) {
   }
 }
 
-hashPassword("Edj1026!"); // Replace with your actual password
+hashPassword("admin"); // Replace with your actual password

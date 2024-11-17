@@ -181,6 +181,7 @@
           </button>
             <p>Calendar</p>
           </div>
+          <button id="logoutButton" style="margin-left: 8px; background-color: #AF2630; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">Logout</button>
         </div>
 
         <div class="Welcome">
@@ -203,7 +204,21 @@
           <h2>Currently Reserved amenity</h2>
           
         </div>
-
+        <script>
+          document.getElementById('logoutButton').addEventListener('click', async () => {
+            // Optional: Send a request to the server to clear the session
+            const response = await fetch('/logout', { method: 'POST' });
+        
+            // If the logout is successful, clear local storage and redirect
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = 'login.html'; // Redirect to the login page
+            } else {
+              alert('Logout failed. Please try again.');
+            }
+          });
+        </script>
+        
 
       </body>
       </html>

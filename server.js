@@ -1,18 +1,24 @@
 require("dotenv").config(); // Load environment variables from .env file
 const express = require("express");
 const bodyParser = require("body-parser");
-const { MongoClient } = require("mongodb");
-const path = require("path");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const multer = require('multer');
+const path = require('path');
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
 
 const app = express();
 const port = 3000;
-
-const uri = "mongodb://localhost:27017/";
-const client = new MongoClient(uri);
 const dbName = "avidadb";
-
+const uri = "mongodb+srv://ethan:Edj1026@avidadb.upica.mongodb.net/?retryWrites=true&w=majority&appName=avidadb";
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -28,6 +34,47 @@ app.use(
     cookie: { secure: true }, // Set to true if using https
   })
 );
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Folder to save the uploaded files
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Generate a unique filename
+  },
+});
+
+const upload = multer({ storage: storage });
+
+app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
+  const { eventName, eventDate, amount, startTime, endTime } = req.body;
+  const receiptImagePath = req.file ? req.file.path : null; // Get the uploaded file path
+
+  // Save payment details in the database
+  try {
+    await client.connect();
+    const db = client.db(dbName);
+    const paymentsCollection = db.collection('eventPayments');
+
+    const paymentDetails = {
+      eventName,
+      eventDate,
+      startTime,
+      endTime,
+      amount,
+      receiptImage: receiptImagePath, // Save receipt file path
+    };
+
+    await paymentsCollection.insertOne(paymentDetails);
+
+    res.json({ success: true, message: 'Payment details saved successfully!' });
+  } catch (error) {
+    console.error('Error saving payment details:', error);
+    res.json({ success: false, message: 'Error saving payment details' });
+  } finally {
+    await client.close();
+  }
+});
 
 // Serve the login page
 app.get("/", (req, res) => {
@@ -161,6 +208,46 @@ app.post("/updateProfile", async (req, res) => {
     await client.close();
   }
 });
+// Store event data in session
+app.post('/addevent', async (req, res) => {
+  const { username, email, hostName, eventName, eventDate, startTime, endTime, amenity, guests, homeownerStatus } = req.body;
+
+  try {
+      // Calculate duration based on startTime and endTime
+      const start = new Date(`1970-01-01T${startTime}:00`);
+      const end = new Date(`1970-01-01T${endTime}:00`);
+      const duration = (end - start) / (1000 * 60 * 60); // Duration in hours
+
+      const event = {
+          username,
+          email,
+          hostName,
+          eventName,
+          eventDate,
+          startTime,
+          endTime,
+          duration,
+          amenity,
+          guests,
+          homeownerStatus
+      };
+
+      // Insert the event into the 'events' collection of 'avidadb'
+      const db = client.db('avidadb'); // Ensure client is connected
+      await db.collection('events').insertOne(event);
+
+      // Store the event data in session to be accessed in the next page
+      req.session.eventData = event;
+
+      res.json({ success: true });
+  } catch (error) {
+      console.error('Error adding event:', error);
+      res.json({ success: false, message: error.message });
+  }
+});
+
+
+
 
 // Endpoint to delete the most recent event
 app.post("/delEvent", async (req, res) => {
@@ -195,19 +282,23 @@ app.post("/delEvent", async (req, res) => {
 });
 
 // Route to display all events
-app.get("/eventfin", async (req, res) => {
+app.get('/eventfin', async (req, res) => {
   try {
-    await client.connect();
-    const database = client.db(dbName);
-    const eventsCollection = database.collection("events");
-    const events = await eventsCollection.find({}).toArray();
+      await client.connect();
+      const database = client.db(dbName);
+      const eventsCollection = database.collection('events');
 
-    res.render("eventfin", { events });
+      const events = await eventsCollection.find({}).toArray();
+
+      res.json(events); // Send the events data as JSON
   } catch (error) {
-    console.error("Error fetching events:", error);
-    res.status(500).send("An error occurred while fetching events");
+      console.error("Error fetching events:", error);
+      res.status(500).send('An error occurred while fetching events');
+  } finally {
+      await client.close();
   }
 });
+
 
 // Simulated GCash payment endpoint
 app.post("/gcash-payment", async (req, res) => {
@@ -325,13 +416,27 @@ app.post("/updateUsername", async (req, res) => {
 });
 
 // Logout endpoint to clear session
-app.post("/logout", (req, res) => {
+app.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Error during logout" });
+      console.error('Failed to destroy session:', err);
+      return res.status(500).json({ message: 'Failed to log out' });
     }
-    res.json({ success: true });
+    res.status(200).json({ message: 'Logout successful' });
   });
 });
+
+
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+run().catch(console.dir);

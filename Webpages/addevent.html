@@ -220,13 +220,13 @@
 
           .amenities input[type="radio"]:checked + label img {
               transform: scale(1.1); /* Enlarge the button when selected */
-              border: 3px solid #AF2630; /* Add border on hover */
+              border: 3px solid white; /* Add border on hover */
               box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
           }
 
           .amenities label:hover img {
               transform: scale(1.1); /* Enlarge the button */
-              border: 3px solid #AF2630; /* Add border on hover */
+              border: 3px solid #f86a73; /* Add border on hover */
               box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
               
           }
@@ -371,9 +371,12 @@
     <label for="eventName">Event Name:</label>
     <input type="text" id="eventName" name="eventName" required><br>
 
-    <label for="eventTime">Event Time:</label>
-    <input type="time" id="eventTime" name="eventTime" required><br>
-    
+    <label for="eventTime">Event Start Time:</label>
+    <input type="time" id="eventStartTime" name="eventStartTime" required><br>
+
+    <label for="eventEndTime">Event End Time:</label>
+    <input type="time" id="eventEndTime" name="eventEndTime" required><br>
+
 
   
     <label for="eventDate">Date of Event:</label>
@@ -453,40 +456,52 @@
 
     
     document.getElementById('eventForm').addEventListener('submit', async function(event) {
-        event.preventDefault();  // Prevent default form submission
-        
-        // Gather form data
-        const eventData = {
-            username: localStorage.getItem('username'),  //local storage dtb user and email of event creator
-            email: localStorage.getItem('email'),        
-            hostName: document.getElementById('hostName').value, // Get host name
-            eventName: document.getElementById('eventName').value, // Get event name
-            eventDate: document.getElementById('eventDate').value, // Get event date
-            eventTime: document.getElementById('eventTime').value, // Get event time
-            amenity: document.querySelector('input[name="amenity"]:checked').value, // Get selected amenity
-            guests: document.getElementById('guests').value, // Number of guests
-            homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value // Homeowner status
-        };
+    event.preventDefault();  // Prevent default form submission
+    
+    // Gather form data
+    const startTime = document.getElementById('eventStartTime').value;
+    const endTime = document.getElementById('eventEndTime').value;
 
-        sessionStorage.setItem('eventData', JSON.stringify(eventData));
-            // Send event data to the backend via fetch
-            const response = await fetch('http://localhost:3000/addevent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(eventData) 
-            });
-           
-            const result = await response.json(); 
+    // Calculate the duration in hours
+    const startDateTime = new Date(`1970-01-01T${startTime}:00`);
+    const endDateTime = new Date(`1970-01-01T${endTime}:00`);
+    const duration = (endDateTime - startDateTime) / (1000 * 60 * 60); // Convert milliseconds to hours
 
-            if (result.success) {
- 
-                    // Redirect the user 
-                    
-                        window.location.href = 'eventfin.html';
-                } 
-            });
+    // Prepare the event data object
+    const eventData = {
+        username: localStorage.getItem('username'),
+        email: localStorage.getItem('email'),
+        hostName: document.getElementById('hostName').value,
+        eventName: document.getElementById('eventName').value,
+        eventDate: document.getElementById('eventDate').value,
+        startTime, // Include start time
+        endTime, // Include end time
+        duration, // Duration in hours
+        amenity: document.querySelector('input[name="amenity"]:checked').value,
+        guests: document.getElementById('guests').value,
+        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
+    };
+
+    sessionStorage.setItem('eventData', JSON.stringify(eventData));
+
+    // Send event data to the backend via fetch
+    const response = await fetch('http://localhost:3000/addevent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+        window.location.href = 'eventfin.html';
+    } else {
+        alert("Failed to add the event. Please try again.");
+    }
+});
+
         
             
 </script>

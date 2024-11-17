@@ -111,7 +111,8 @@
       .Home button:hover,
       .homeownerstatus button:hover,
       .analytics button:hover,
-      .Calendar button:hover {
+      .Calendar button:hover,
+      .Profile button:hover{
         background-color: #ccc;
         cursor: pointer;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
@@ -200,6 +201,26 @@
         padding-top: 20px;
       }
 
+      .Profile img{
+        width: 60px;
+        height: 60px;
+       
+      }
+
+      .Profile button{
+        background-color: #d9d9d9;
+        margin: 0 auto;
+        border: none;
+        transition: background-color 0.3s;
+      }
+
+      .Profile{
+        text-align: center;
+        font-family: 'inter';
+        font-weight: bold;
+        margin-bottom: auto;
+      }
+
       /* Responsive adjustments for smaller screens */
       @media (max-width: 600px) {
         .search-bar {
@@ -258,7 +279,7 @@
           aria-label="profile"
           onclick="window.location.href='profile.html'"
         >
-          <img src="images/Profile.png" alt="Profile" />
+          <img src="images/profileicon.png" alt="Profile" />
         </button>
         <p>Profile</p>
       </div>
