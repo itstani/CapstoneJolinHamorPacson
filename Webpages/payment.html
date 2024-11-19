@@ -102,6 +102,18 @@
       .close-button:hover {
         background-color: #b93e4b;
       }
+      @media (max-width: 600px) {
+    .calendar {
+        font-size: 0.8rem;
+    }
+    .days-grid {
+        grid-template-columns: repeat(7, 1fr);
+    }
+    .day {
+        height: 50px;
+    }
+}
+
     </style>
   </head>
   <body>
@@ -169,7 +181,7 @@
       }
 
 
-
+      
       document.getElementById("proceedButton").disabled = true;
       // Enable Proceed button once a receipt is uploaded
       document.getElementById("receiptUpload").addEventListener("change", function() {

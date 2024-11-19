@@ -19,6 +19,13 @@
             padding-right: 20px;
         }
 
+        .avidalogo {
+            width: 500px;
+            height: 170px;
+            margin-left: 69%;
+            padding-top: 12%;
+        }
+
         /* Sidebar */
         .side-bar {
             background-color: #D9D9D9;
@@ -44,28 +51,12 @@
             cursor: pointer;
         }
 
-        .Welcome {
-        font-size: 30px;
-        font-family: 'Inter';
-        color: #AF2630;
-        font-weight: bold;
-        padding-left: 5%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        }
-        .avidalogo {
-        width: 500px;
-        height: 170px;
-        margin-left: 69%;
-        padding-top: 12%;
-        }
-
         /* Calendar Layout */
         .calendar {
             margin: 100px auto 0;
             padding: 20px;
-            max-width: 1000px;
+            max-width: 1500px;
+            max-height: 1500px;
             font-family: 'Inter', sans-serif;
             color: #AF2630;
             margin-top: 10%;
@@ -95,26 +86,12 @@
             padding: 10px;
             height: 80px;
             background-color: #f8f8f8;
-            cursor: pointer; /* Makes the day element look clickable */
-        }
-
-
-        .day:nth-child(7n+1) { background-color: #F4CCCC; } /* Customize for Sunday */
-        .day:nth-child(7n+6), .day:nth-child(7n) { background-color: #EAD1DC; } /* Customize for Saturday */
-
-        /* Navigation Buttons */
-        button {
-            border: none;
-            background-color: #AF2630;
-            color: #fff;
-            padding: 5px 10px;
             cursor: pointer;
-            font-size: 1rem;
         }
 
-        button:hover {
-            background-color: #922124;
-        }
+        .day:nth-child(7n+1) { background-color: #F4CCCC; } /* Sunday */
+        .day:nth-child(7n+6), .day:nth-child(7n) { background-color: #EAD1DC; } /* Saturday */
+
         .event-indicator {
             color: red;
             font-size: 1.2em;
@@ -131,6 +108,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             z-index: 1000;
         }
+
         .event-popup button {
             margin-top: 10px;
             background-color: #AF2630;
@@ -139,6 +117,23 @@
             padding: 5px 10px;
             cursor: pointer;
         }
+        .day.empty {
+            border: none;
+            background-color: transparent;
+        }
+        .event-bar {
+            color: #FFFFFF; /* White text for better contrast */
+            background-color: #AF2630; /* Match your theme */
+            border-radius: 4px; /* Rounded edges */
+            padding: 2px 5px;
+            font-size: 0.8rem; /* Adjust font size to fit within the day */
+            text-align: center;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Handle long text gracefully */
+            white-space: nowrap;
+        }
+
 
     </style>
 </head>
@@ -146,19 +141,19 @@
     <div class="top-bar">
         <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
     </div>
-    
+
     <div class="side-bar">
         <button onclick="window.location.href='welcome.html'">
             <img src="images/house.png" alt="Home" width="60">
         </button>
         <p>Home</p>
-        
+
         <button onclick="window.location.href='calendar.html'">
             <img src="images/calendar.png" alt="Calendar" width="60">
         </button>
         <p>Calendar</p>
     </div>
-    
+
     <div class="calendar">
         <header>
             <button id="prevMonth">&#9664;</button>
@@ -166,126 +161,158 @@
             <button id="nextMonth">&#9654;</button>
         </header>
         <div class="days-grid">
-            <!-- Calendar days will be populated here -->
+            <!-- Calendar days populated dynamically -->
         </div>
     </div>
-    
+
     <script>
         const monthDisplay = document.getElementById('monthDisplay');
         const daysGrid = document.querySelector('.days-grid');
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
-
-        function renderCalendar() {
-        const date = new Date(currentYear, currentMonth, 1);
-        monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-        
-        daysGrid.innerHTML = '';
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const startDay = date.getDay();
-        
-        for (let i = 0; i < startDay; i++) {
-            daysGrid.innerHTML += '<div class="day empty"></div>';
-        }
-        
-        for (let i = 1; i <= daysInMonth; i++) {
-            const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const hasEvents = eventsByDate[currentDate];
-
-            daysGrid.innerHTML += `
-                <div class="day" data-date="${currentDate}" onclick="displayEventDetails('${currentDate}')">
-                    ${i} ${hasEvents ? '<span class="event-indicator">•</span>' : ''}
-                </div>
-            `;
-        }
-
-    }
-
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-        });
-        
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-        });
         let eventsByDate = {};
 
-        async function fetchEvents() {
-    const response = await fetch('/eventfin');
-    const events = await response.json();
+        // Fetch approved events from the server
+        async function fetchApprovedEvents() {
+            try {
+                const response = await fetch('http://localhost:3000/approved-events'); // Update the port if necessary
+                const data = await response.json();
 
-    events.forEach(event => {
-        // Parse and reformat the event date from "MM-DD-YYYY" to "YYYY-MM-DD"
-        const [month, day, year] = event.eventDate.split('-');
-        const eventDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                if (data.success) {
+                    // Process events into `eventsByDate`
+                    eventsByDate = data.events.reduce((acc, event) => {
+                        const formattedDate = event.eventDate; // Already in YYYY-MM-DD format
+                        acc[formattedDate] = acc[formattedDate] || [];
+                        acc[formattedDate].push({
+                            name: event.eventName,
+                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                            amenity: event.amenity
+                            
+                        });
+                        return acc;
+                    }, {});
 
-        // Add the event to eventsByDate using the "YYYY-MM-DD" format
-        if (!eventsByDate[eventDate]) {
-            eventsByDate[eventDate] = [];
+                    console.log("EventsByDate structure:", eventsByDate); // Log processed events
+                } else {
+                    console.error("Failed to fetch events:", data.message);
+                }
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            }
         }
-        eventsByDate[eventDate].push({
-            name: event.eventName,
-            time: event.eventTime
-        });
-    });
 
-    renderCalendar(); // Re-render the calendar with updated eventsByDate data
-}
+        // Format date to YYYY-MM-DD
+        function formatDate(date) {
+            const [month, day, year] = date.split('-'); // Assuming 'MM-DD-YYYY'
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
 
+        // Format time to 12-hour format
+        function formatTime(time) {
+            const [hour, minute] = time.split(':');
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const adjustedHour = hour % 12 || 12;
+            return `${adjustedHour}:${minute} ${period}`;
+        }
+
+        // Render the calendar grid
+        function renderCalendar() {
+            const date = new Date(currentYear, currentMonth, 1);
+            monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            daysGrid.innerHTML = '';
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const startDay = date.getDay();
+
+            // Add empty slots for days before the start of the month
+            for (let i = 0; i < startDay; i++) {
+                daysGrid.innerHTML += '<div class="day empty"></div>';
+            }
+
+            // Add day slots with event bars
+            for (let i = 1; i <= daysInMonth; i++) {
+                const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const events = eventsByDate[currentDate] || [];
+                
+                // Generate event bar HTML only if there are events
+                const eventHTML = events.map(event => `<div class="event-bar">${event.time}</div>`).join('');
+
+                // Render the day with the event bar if any events exist
+                daysGrid.innerHTML += `
+                    <div class="day" data-date="${currentDate}">
+                        ${i}
+                        ${eventHTML}
+                    </div>
+                `;
+            }
+
+            console.log("Rendered calendar for:", `${currentYear}-${currentMonth + 1}`); // Debug calendar rendering
+            addDayClickEvents();
+        }
+
+        // Add click event listeners to days
         function addDayClickEvents() {
-    document.querySelectorAll('.day').forEach(day => {
-        day.addEventListener('click', (e) => {
-            const date = e.target.getAttribute('data-date');
-            if (eventsByDate[date]) {
-                displayEventDetails(date);
+            document.querySelectorAll('.day').forEach(day => {
+                if (!day.classList.contains('empty')) {
+                    day.addEventListener('click', () => {
+                        const date = day.getAttribute('data-date');
+                        displayEventDetails(date);
+                    });
+                }
+            });
+        }
+
+        // Display event details in a popup
+        function displayEventDetails(date) {
+            const events = eventsByDate[date] || [];
+            const eventDetailsHtml = `
+                <div class="event-popup">
+                    <h3>Events on ${date}</h3>
+                    ${events.length
+                        ? events.map(event => `<p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
+                                               `).join('')
+                        : '<p>No events for this day.</p>'}
+                    <button onclick="closeEventPopup()">Close</button>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', eventDetailsHtml);
+        }
+
+        // Close the event popup
+        function closeEventPopup() {
+            const popup = document.querySelector('.event-popup');
+            if (popup) popup.remove();
+        }
+
+        // Navigate to the previous month
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentMonth = (currentMonth - 1 + 12) % 12;
+            if (currentMonth === 11) currentYear--;
+            renderCalendar();
+        });
+
+        // Navigate to the next month
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentMonth = (currentMonth + 1) % 12;
+            if (currentMonth === 0) currentYear++;
+            renderCalendar();
+        });
+
+        // Close popup when clicking outside of it
+        document.addEventListener('click', (e) => {
+            const popup = document.querySelector('.event-popup');
+            if (popup && !popup.contains(e.target) && !e.target.closest('.day')) {
+                closeEventPopup();
             }
         });
-    });
-}
 
-function displayEventDetails(date) {
-    const events = eventsByDate[date];
-    let eventDetailsHtml = `
-        <div class="event-popup">
-    `;
-
-    if (events) {
-        events.forEach(event => {
-            eventDetailsHtml += `
-                <p><strong>${event.name}</strong> at ${event.time}</p>
-            `;
+        // Initialize the calendar on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchApprovedEvents();
+            renderCalendar();
         });
-    } else {
-        eventDetailsHtml += `
-            <p>No events for this day.</p>
-        `;
-    }
-
-    eventDetailsHtml += `
-        <button onclick="closeEventPopup()">Close</button>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', eventDetailsHtml);
-}
 
 
-function closeEventPopup() {
-    const popup = document.querySelector('.event-popup');
-    if (popup) popup.remove();
-}
-
-        renderCalendar();
-    </script>
+            </script>
 </body>
 </html>

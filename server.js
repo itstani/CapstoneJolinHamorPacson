@@ -6,6 +6,9 @@ const multer = require('multer');
 const path = require('path');
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
+const cors = require('cors');
+
+
 
 const app = express();
 const port = 3000;
@@ -24,6 +27,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "Webpages")));
 app.use("/images", express.static(path.join(__dirname, "images")));
+app.use(cors());
 
 // Session setup
 app.use(
@@ -414,6 +418,30 @@ app.post("/updateUsername", async (req, res) => {
     await client.close();
   }
 });
+
+// Route to fetch approved events
+app.get('/approved-events', async (req, res) => {
+  try {
+      console.log("Connecting to MongoDB...");
+      await client.connect();
+
+      const db = client.db(dbName);
+      console.log("Connected to DB:", dbName);
+
+      const eventsCollection = db.collection('aevents');
+      const events = await eventsCollection.find({ status: 'approved' }).toArray();
+      
+      res.json({ success: true, events });
+  } catch (error) {
+      console.error("Error fetching approved events:", error);
+      res.status(500).json({ success: false, message: "Error fetching events" });
+  } finally {
+      await client.close();
+      console.log("MongoDB connection closed.");
+  }
+});
+
+
 
 // Logout endpoint to clear session
 app.post('/logout', (req, res) => {
