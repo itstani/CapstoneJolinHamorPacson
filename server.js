@@ -15,6 +15,10 @@ const port = 3000;
 const dbName = "avidadb";
 const uri = "mongodb+srv://ethan:Edj1026@avidadb.upica.mongodb.net/?retryWrites=true&w=majority&appName=avidadb";
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
+//const uri = 'mongodb://localhost:27017/';
+//const client = new MongoClient(uri);
+//const dbName = 'avidadb';
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -468,3 +472,68 @@ async function run() {
   }
 }
 run().catch(console.dir);
+
+//get data from acc collection to display in homeowner table hotable.html
+app.get('/getHomeowners', async (req, res) => {
+  const client = new MongoClient(uri);
+  try {
+      await client.connect();
+      const database = client.db('avidadb');
+      const collection = database.collection('acc');
+      
+      //fetch all homeowners in dtb
+      const homeowners = await collection.find().toArray();
+
+      
+      res.json(homeowners);
+  } catch (error) {
+      console.error('Error fetching data:', error);
+      res.status(500).json({ error: 'Failed to fetch data' });
+  } finally {
+      await client.close(); 
+  }
+});
+
+//---------------------------------------------------------------------------------Hotable.html--------------------------
+// Route to toggle the payment status
+app.patch('/toggleStatus/:username/:lastname', async (req, res) => {
+  const client = new MongoClient(uri);
+  const { username, lastname } = req.params; 
+  try {
+      await client.connect();
+      const database = client.db('avidadb');
+      const collection = database.collection('acc');
+
+      // Find the user by username and lastname
+      const user = await collection.findOne({ username, lastname });
+
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+
+      //status toggle paid to unpaid vvise vversa
+      let newStatus;
+
+      if (user.status === 'Paid') {
+          newStatus = 'Unpaid';
+      } else if (user.status !== 'Paid') {
+          newStatus = 'Paid';
+      }
+
+      // Update the status
+      await collection.updateOne(
+          { username, lastname },
+          { $set: { status: newStatus } }
+      );
+
+      // Send the new status as a response
+      res.status(200).send({ status: newStatus });
+  } catch (error) {
+      console.error('Error toggling status:', error);
+      res.status(500).send('Server error');
+  } finally {
+      await client.close();
+  }
+});
+//---------------------------------------------------------------------------------Hotable.html--------------------------
+

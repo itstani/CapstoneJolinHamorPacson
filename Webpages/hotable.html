@@ -1,11 +1,373 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    
-</body>
-</html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Dashboard</title>
+          <link rel="stylesheet" type="text/css" href="styles.css"/>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+          <style>
+          .top-bar {
+          background-color: #AF2630;
+          position: fixed;
+          color: #6b6a6a; 
+          top: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          height: 50px; 
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 20px; /* Optional: Adds horizontal padding */
+          box-sizing: border-box; /* Ensures padding doesn't affect total width */
+        }
+
+        .search-bar {
+          background-color: #C1696F;
+          position: relative;
+          width: 20%; /* Set a fixed width or adjust as needed */
+        }
+
+        .search-bar input[type="text"] {
+          width: 100%; /* Take up the full width of the container */
+          padding: 10px 40px 10px 10px; /* Adjust padding to make space for the button */
+          border: none;
+          border-radius: 5px;
+          font-size: 16px;
+          box-sizing: border-box; /* Ensures padding doesn't affect total width */
+        }
+
+        .search-bar button[type="button"] {
+          position: absolute; /* Position the button absolutely within the search-bar */
+          right: 5px; /* Adjust as needed for spacing from the right edge */
+          top: 50%;
+          transform: translateY(-50%); /* Vertically center the button */
+          border: none;
+          background: transparent; /* Remove default button background */
+          cursor: pointer;
+          padding: 0; /* Remove default padding */
+        }
+
+        .search-bar button[type="button"] img {
+          width: 20px; /* Adjust the width as needed */
+          height: 20px; /* Adjust the height as needed */
+        }
+
+        /* Optional: Add hover effect for the button */
+        .search-bar button[type="button"]:hover img {
+          filter: brightness(0.8);
+        }
+        .side-bar {
+          background-color: #D9D9D9;
+          position: fixed;
+          color: #AF2630; 
+          top: 50px;
+          left: 0;
+          width: 90px;
+          height: 100%; 
+          display: flex;
+          flex-direction: column; /* Add this to stack elements vertically */
+          align-items: center;
+          justify-content: flex-start; /* Update this to start from the top */
+          padding: 0 20px; /* Optional: Adds horizontal padding */
+          box-sizing: border-box; /* Ensures padding doesn't affect total width */
+        }
+
+        .Home, .homeownerstatus,.analytics, .Calendar {
+          margin-bottom: 20px; /* Add some space between elements */
+          text-align: center; /* Center the text and image */
+          font-size: 15px;
+          font-weight: bold;
+          font-family: 'Inter';
+        }
+        .Home img, .homeownerstatus img,.analytics img , .Calendar img {
+          width: 60px; /* Adjust the width as needed */
+          height: 60px; /* Adjust the height as needed */
+        }
+
+        .Home button, .homeownerstatus button, .analytics button, .Calendar button {
+          background-color: #D9D9D9;
+          margin: 0 auto; /* Center the button */
+          border: none;
+          transition: background-color 0.3s;
+          
+        }
+        .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
+          background-color: #ccc; /* Change the background color on hover */
+          cursor: pointer; /* Change the cursor to a pointer on hover */
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+          }
+        .Home p, .homeownerstatus p, .analytics p, .Calendar p{
+          margin-top: 2px; /* Add some space between the button and text */
+          }
+
+        /*main area now */
+        .Welcome {
+          font-size: 30px;
+          font-family: 'Inter';
+          color: #AF2630;
+          font-weight: bold;
+          padding-left: 5%;
+          display: flex; /* Add this to make it a flex container */
+          justify-content: space-between; /* Distribute elements horizontally */
+          align-items: center; /* Vertically center the elements */
+        }
+
+        .Welcome h1 {
+          margin: 0; /* Remove default margin */
+        }
+
+        .Welcome img {
+          width: 700px; /* Adjust the width as needed */
+          height: 250px; /* Adjust the height as needed */
+          margin-left: 20px; /* Add some space between the text and logo */
+        }
+
+
+        .recentactivity, .upcomingevents, .currentlyreservedamenity{
+          font-family: bold;
+          color: #AF2630;
+          font-size: 25px;
+          margin-left: 5%;
+          position: relative;
+        }
+
+
+        /* Optional: Responsive adjustments */
+        @media (max-width: 600px) {
+          .search-bar {
+            width: 100%;
+          }
+          .top-bar {
+            padding: 0 10px;
+          }
+        }
+
+        /* Table Styles */
+        .table-container {
+            margin-top: 20px;
+            padding: 0 5%;
+            overflow-x: auto; /* For responsiveness */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        table, th, td {
+            border: 1px solid #AF2630;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: #AF2630;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 600px) {
+            .table-container {
+                padding: 0 2%;
+            }
+            th, td {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+        
+        .payment-status-cell {
+         position: relative; /* Needed for positioning the button */
+        }
+
+        .change-button {
+          position: absolute;
+          right: 10px; /* Adjust this value to add some space from the right edge */
+         top: 50%;
+         transform: translateY(-50%); /* Vertically center the button */
+          padding: 5px 10px;
+        }
+
+          </style>
+      </head>
+      <body>
+        <div class="top-bar">
+          <div class="search-bar">
+            <input type="text" placeholder="Search...">
+            <button type="button" id="searchbutton" name="searchbutton" aria-label="Search">
+              <img src="images/Searchicon.png">
+            </button>
+          </div>
+        </div> 
+        <div class="side-bar">
+          <div class="Home">
+            <button type="button" id="homebutton" name="homebutton" aria-label="home">
+            <img src="images/house.png">
+          </button>
+            <p>Home</p>
+          </div>
+          <div class="homeownerstatus">
+            <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
+            <img src="images/Documents.png">
+          </button>
+            <p>Homeowner status</p>
+          </div>
+          <div class="analytics">
+            <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics">
+            <img src="images/Data.png">
+          </button>
+            <p>analytics</p>
+          </div>
+          <div class="Calendar">
+            <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar">
+            <img src="images/Calendar.png">
+          </button>
+            <p>Calendar</p>
+          </div>
+        </div>
+
+        <div class="Welcome">
+          <h1>Homeowners</h1>
+          <p id="username"></p>
+          <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Block and Lot</th>
+                        <th>Number</th>
+                        <th>House Landline</th>
+                        <th>Payment Status</th>
+                        <th>Homeowner Status</th>
+                        
+                    </tr>
+                </thead>
+                <tbody id="homeownersTable"> 
+                    <!--dito napapasok data -->
+                </tbody>
+            </table>
+        </div>
+        
+        <script>
+// di pa nagana pare gpt help sa scroll or refresh ng table
+window.onbeforeunload = function() {
+                       sessionStorage.setItem("scrollPosition", window.scrollY);
+                       };
+
+                        // After the page reloads, restore the scroll position
+                        window.onload = function() {
+                        const savedScrollPosition = sessionStorage.getItem("scrollPosition");
+                        if (savedScrollPosition !== null) {
+                        window.scrollTo(0, savedScrollPosition);
+                         }
+                          };
+                          async function loadHomeowners() {
+        try {
+            const response = await fetch('/getHomeowners');
+            const homeowners = await response.json();
+
+            const tableBody = document.getElementById('homeownersTable');
+            tableBody.innerHTML = ''; // Clear existing table data
+
+            homeowners.forEach(homeowner => {
+                const row = document.createElement('tr'); // tr = table row
+
+                // Create table cells
+                const nameCell = document.createElement('td');
+                nameCell.textContent = `${homeowner.lastname} ${homeowner.username}`;
+
+                const addressCell = document.createElement('td');
+                addressCell.textContent = homeowner.address;
+
+                const numberCell = document.createElement('td');
+                numberCell.textContent = homeowner.number;
+
+                const landlineCell = document.createElement('td');
+                landlineCell.textContent = homeowner.landline;
+
+                const paymentStatusCell = document.createElement('td');
+                paymentStatusCell.textContent = homeowner.status === 'Paid' ? 'Paid' : 'Unpaid';
+
+                // Create the payment button
+                const paymentButton = document.createElement('button');
+                paymentButton.textContent = 'Change';
+                paymentButton.setAttribute('id', 'bChange');
+                paymentButton.setAttribute('name', 'bChange');
+                paymentButton.style.cursor = 'pointer';
+
+                paymentStatusCell.style.position = 'relative';
+                paymentButton.style.position = 'absolute';
+                paymentButton.style.bottom = '10px';
+                paymentButton.style.right = '10px';
+
+                // Append the button to the paymentStatusCell
+                paymentStatusCell.appendChild(paymentButton);
+
+                // Add event listener for the payment button
+                paymentButton.addEventListener('click', async () => {
+                    // Send a PATCH request to toggle the status
+                    const statusResponse = await fetch(`/toggleStatus/${homeowner.username}/${homeowner.lastname}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (statusResponse.ok) {
+                        const responseData = await statusResponse.json();
+                        const newStatus = responseData.status; // Get the new status from the response
+
+                        // Update the status in the paymentStatusCell without removing the button
+                        paymentStatusCell.firstChild.textContent = newStatus === 'Paid' ? 'Paid' : 'Unpaid';
+
+                        // Update the homeowner status text in the last cell
+                        const homeownerStatusCell = row.querySelector('td:last-child');
+                        homeownerStatusCell.textContent = newStatus === 'Paid' ? 'Compliant' : 'Delinquent';
+                    } else {
+                        console.error('Error toggling payment status');
+                    }
+                });
+
+                const homeownerStatusCell = document.createElement('td');
+                homeownerStatusCell.textContent = homeowner.status === 'Paid' ? 'Compliant' : 'Delinquent';
+
+                // Append cells to the row
+                row.appendChild(nameCell);
+                row.appendChild(addressCell);
+                row.appendChild(numberCell);
+                row.appendChild(landlineCell);
+                row.appendChild(paymentStatusCell);
+                row.appendChild(homeownerStatusCell);
+
+                // Append the row to the table body
+                tableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error loading homeowners:', error);
+        }
+    }
+
+    // Load homeowners when the page is fully loaded
+    window.onload = loadHomeowners;
+        </script>
+        
+        
+      </body>
