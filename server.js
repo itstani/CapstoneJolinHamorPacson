@@ -153,7 +153,7 @@ app.post('/register', async (req, res) => {
           password, // In a production system, you should hash the password before saving it
           address,
           number,
-          landline, /* test */
+          landline, /* test *//*test*//*test*/
           status: "Paid", //homeowner monthly status to be verified by admin if paid or not
           createdAt: new Date(),
       };
