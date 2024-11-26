@@ -126,44 +126,43 @@ app.post("/login", async (req, res) => {
 });
 
 // API route to handle user registration
-app.post("/register", async (req, res) => {
-  const { username, lastname, email, password } = req.body;
-  if (!username || !lastname || !email || !password) {
-    return res.json({ message: "Missing required fields", success: false });
+app.post('/register', async (req, res) => {
+  const { username,lastname,email,password,address,number,landline } = req.body;
+
+  // Validate input data
+  if (!username || !lastname || !email || !password || !address || !number) {
+      return res.json({ message: 'Missing required fields', success: false });
   }
 
   try {
-    await client.connect();
-    const database = client.db(dbName);
-    const usersCollection = database.collection("acc");
+      await client.connect();
+      const database = client.db(dbName);
+      const usersCollection = database.collection('acc');
 
-    // Check if user already exists
-    const existingUser = await usersCollection.findOne({ email });
-    if (existingUser) {
-      return res.json({
-        message: "Email already exists. Please choose a different one.",
-        success: false,
-      });
-    }
+      // Check if the user already exists
+      const existingUser = await usersCollection.findOne({ email });
+      if (existingUser) {
+          return res.json({ message: 'Email is already registered', success: false });
+      }
 
-    // Hash the password before saving it
-    const hashedPassword = await bcrypt.hash(password, 10);
+      // Insert new user into the database
+      const newUser = {
+          username,
+          lastname,
+          email,
+          password, // In a production system, you should hash the password before saving it
+          address,
+          number,
+          landline, 
+          status: "Paid", //homeowner monthly status to be verified by admin if paid or not
+          createdAt: new Date(),
+      };
+      await usersCollection.insertOne(newUser);
 
-    // Create a new user
-    const newUser = {
-      username,
-      lastname,
-      email,
-      password: hashedPassword,
-    };
-
-    await usersCollection.insertOne(newUser);
-    res.json({ message: "Registration successful", success: true });
+      res.json({ message: 'Registration successful', success: true });
   } catch (error) {
-    console.error("Error during registration:", error);
-    res.json({ message: "An error occurred", success: false });
-  } finally {
-    await client.close();
+      console.error("Error during registration:", error);
+      res.json({ message: 'Registration failed', success: false });
   }
 });
 
