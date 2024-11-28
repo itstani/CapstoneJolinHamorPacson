@@ -143,93 +143,69 @@
             background-color: #C1696F;
         }
 
-        /* Modal Styling */
-        .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 2000;
-    justify-content: center;
-    align-items: center;
-}
+      /* Edit Table Styling */
+      #editTable {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
 
-.modal-content {
-    background-color: white;
-    padding: 25px;
-    border-radius: 12px;
-    width: 400px;
-    position: relative;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    font-family: 'Inter', sans-serif;
-}
+      #editTable th, #editTable td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+      }
 
-.modal-header {
-    font-size: 24px;
-    font-weight: bold;
-    color: #AF2630;
-    text-align: center;
-    margin-bottom: 20px;
-}
+      #editTable th {
+        background-color: #AF2630;
+        color: white;
+      }
 
-form label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #333;
-}
+      #editTable tr:nth-child(even) {
+          background-color: #f9f9f9;
+      }
 
-form input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    box-sizing: border-box;
-}
+      #editTable tr:hover {
+          background-color: #f1f1f1;
+      }
 
-form input:focus {
-    border-color: #AF2630;
-    outline: none;
-    box-shadow: 0 0 5px rgba(175, 38, 48, 0.4);
-}
+      /* Edit Save Button Styling */
+      #editTable button {
+          padding: 5px 10px;
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+      }
 
-.modal-footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
+      #editTable button:hover {
+          background-color: #C1696F;
+      }
 
-.modal-footer button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-}
+      /* Center the Save Changes button */
+      #saveChangesButton {
+          margin-top: 15px;
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 10px 20px;
+          font-size: 16px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
+      }
 
-.modal-footer .save {
-    background-color: #AF2630;
-    color: white;
-}
+      #saveChangesButton:hover {
+          background-color: #D94A50;
+      }
 
-.modal-footer .save:hover {
-    background-color: #D94A50;
-}
-
-.modal-footer .cancel {
-    background-color: #E0E0E0;
-    color: #333;
-}
-
-.modal-footer .cancel:hover {
-    background-color: #C7C7C7;
-}
     </style>
 </head>
 <body>
@@ -266,43 +242,34 @@ form input:focus {
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <div id="editModal" class="modal">
-      <div class="modal-content">
-          <div class="modal-header">Edit Homeowner</div>
-          <form id="editForm">
-              <label for="editFirstName">First Name</label>
-              <input type="text" id="editFirstName" placeholder="Enter first name" required>
-  
-              <label for="editLastName">Last Name</label>
-              <input type="text" id="editLastName" placeholder="Enter last name" required>
-  
-              <label for="editAddress">Address</label>
-              <input type="text" id="editAddress" placeholder="Enter address" required>
-  
-              <label for="editPhone">Phone Number</label>
-              <input type="text" id="editPhone" placeholder="Enter phone number" required>
-  
-              <label for="editLandline">Landline</label>
-              <input type="text" id="editLandline" placeholder="Enter landline" required>
-  
-              <label for="editPayment">Payment Status</label>
-              <input type="text" id="editPayment" placeholder="Enter payment status" required>
-  
-              <label for="editStatus">Status</label>
-              <input type="text" id="editStatus" placeholder="Enter status" required>
-  
-              <div class="modal-footer">
-                  <button type="submit" class="save">Save</button>
-                  <button type="button" class="cancel" onclick="closeModal()">Cancel</button>
-              </div>
-          </form>
+        <div class="table-container">
+          <h2>Edit Selected Homeowner</h2>
+          <table id="editTable">
+              <thead>
+                  <tr>
+                      <th>Name</th>
+                      <th>Address</th>
+                      <th>Phone Number</th>
+                      <th>Landline</th>
+                      <th>Payment Status</th>
+                      <th>Homeowner Status</th>
+                      <th>Actions</th>
+                  </tr>
+              </thead>
+              <tbody id="editTableBody">
+                  <!-- Edited row data will appear here -->
+              </tbody>
+          </table>
+          <button id="saveChangesButton" onclick="saveChanges()">Save Changes</button>
       </div>
+    </div>
+    
+  
+  
+  
   </div>
   </div>
-
-    <script>
+      <script>
         // Navigate function for sidebar buttons
         function navigate(url) {
             window.location.href = url;
@@ -319,15 +286,55 @@ form input:focus {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${homeowner.firstName} ${homeowner.lastName}</td>
-                    <td>${homeowner.Address}</td>
+                    <td>${homeowner.address}</td>
                     <td>${homeowner.phoneNumber}</td>
                     <td>${homeowner.landLine}</td>
                     <td>${homeowner.paymentStatus}</td>
                     <td>${homeowner.homeownerStatus}</td>
-                    <td><button onclick="editRow('${homeowner.email}')">Edit</button></td>
+                    <td><button onclick="editRow(this)">Edit</button></td>
                 `;
                 tableBody.appendChild(row);
             });
+        }
+
+        // Function to handle row editing
+        function editRow(button) {
+            const row = button.closest('tr'); // Get the clicked row
+            const cells = row.querySelectorAll('td'); // Get all cells in the row
+            const editTableBody = document.getElementById('editTableBody');
+
+            // Populate the edit table with the selected row data
+            const editRow = document.createElement('tr');
+            editRow.innerHTML = `
+                <td contenteditable="true">${cells[0].textContent}</td>
+                <td contenteditable="true">${cells[1].textContent}</td>
+                <td contenteditable="true">${cells[2].textContent}</td>
+                <td contenteditable="true">${cells[3].textContent}</td>
+                <td contenteditable="true">${cells[4].textContent}</td>
+                <td contenteditable="true">${cells[5].textContent}</td>
+                <td><button onclick="saveRow(this)">Save</button></td>
+            `;
+            
+            // Clear existing edit table rows and add the new one
+            editTableBody.innerHTML = '';
+            editTableBody.appendChild(editRow);
+        }
+
+        // Function to handle saving changes
+        function saveRow(button) {
+            const row = button.closest('tr'); // Get the row being edited
+            const cells = row.querySelectorAll('td'); // Get all cells in the row
+
+            const updatedData = {
+                name: cells[0].textContent,
+                address: cells[1].textContent,
+                phoneNumber: cells[2].textContent,
+                landLine: cells[3].textContent,
+                paymentStatus: cells[4].textContent,
+                homeownerStatus: cells[5].textContent,
+            };
+
+            console.log('Updated Data:', updatedData);
         }
 
         // Filter table rows
@@ -341,16 +348,10 @@ form input:focus {
                 row.style.display = match ? '' : 'none';
             });
         }
-        async function editRow(email) {
-        document.getElementById("editModal").style.display = "flex";
-    }
-    // Close Modal
-    function closeModal() {
-        document.getElementById("editModal").style.display = "none";
-    }
 
         // Load homeowners data on page load
         window.onload = loadHomeowners;
     </script>
+
 </body>
 </html>

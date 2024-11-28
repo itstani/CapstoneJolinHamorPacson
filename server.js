@@ -449,4 +449,30 @@
       }
     });
 
-
+    app.patch('/updateHomeowner/:email', async (req, res) => {
+      const { email } = req.params;
+      const updateData = req.body;
+  
+      try {
+          await client.connect();
+          const database = client.db('avidadb');
+          const collection = database.collection('homeowners');
+  
+          const result = await collection.updateOne(
+              { email: email },
+              { $set: updateData }
+          );
+  
+          if (result.modifiedCount > 0) {
+              res.json({ success: true });
+          } else {
+              res.json({ success: false });
+          }
+      } catch (error) {
+          console.error('Error updating homeowner:', error);
+          res.status(500).json({ success: false, error: 'Failed to update homeowner' });
+      } finally {
+          await client.close();
+      }
+  });
+  
