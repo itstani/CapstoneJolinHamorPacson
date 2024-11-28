@@ -6,135 +6,297 @@
     <title>User Profile</title>
     <style>
       body {
-        padding-top: 60px; /* Adjust based on the height of your top bar */
+        font-family: "Inter", sans-serif;
+        background-color: #f8f8f8;
+        margin: 0;
+        padding: 0;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh; /* Take the full viewport height */
-        margin: 0;
-        background-color: #f8f8f8; /* Optional background color */
+        min-height: 100vh;
+        color: #333;
       }
-/* test *//*test*//*test*/
+
+      /* Top Bar */
       .top-bar {
-        position: fixed; /* Keep the top bar fixed at the top */
+        position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 60px; /* Set the height of your top bar */
-        background-color: #af2630; /* Example background color */
-        z-index: 1000; /* Ensure the top bar is above other elements */
+        height: 50px;
+        background-color: #af2630;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
       }
 
+      /* Container */
       .container {
-        margin-top: 20px; /* Space between the top bar and the first row */
-        display: flex;
-        flex-direction: column;
-        align-items: center; /* Centers the form content */
         background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        width: 300px;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 90%;
         text-align: center;
       }
 
       h2 {
-        color: #333;
-        margin-bottom: 20px;
-      }
-
-      .profile-info p {
-        font-size: 16px;
-        margin: 10px 0;
-        color: #555;
-      }
-
-      .rounded-input {
-        border-radius: 20px; /* Rounded input */
-        border: 2px solid #ccc;
-        padding: 10px;
-        width: 100%;
-        font-size: 16px;
-        font-weight: 600; /* Semi-bold font weight */
-        font-family: "Inter", sans-serif;
-        text-align: center;
+        color: #af2630;
+        font-size: 24px;
         margin-bottom: 15px;
       }
 
-      .update-button {
+      .profile-card {
+        text-align: left;
+        margin-top: 20px;
+      }
+
+      .profile-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
         padding: 10px;
-        width: 100%;
+        background-color: #f8f8f8;
+        border-radius: 8px;
         font-size: 16px;
-        font-family: "Inter", sans-serif;
-        border-radius: 20px; /* Rounded button */
-        border: none;
-        color: white;
-        background-color: #af2630;
-        cursor: pointer;
+        color: #555;
+      }
+
+      .profile-item span {
         font-weight: bold;
+        color: #333;
+      }
+
+      /* Buttons */
+      .button {
+        display: inline-block;
+        margin: 15px 5px;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 20px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .edit-profile-button {
+        background-color: #af2630;
+        color: white;
+      }
+
+      .edit-profile-button:hover {
+        background-color: #8c2027;
       }
 
       .logout-button {
-        font-size: 20px;
-        font-family: "Inter", sans-serif;
-        margin-top: 15px;
-        cursor: pointer;
+        background-color: #ddd;
         color: #af2630;
-        text-decoration: underline;
       }
+
+      .logout-button:hover {
+        background-color: #ccc;
+      }
+
+      .side-bar {
+        background-color: #d9d9d9;
+        position: fixed;
+        color: #af2630;
+        top: 50px;
+        left: 0;
+        width: 90px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0 20px;
+        box-sizing: border-box;
+      }
+
+      .Home,
+      .homeownerstatus,
+      .analytics,
+      .Calendar {
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        font-family: "Inter";
+      }
+
+      .Home img,
+      .homeownerstatus img,
+      .analytics img,
+      .Calendar img {
+        width: 60px;
+        height: 60px;
+      }
+
+      .Home button,
+      .homeownerstatus button,
+      .analytics button,
+      .Calendar button {
+        background-color: #d9d9d9;
+        margin: 0 auto;
+        border: none;
+        transition: background-color 0.3s;
+      }
+
+      .Home button:hover,
+      .homeownerstatus button:hover,
+      .analytics button:hover,
+      .Calendar button:hover,
+      .Profile button:hover{
+        background-color: #ccc;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .Welcome {
+        font-size: 30px;
+        font-family: "Inter";
+        color: #af2630;
+        font-weight: bold;
+        padding-left: 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .Welcome h1 {
+        margin: 0;
+        padding-left: 40px;
+      }
+
+      .avidalogo {
+        width: 700px;
+        height: 250px;
+        margin-left: 20px;
+        padding-top: 30px;
+      }
+      .Profile img{
+        width: 60px;
+        height: 60px;
+       
+      }
+
+      .Profile button{
+        background-color: #d9d9d9;
+        margin: 0 auto;
+        border: none;
+        transition: background-color 0.3s;
+      }
+
+      .Profile{
+        text-align: center;
+        font-family: 'inter';
+        font-weight: bold;
+        margin-bottom: auto;
+      }
+
+      /* Responsive adjustments for smaller screens */
+      @media (max-width: 600px) {
+        .search-bar {
+          width: 100%;
+        }
+
+        .top-bar {
+          padding: 0 10px;
+        }
+
+        .reserve {
+          flex-direction: column; /* Stack buttons vertically on small screens */
+          gap: 20px;
+        }
+
+        .reservetext1 {
+          font-size: 30px; /* Adjust the size for smaller screens */
+        }
+      }
+      .button {
+      margin-top: auto;
+      margin-bottom: 20px; /* Adjust this as needed */
+      width: 100%;
+      text-align: center;
+      margin-right: 30px;
+      
+    }
+
+   
+
     </style>
   </head>
   <body>
-    <div class="top-bar"></div>
+    <div class="top-bar">User Profile</div>
+    
+    <div class="side-bar">
+      <div class="Home">
+        <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='welcome.html'">
+          <img src="images/house.png" alt="Home" />
+        </button>
+        <p>Home</p>
+      </div>
+
+      <div class="Calendar">
+        <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
+          <img src="images/Calendar.png" alt="calendar">
+        </button>
+        <p>Calendar</p>
+      </div>
+
+      
+    </div>
+
 
     <div class="container">
-      <h2>Welcome to your Profile</h2>
+      <h2 id="welcome-message">Welcome</h2>
 
-      <div class="profile-info">
-        <p id="username">Username: <span></span></p>
-        <p id="firstname">First Name: <span></span></p>
-        <p id="lastname">Last Name: <span></span></p>
-        <p id="email">Email: <span></span></p>
+      <div class="profile-card">
+        <div class="profile-item" id="username">
+          <span>Username:</span> <span id="username-value"></span>
+        </div>
+        <div class="profile-item" id="firstname">
+          <span>First Name:</span> <span id="firstname-value"></span>
+        </div>
+        <div class="profile-item" id="lastname">
+          <span>Last Name:</span> <span id="lastname-value"></span>
+        </div>
+        <div class="profile-item" id="email">
+          <span>Email:</span> <span id="email-value"></span>
+        </div>
+        <div class="profile-item" id="status">
+          <span>Status:</span> <span id="status-value"></span>
+        </div>
       </div>
 
-      <div class="update-profile">
-        <label for="newUsername">Change Username:</label>
-        <input
-          type="text"
-          id="newUsername"
-          class="rounded-input"
-          placeholder="Enter new username"
-        />
-        <button class="update-button" onclick="updateProfile()">
-          Update Username
-        </button>
-      </div>
-
-      <a href="#" class="logout-button" onclick="logout()">Logout</a>
+      <button
+        class="button edit-profile-button" onclick="window.location.href='editprofile.html'">
+        Edit Profile
+      </button>
+      <button class="button logout-button" onclick="logout()">Logout</button>
     </div>
 
     <script>
-      // JavaScript for fetching profile data and handling updates
-
-      // Fetch the logged-in user's profile information
       fetch("http://localhost:3000/profile")
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            document
-              .getElementById("username")
-              .querySelector("span").textContent = data.username;
-            document
-              .getElementById("firstname")
-              .querySelector("span").textContent = data.firstname;
-            document
-              .getElementById("lastname")
-              .querySelector("span").textContent = data.lastname;
-            document.getElementById("email").querySelector("span").textContent =
-              data.email;
+            document.getElementById("welcome-message").textContent = `Welcome, ${data.username}`;
+            document.getElementById("username-value").textContent = data.username;
+            document.getElementById("firstname-value").textContent = data.firstname; 
+            document.getElementById("lastname-value").textContent = data.lastname;   
+            document.getElementById("email-value").textContent = data.email;
+            document.getElementById("status-value").textContent = data.status; 
           } else {
             alert("Please log in to view your profile.");
-            window.location.href = "/"; // Redirect to login page if no session
+            window.location.href = "/"; 
           }
         })
         .catch((err) => {
@@ -142,49 +304,18 @@
           alert("Could not fetch user data. Please try again.");
         });
 
-      // Function to update only the username
-      function updateProfile() {
-        const newUsername = document.getElementById("newUsername").value;
-
-        if (!newUsername) {
-          alert("Please enter a new username.");
-          return;
-        }
-
-        fetch("http://localhost:3000/updateUsername", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ newUsername }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              document
-                .getElementById("username")
-                .querySelector("span").textContent = newUsername;
-              alert("Username updated successfully.");
-            } else {
-              alert("Failed to update username. " + data.message);
-            }
-          })
-          .catch((err) => {
-            console.error("Error updating username:", err);
-            alert("Error updating username. Please try again.");
-          });
-      }
-
-      // Logout function to clear session and redirect to login page
       function logout() {
         fetch("http://localhost:3000/logout", { method: "POST" })
           .then(() => {
-            window.location.href = "/"; // Redirect to login page
+            window.location.href = "/"; 
           })
           .catch((err) => {
             console.error("Logout error:", err);
           });
       }
+
+      
+
     </script>
   </body>
 </html>

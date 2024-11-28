@@ -28,41 +28,7 @@
         box-sizing: border-box;
       }
 
-      .search-bar {
-        background-color: #c1696f;
-        position: relative;
-        width: 20%;
-      }
-
-      .search-bar input[type="text"] {
-        width: 100%;
-        padding: 10px 40px 10px 10px;
-        border: none;
-        border-radius: 5px;
-        font-size: 16px;
-        box-sizing: border-box;
-      }
-
-      .search-bar button[type="button"] {
-        position: absolute;
-        right: 5px;
-        top: 50%;
-        transform: translateY(-50%);
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        padding: 0;
-      }
-
-      .search-bar button[type="button"] img {
-        width: 20px;
-        height: 20px;
-      }
-
-      .search-bar button[type="button"]:hover img {
-        filter: brightness(0.8);
-      }
-
+      
       .side-bar {
         background-color: #d9d9d9;
         position: fixed;
@@ -240,49 +206,72 @@
           font-size: 30px; /* Adjust the size for smaller screens */
         }
       }
+      .button {
+      margin-top: auto;
+      margin-bottom: 20px; /* Adjust this as needed */
+      width: 100%;
+      text-align: center;
+      margin-right: 30px;
+      
+    }
+
+    #logout-button {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 15px;
+      border: 2px solid #af2630;
+      background-color: #af2630;
+      font-weight: bold;
+      font-family: 'inter';
+      color: white;
+      
+    }
+
+      #logout-button:hover {
+        background-color: #f0b4b8;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+
     </style>
   </head>
   <body>
     <div class="top-bar">
-      <div class="search-bar">
-        <input type="text" placeholder="Search..." />
-        <button
-          type="button"
-          id="searchbutton"
-          name="searchbutton"
-          aria-label="Search"
-        >
-          <img src="images/Searchicon.png" />
-        </button>
-      </div>
+      
     </div>
 
     <div class="side-bar">
       <div class="Home">
-        <button
-          type="button"
-          id="homebutton"
-          name="homebutton"
-          aria-label="home"
-          onclick="window.location.href='welcome.html'"
-        >
+        <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='welcome.html'">
           <img src="images/house.png" alt="Home" />
         </button>
         <p>Home</p>
       </div>
-      <!-- New Profile Button -->
+
+      <div class="Calendar">
+        <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
+          <img src="images/Calendar.png" alt="calendar">
+        </button>
+        <p>Calendar</p>
+      </div>
+
       <div class="Profile">
         <button
           type="button"
           id="profilebutton"
           name="profilebutton"
           aria-label="profile"
-          onclick="window.location.href='profile.html'"
-        >
+          onclick="window.location.href='profile.html'">
           <img src="images/profileicon.png" alt="Profile" />
         </button>
         <p>Profile</p>
       </div>
+      <div class="button">
+        <button type="button" id="logout-button">Logout</button>
+        <p>Logout</p>
+      </div>
+      
     </div>
 
     <div class="Welcome">
@@ -325,4 +314,10 @@
       </div>
     </div>
   </body>
+  <script>
+    document.getElementById("logout-button").addEventListener("click", async () => {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/login.html"; 
+  });
+  </script>
 </html>

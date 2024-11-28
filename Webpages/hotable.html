@@ -1,373 +1,356 @@
 <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Dashboard</title>
-          <link rel="stylesheet" type="text/css" href="styles.css"/>
-          <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-          <style>
-          .top-bar {
-          background-color: #AF2630;
-          position: fixed;
-          color: #6b6a6a; 
-          top: 0;
-          left: 0;
-          right: 0;
-          width: 100%;
-          height: 50px; 
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 20px; /* Optional: Adds horizontal padding */
-          box-sizing: border-box; /* Ensures padding doesn't affect total width */
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homeowners Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background-color: #AF2630;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        /* Sidebar */
+        .side-bar {
+            background-color: #D9D9D9;
+            width: 100px;
+            position: fixed;
+            top: 50px;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .side-bar div {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .side-bar img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .side-bar img:hover {
+            transform: scale(1.1);
+        }
+
+        /* Main Content */
+        .content {
+            margin-left: 120px;
+            padding: 20px;
+        }
+
+        .welcome {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .welcome h1 {
+            color: #AF2630;
         }
 
         .search-bar {
-          background-color: #C1696F;
-          position: relative;
-          width: 20%; /* Set a fixed width or adjust as needed */
+            position: relative;
+            width: 300px;
+            padding-right: 20px;
         }
 
-        .search-bar input[type="text"] {
-          width: 100%; /* Take up the full width of the container */
-          padding: 10px 40px 10px 10px; /* Adjust padding to make space for the button */
-          border: none;
-          border-radius: 5px;
-          font-size: 16px;
-          box-sizing: border-box; /* Ensures padding doesn't affect total width */
-        }
-
-        .search-bar button[type="button"] {
-          position: absolute; /* Position the button absolutely within the search-bar */
-          right: 5px; /* Adjust as needed for spacing from the right edge */
-          top: 50%;
-          transform: translateY(-50%); /* Vertically center the button */
-          border: none;
-          background: transparent; /* Remove default button background */
-          cursor: pointer;
-          padding: 0; /* Remove default padding */
-        }
-
-        .search-bar button[type="button"] img {
-          width: 20px; /* Adjust the width as needed */
-          height: 20px; /* Adjust the height as needed */
-        }
-
-        /* Optional: Add hover effect for the button */
-        .search-bar button[type="button"]:hover img {
-          filter: brightness(0.8);
-        }
-        .side-bar {
-          background-color: #D9D9D9;
-          position: fixed;
-          color: #AF2630; 
-          top: 50px;
-          left: 0;
-          width: 90px;
-          height: 100%; 
-          display: flex;
-          flex-direction: column; /* Add this to stack elements vertically */
-          align-items: center;
-          justify-content: flex-start; /* Update this to start from the top */
-          padding: 0 20px; /* Optional: Adds horizontal padding */
-          box-sizing: border-box; /* Ensures padding doesn't affect total width */
-        }
-
-        .Home, .homeownerstatus,.analytics, .Calendar {
-          margin-bottom: 20px; /* Add some space between elements */
-          text-align: center; /* Center the text and image */
-          font-size: 15px;
-          font-weight: bold;
-          font-family: 'Inter';
-        }
-        .Home img, .homeownerstatus img,.analytics img , .Calendar img {
-          width: 60px; /* Adjust the width as needed */
-          height: 60px; /* Adjust the height as needed */
-        }
-
-        .Home button, .homeownerstatus button, .analytics button, .Calendar button {
-          background-color: #D9D9D9;
-          margin: 0 auto; /* Center the button */
-          border: none;
-          transition: background-color 0.3s;
-          
-        }
-        .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
-          background-color: #ccc; /* Change the background color on hover */
-          cursor: pointer; /* Change the cursor to a pointer on hover */
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-          }
-        .Home p, .homeownerstatus p, .analytics p, .Calendar p{
-          margin-top: 2px; /* Add some space between the button and text */
-          }
-
-        /*main area now */
-        .Welcome {
-          font-size: 30px;
-          font-family: 'Inter';
-          color: #AF2630;
-          font-weight: bold;
-          padding-left: 5%;
-          display: flex; /* Add this to make it a flex container */
-          justify-content: space-between; /* Distribute elements horizontally */
-          align-items: center; /* Vertically center the elements */
-        }
-
-        .Welcome h1 {
-          margin: 0; /* Remove default margin */
-        }
-
-        .Welcome img {
-          width: 700px; /* Adjust the width as needed */
-          height: 250px; /* Adjust the height as needed */
-          margin-left: 20px; /* Add some space between the text and logo */
-        }
-
-
-        .recentactivity, .upcomingevents, .currentlyreservedamenity{
-          font-family: bold;
-          color: #AF2630;
-          font-size: 25px;
-          margin-left: 5%;
-          position: relative;
-        }
-
-
-        /* Optional: Responsive adjustments */
-        @media (max-width: 600px) {
-          .search-bar {
+        .search-bar input {
             width: 100%;
-          }
-          .top-bar {
-            padding: 0 10px;
-          }
+            padding: 10px 15px;
+            border: 1px solid #AF2630;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
         }
 
-        /* Table Styles */
+        .search-bar img {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            cursor: pointer;
+        }
+
+        /* Table Styling */
         .table-container {
             margin-top: 20px;
-            padding: 0 5%;
-            overflow-x: auto; /* For responsiveness */
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            font-family: 'Inter', sans-serif;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        table, th, td {
-            border: 1px solid #AF2630;
-        }
-
-        th, td {
-            padding: 12px;
+        table th, table td {
+            padding: 15px;
             text-align: left;
-            font-size: 16px;
+            border-bottom: 1px solid #ddd;
         }
 
-        th {
+        table th {
             background-color: #AF2630;
             color: white;
-            font-weight: bold;
         }
 
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
 
-        /* Responsive Adjustments */
-        @media (max-width: 600px) {
-            .table-container {
-                padding: 0 2%;
-            }
-            th, td {
-                font-size: 14px;
-                padding: 10px;
-            }
+        table tr:hover {
+            background-color: #f1f1f1;
         }
-        
-        .payment-status-cell {
-         position: relative; /* Needed for positioning the button */
+
+        table button {
+            padding: 5px 10px;
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
-/*test*//*test*/
-        .change-button {
-          position: absolute;
-          right: 10px; /* Adjust this value to add some space from the right edge */
-         top: 50%;
-         transform: translateY(-50%); /* Vertically center the button */
-          padding: 5px 10px;
+
+        table button:hover {
+            background-color: #C1696F;
         }
-/* test */
-          </style>
-      </head>
-      <body>
-        <div class="top-bar">
-          <div class="search-bar">
-            <input type="text" placeholder="Search...">
-            <button type="button" id="searchbutton" name="searchbutton" aria-label="Search">
-              <img src="images/Searchicon.png">
-            </button>
-          </div>
-        </div> 
-        <div class="side-bar">
-          <div class="Home">
-            <button type="button" id="homebutton" name="homebutton" aria-label="home">
-            <img src="images/house.png">
-          </button>
-            <p>Home</p>
-          </div>
-          <div class="homeownerstatus">
-            <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
-            <img src="images/Documents.png">
-          </button>
-            <p>Homeowner status</p>
-          </div>
-          <div class="analytics">
-            <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics">
-            <img src="images/Data.png">
-          </button>
-            <p>analytics</p>
-          </div>
-          <div class="Calendar">
-            <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar">
-            <img src="images/Calendar.png">
-          </button>
-            <p>Calendar</p>
-          </div>
+
+        /* Modal Styling */
+        .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 12px;
+    width: 400px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    font-family: 'Inter', sans-serif;
+}
+
+.modal-header {
+    font-size: 24px;
+    font-weight: bold;
+    color: #AF2630;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+form input:focus {
+    border-color: #AF2630;
+    outline: none;
+    box-shadow: 0 0 5px rgba(175, 38, 48, 0.4);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.modal-footer .save {
+    background-color: #AF2630;
+    color: white;
+}
+
+.modal-footer .save:hover {
+    background-color: #D94A50;
+}
+
+.modal-footer .cancel {
+    background-color: #E0E0E0;
+    color: #333;
+}
+
+.modal-footer .cancel:hover {
+    background-color: #C7C7C7;
+}
+    </style>
+</head>
+<body>
+    <div class="top-bar">Dashboard</div>
+    <div class="side-bar">
+        <div><img src="images/house.png" alt="Home" onclick="navigate('AdHome.html')"><p>Home</p></div>
+        <div><img src="images/Documents.png" alt="Status" onclick="navigate('hotable.html')"><p>Status</p></div>
+        <div><img src="images/Data.png" alt="Analytics"><p>Analytics</p></div>
+        <div><img src="images/Calendar.png" alt="Calendar" onclick="navigate('admincalender.html')"><p>Calendar</p></div>
+    </div>
+    <div class="content">
+        <div class="welcome">
+            <h1>Homeowners</h1>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search homeowners..." oninput="filterTable()">
+                <img src="images/searchicon.png" alt="Search">
+            </div>
         </div>
-
-        <div class="Welcome">
-          <h1>Homeowners</h1>
-          <p id="username"></p>
-          <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
-        </div>
-
         <div class="table-container">
-            <table>
+            <table id="homeownersTable">
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Block and Lot</th>
-                        <th>Number</th>
-                        <th>House Landline</th>
+                        <th>Address</th>
+                        <th>Phone Number</th>
+                        <th>Landline</th>
                         <th>Payment Status</th>
                         <th>Homeowner Status</th>
-                        
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="homeownersTable"> 
-                    <!--dito napapasok data -->
+                <tbody>
+                    <!-- Data rows will be dynamically added here -->
                 </tbody>
             </table>
         </div>
-        
-        <script>
-// di pa nagana pare gpt help sa scroll or refresh ng table
-window.onbeforeunload = function() {
-                       sessionStorage.setItem("scrollPosition", window.scrollY);
-                       };
-//test pushh
-                        // After the page reloads, restore the scroll position
-                        window.onload = function() {
-                        const savedScrollPosition = sessionStorage.getItem("scrollPosition");
-                        if (savedScrollPosition !== null) {
-                        window.scrollTo(0, savedScrollPosition);
-                         }
-                          };
-                          async function loadHomeowners() {
-        try {
+    </div>
+
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+          <div class="modal-header">Edit Homeowner</div>
+          <form id="editForm">
+              <label for="editFirstName">First Name</label>
+              <input type="text" id="editFirstName" placeholder="Enter first name" required>
+  
+              <label for="editLastName">Last Name</label>
+              <input type="text" id="editLastName" placeholder="Enter last name" required>
+  
+              <label for="editAddress">Address</label>
+              <input type="text" id="editAddress" placeholder="Enter address" required>
+  
+              <label for="editPhone">Phone Number</label>
+              <input type="text" id="editPhone" placeholder="Enter phone number" required>
+  
+              <label for="editLandline">Landline</label>
+              <input type="text" id="editLandline" placeholder="Enter landline" required>
+  
+              <label for="editPayment">Payment Status</label>
+              <input type="text" id="editPayment" placeholder="Enter payment status" required>
+  
+              <label for="editStatus">Status</label>
+              <input type="text" id="editStatus" placeholder="Enter status" required>
+  
+              <div class="modal-footer">
+                  <button type="submit" class="save">Save</button>
+                  <button type="button" class="cancel" onclick="closeModal()">Cancel</button>
+              </div>
+          </form>
+      </div>
+  </div>
+  </div>
+
+    <script>
+        // Navigate function for sidebar buttons
+        function navigate(url) {
+            window.location.href = url;
+        }
+
+        // Load homeowners data
+        async function loadHomeowners() {
             const response = await fetch('/getHomeowners');
             const homeowners = await response.json();
-
-            const tableBody = document.getElementById('homeownersTable');
-            tableBody.innerHTML = ''; // Clear existing table data
+            const tableBody = document.getElementById('homeownersTable').querySelector('tbody');
+            tableBody.innerHTML = '';
 
             homeowners.forEach(homeowner => {
-                const row = document.createElement('tr'); // tr = table row
-
-                // Create table cells
-                const nameCell = document.createElement('td');
-                nameCell.textContent = `${homeowner.lastname} ${homeowner.username}`;
-
-                const addressCell = document.createElement('td');
-                addressCell.textContent = homeowner.address;
-
-                const numberCell = document.createElement('td');
-                numberCell.textContent = homeowner.number;
-
-                const landlineCell = document.createElement('td');
-                landlineCell.textContent = homeowner.landline;
-
-                const paymentStatusCell = document.createElement('td');
-                paymentStatusCell.textContent = homeowner.status === 'Paid' ? 'Paid' : 'Unpaid';
-
-                // Create the payment button
-                const paymentButton = document.createElement('button');
-                paymentButton.textContent = 'Change';
-                paymentButton.setAttribute('id', 'bChange');
-                paymentButton.setAttribute('name', 'bChange');
-                paymentButton.style.cursor = 'pointer';
-
-                paymentStatusCell.style.position = 'relative';
-                paymentButton.style.position = 'absolute';
-                paymentButton.style.bottom = '10px';
-                paymentButton.style.right = '10px';
-
-                // Append the button to the paymentStatusCell
-                paymentStatusCell.appendChild(paymentButton);
-
-                // Add event listener for the payment button
-                paymentButton.addEventListener('click', async () => {
-                    // Send a PATCH request to toggle the status
-                    const statusResponse = await fetch(`/toggleStatus/${homeowner.username}/${homeowner.lastname}`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (statusResponse.ok) {
-                        const responseData = await statusResponse.json();
-                        const newStatus = responseData.status; // Get the new status from the response
-
-                        // Update the status in the paymentStatusCell without removing the button
-                        paymentStatusCell.firstChild.textContent = newStatus === 'Paid' ? 'Paid' : 'Unpaid';
-
-                        // Update the homeowner status text in the last cell
-                        const homeownerStatusCell = row.querySelector('td:last-child');
-                        homeownerStatusCell.textContent = newStatus === 'Paid' ? 'Compliant' : 'Delinquent';
-                    } else {
-                        console.error('Error toggling payment status');
-                    }
-                });
-
-                const homeownerStatusCell = document.createElement('td');
-                homeownerStatusCell.textContent = homeowner.status === 'Paid' ? 'Compliant' : 'Delinquent';
-
-                // Append cells to the row
-                row.appendChild(nameCell);
-                row.appendChild(addressCell);
-                row.appendChild(numberCell);
-                row.appendChild(landlineCell);
-                row.appendChild(paymentStatusCell);
-                row.appendChild(homeownerStatusCell);
-
-                // Append the row to the table body
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${homeowner.firstName} ${homeowner.lastName}</td>
+                    <td>${homeowner.Address}</td>
+                    <td>${homeowner.phoneNumber}</td>
+                    <td>${homeowner.landLine}</td>
+                    <td>${homeowner.paymentStatus}</td>
+                    <td>${homeowner.homeownerStatus}</td>
+                    <td><button onclick="editRow('${homeowner.email}')">Edit</button></td>
+                `;
                 tableBody.appendChild(row);
             });
-        } catch (error) {
-            console.error('Error loading homeowners:', error);
         }
+
+        // Filter table rows
+        function filterTable() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#homeownersTable tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const match = Array.from(cells).some(cell => cell.textContent.toLowerCase().includes(searchInput));
+                row.style.display = match ? '' : 'none';
+            });
+        }
+        async function editRow(email) {
+        document.getElementById("editModal").style.display = "flex";
+    }
+    // Close Modal
+    function closeModal() {
+        document.getElementById("editModal").style.display = "none";
     }
 
-    // Load homeowners when the page is fully loaded
-    window.onload = loadHomeowners;
-        </script>
-        
-        
-      </body>
+        // Load homeowners data on page load
+        window.onload = loadHomeowners;
+    </script>
+</body>
+</html>
