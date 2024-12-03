@@ -59,6 +59,7 @@
             font-family: 'Inter', sans-serif;
             color: #AF2630;
             text-align: center;
+            margin-top: 8%;
         }
 
         header {
@@ -217,13 +218,49 @@
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             }
 
-
+            .event-container {
+            display: flex;
+            margin-top: 20px;
+        }
+        .event-list {
+            width: 300px;
+            border-right: 1px solid #ccc;
+            padding-right: 20px;
+            height: 500px;
+            overflow-y: auto;
+        }
+        .event-list-item {
+            cursor: pointer;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .event-list-item:hover {
+            background-color: #f0f0f0;
+        }
+        .event-details {
+            flex-grow: 1;
+            padding-left: 20px;
+        }
+        .event-image {
+            max-width: 100%;
+            height: auto;
+        }
+        .approval-buttons {
+            margin-top: 20px;
+        }
+        .approval-buttons button {
+            margin-right: 10px;
+        }
+        #disapprovalReason {
+            width: 100%;
+            margin-top: 10px;
+        }
 
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
+        
     </div>
 
     <div class="side-bar">
@@ -251,6 +288,15 @@
         <div class="navigation-buttons">
             <button id="prevMonth">Previous Month</button>
             <button id="nextMonth">Next Month</button>
+        </div>
+    </div>
+
+    <div class="event-container">
+        <div class="event-list" id="eventList">
+            <!-- Event list items will be dynamically added here -->
+        </div>
+        <div class="event-details" id="eventDetails">
+            <!-- Event details will be dynamically added here -->
         </div>
     </div>
     
@@ -428,7 +474,120 @@
             renderCalendar();
         });
 
+        let currentEvents = []; // Declare currentEvents variable
 
-            </script>
+        async function fetchEvents() {
+            try {
+                const response = await fetch('http://localhost:3000/pending-events');
+                const data = await response.json();
+                if (data.success) {
+                    currentEvents = data.events;
+                    displayEventList();
+                } else {
+                    console.error("Failed to fetch events:", data.message);
+                }
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            }
+        }
+
+        function displayEventList() {
+            const eventList = document.getElementById('eventList');
+            eventList.innerHTML = '';
+            currentEvents.forEach((event, index) => {
+                const listItem = document.createElement('div');
+                listItem.className = 'event-list-item';
+                listItem.textContent = `${event.eventName} - ${event.eventDate}`;
+                listItem.onclick = () => displayPendingEventDetails(index);
+                eventList.appendChild(listItem);
+            });
+        }
+
+
+        async function displayPendingEventDetails(index) {
+            const event = currentEvents[index];
+            const detailsContainer = document.getElementById('eventDetails');
+
+            // Fetch receipt image
+            const receiptImageResponse = await fetch(`http://localhost:3000/receipt-image?eventName=${encodeURIComponent(event.eventName)}&eventDate=${encodeURIComponent(event.eventDate)}`);
+            const receiptImageData = await receiptImageResponse.json();
+            const receiptImage = receiptImageData.success ? receiptImageData.imageUrl : null;
+
+            detailsContainer.innerHTML = `
+                <h2>${event.eventName}</h2>
+                <p>Date: ${event.eventDate}</p>
+                <p>Time: ${event.startTime} - ${event.endTime}</p>
+                <p>Amenity: ${event.amenity || 'Not specified'}</p>
+                <p>Host: ${event.hostName || 'Not specified'}</p>
+                <p>Email: ${event.email || 'Not specified'}</p>
+                <p>Amount: ₱${event.amount}</p>
+                <p>Payment Method: ${event.paymentMethod}</p>
+                ${receiptImage ? `<img src="${receiptImage}" alt="Receipt" class="event-image">` : '<p>No receipt image available</p>'}
+                <div class="approval-buttons">
+                    <button onclick="approveEvent('${event._id}')">Approve</button>
+                    <button onclick="disapproveEvent('${event._id}')">Disapprove</button>
+                </div>
+                <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
+            `;
+        }
+
+        async function approveEvent(eventId) {
+            try {
+                const response = await fetch(`http://localhost:3000/approveEvent/${eventId}`, {
+                    method: 'PUT',
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Event approved successfully');
+                    await fetchEvents(); // Refresh the event list
+                    document.getElementById('eventDetails').innerHTML = '';
+                } else {
+                    alert('Failed to approve event: ' + data.message);
+                }
+            } catch (error) {
+                console.error("Error approving event:", error);
+                alert('An error occurred while approving the event');
+            }
+        }
+
+        function disapproveEvent(eventId) {
+            const reasonTextarea = document.getElementById('disapprovalReason');
+            reasonTextarea.style.display = 'block';
+            reasonTextarea.onkeyup = async (e) => {
+                if (e.key === 'Enter') {
+                    const reason = reasonTextarea.value.trim();
+                    if (reason) {
+                        await submitDisapproval(eventId, reason);
+                    }
+                }
+            };
+        }
+
+        async function submitDisapproval(eventId, reason) {
+            try {
+                const response = await fetch('http://localhost:3000/disapprove-event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ eventId, reason }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Event disapproved successfully');
+                    await fetchEvents(); // Refresh the event list
+                    document.getElementById('eventDetails').innerHTML = '';
+                } else {
+                    alert('Failed to disapprove event: ' + data.message);
+                }
+            } catch (error) {
+                console.error("Error disapproving event:", error);
+                alert('An error occurred while disapproving the event');
+            }
+        }
+
+        // Call fetchEvents when the page loads
+        document.addEventListener('DOMContentLoaded', fetchEvents);
+    </script>
 </body>
 </html>

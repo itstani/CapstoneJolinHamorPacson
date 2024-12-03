@@ -228,13 +228,14 @@
             <table id="homeownersTable">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Address</th>
-                        <th>Phone Number</th>
-                        <th>Landline</th>
-                        <th>Payment Status</th>
-                        <th>Homeowner Status</th>
-                        <th>Actions</th>
+                        <th>Last Name</th>
+                      <th>First name</th>
+                      <th>Address</th>
+                      <th>Phone Number</th>
+                      <th>Landline</th>
+                      <th>Payment Status</th>
+                      <th>Homeowner Status</th>
+                      <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -247,7 +248,8 @@
           <table id="editTable">
               <thead>
                   <tr>
-                      <th>Name</th>
+                      <th>Last Name</th>
+                      <th>First name</th>
                       <th>Address</th>
                       <th>Phone Number</th>
                       <th>Landline</th>
@@ -264,12 +266,7 @@
       </div>
     </div>
     
-  
-  
-  
-  </div>
-  </div>
-      <script>
+    <script>
         // Navigate function for sidebar buttons
         function navigate(url) {
             window.location.href = url;
@@ -277,30 +274,37 @@
 
         // Load homeowners data
         async function loadHomeowners() {
-            const response = await fetch('/getHomeowners');
-            const homeowners = await response.json();
-            const tableBody = document.getElementById('homeownersTable').querySelector('tbody');
-            tableBody.innerHTML = '';
+            try {
+                const response = await fetch('/getHomeowners');
+                const homeowners = await response.json();
+                const tableBody = document.getElementById('homeownersTable').querySelector('tbody');
+                tableBody.innerHTML = '';
 
-            homeowners.forEach(homeowner => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${homeowner.firstName} ${homeowner.lastName}</td>
-                    <td>${homeowner.address}</td>
-                    <td>${homeowner.phoneNumber}</td>
-                    <td>${homeowner.landLine}</td>
-                    <td>${homeowner.paymentStatus}</td>
-                    <td>${homeowner.homeownerStatus}</td>
-                    <td><button onclick="editRow(this)">Edit</button></td>
-                `;
-                tableBody.appendChild(row);
-            });
+                homeowners.forEach(homeowner => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${homeowner.lastName}</td>
+                        <td>${homeowner.firstName}</td>
+                        <td>${homeowner.Address}</td>
+                        <td>${homeowner.phoneNumber}</td>
+                        <td>${homeowner.landLine}</td>
+                        <td>${homeowner.paymentStatus}</td>
+                        <td>${homeowner.homeownerStatus}</td>
+                        <td><button onclick="editRow(this)">Edit</button></td>
+                    `;
+                    row.dataset.email = homeowner.email; // Store email for identification
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading homeowners:', error);
+                alert('Failed to load homeowners. Please try again.');
+            }
         }
 
         // Function to handle row editing
         function editRow(button) {
-            const row = button.closest('tr'); // Get the clicked row
-            const cells = row.querySelectorAll('td'); // Get all cells in the row
+            const row = button.closest('tr');
+            const cells = row.querySelectorAll('td');
             const editTableBody = document.getElementById('editTableBody');
 
             // Populate the edit table with the selected row data
@@ -311,30 +315,84 @@
                 <td contenteditable="true">${cells[2].textContent}</td>
                 <td contenteditable="true">${cells[3].textContent}</td>
                 <td contenteditable="true">${cells[4].textContent}</td>
-                <td contenteditable="true">${cells[5].textContent}</td>
-                <td><button onclick="saveRow(this)">Save</button></td>
+                <td>
+                    <select onchange="updateHomeownerStatus(this)">
+                        <option value="Paid" ${cells[5].textContent === 'Paid' ? 'selected' : ''}>Paid</option>
+                        <option value="Not Paid" ${cells[5].textContent === 'Not Paid' ? 'selected' : ''}>Not Paid</option>
+                    </select>
+                </td>
+                <td class="status-cell ${cells[5].textContent === 'Paid' ? 'status-compliant' : 'status-delinquent'}">
+                    ${cells[5].textContent === 'Paid' ? 'Compliant' : 'Delinquent'}
+                </td>
+                
             `;
+            editRow.dataset.email = row.dataset.email; // Store email for identification
             
             // Clear existing edit table rows and add the new one
             editTableBody.innerHTML = '';
             editTableBody.appendChild(editRow);
         }
 
-        // Function to handle saving changes
-        function saveRow(button) {
-            const row = button.closest('tr'); // Get the row being edited
-            const cells = row.querySelectorAll('td'); // Get all cells in the row
+        // New function to update Homeowner Status based on Payment Status
+        function updateHomeownerStatus(select) {
+            const row = select.closest('tr');
+            const statusCell = row.querySelector('.status-cell');
+            const selectedValue = select.value;
+
+            statusCell.textContent = selectedValue === 'Paid' ? 'Compliant' : 'Delinquent';
+            statusCell.className = `status-cell ${selectedValue === 'Paid' ? 'status-compliant' : 'status-delinquent'}`;
+            // Add code here to update the database or other data source with the new status
+            console.log("Updated homeowner status to:", selectedValue);
+        }
+
+        function cancelEdit() {
+            document.getElementById('editTableBody').innerHTML = '';
+        }
+
+        async function saveChanges() {
+            const editTableBody = document.getElementById('editTableBody');
+            const row = editTableBody.querySelector('tr');
+            if (!row) {
+                alert('No data to save!');
+                return;
+            }
+
+            const cells = row.querySelectorAll('td');
+            const email = row.dataset.email;
 
             const updatedData = {
-                name: cells[0].textContent,
-                address: cells[1].textContent,
-                phoneNumber: cells[2].textContent,
-                landLine: cells[3].textContent,
-                paymentStatus: cells[4].textContent,
-                homeownerStatus: cells[5].textContent,
+                lastName: cells[0].textContent.trim(),
+                firstName: cells[1].textContent.trim(),
+                Address: cells[2].textContent.trim(),
+                phoneNumber: cells[3].textContent.trim(),
+                landLine: cells[4].textContent.trim(),
+                paymentStatus: cells[5].querySelector('select').value,
+                homeownerStatus: cells[6].textContent.trim(),
             };
 
-            console.log('Updated Data:', updatedData);
+            try {
+                const response = await fetch(`/updateHomeowner/${email}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Homeowner updated successfully!');
+                    // Assuming loadHomeowners function exists to reload data
+                    //loadHomeowners(); 
+                    cancelEdit(); // Clear the edit table
+                } else {
+                    alert('Failed to update homeowner: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error saving changes:', error);
+                alert('An error occurred while saving changes. Please try again.');
+            }
         }
 
         // Filter table rows
@@ -352,6 +410,6 @@
         // Load homeowners data on page load
         window.onload = loadHomeowners;
     </script>
-
 </body>
 </html>
+

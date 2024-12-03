@@ -118,125 +118,160 @@
   </head>
   <body>
     <div class="payment-container">
-      <h2>Finalize Your Payment</h2>
-      <div class="detail">
-        <p><strong>Event Name:</strong> <span id="eventName"></span></p>
-        <p><strong>Event Date:</strong> <span id="eventDate"></span></p>
-        <p><strong>Start Time:</strong> <span id="eventStartTime"></span></p>
-        <p><strong>End Time:</strong> <span id="eventEndTime"></span></p> 
-        <p><strong>Base Amount:</strong> ₱<span id="baseAmount"></span></p> 
-        <p><strong>Final Amount:</strong> ₱<span id="finalAmount"></span></p>
+        <h2>Finalize Your Payment</h2>
+        <div class="detail">
+            <p><strong>Event Name:</strong> <span id="eventName"></span></p>
+            <p><strong>Event Date:</strong> <span id="eventDate"></span></p>
+            <p><strong>Start Time:</strong> <span id="eventStartTime"></span></p>
+            <p><strong>End Time:</strong> <span id="eventEndTime"></span></p> 
+            <p><strong>Amenity:</strong> <span id="eventAmenity"></span></p>
+            <p><strong>Base Amount:</strong> ₱<span id="baseAmount">0</span></p> 
+            <p><strong>Final Amount:</strong> ₱<span id="finalAmount">0</span></p>
+        </div>
+
+        <div class="payment-method">
+            <h3>Choose Payment Method:</h3>
+            <label><input type="radio" name="paymentMethod" value="gcash" /> GCash (+₱15)</label>
+            <label><input type="radio" name="paymentMethod" value="card" /> Credit Card</label>
+            <label><input type="radio" name="paymentMethod" value="cash" /> Cash</label>
+        </div>
+
+        <div class="qr-container">
+            <h3>QR Code:</h3>
+            <img src="images/exqrcode.png" alt="QR Code" />
+        </div>
+
+        <form id="paymentForm" action="/upload-receipt" method="POST" enctype="multipart/form-data">
+            <input type="file" name="receipt" id="receiptUpload" accept="image/*" required>
+            <p><strong>Total Amount:</strong> ₱<span id="totalAmount">0</span></p>
+            <input type="hidden" id="finalAmountInput" name="finalAmount" value="0">
+            <input type="hidden" name="eventName" id="eventNameInput">
+            <input type="hidden" name="eventDate" id="eventDateInput">
+            <input type="hidden" name="startTime" id="startTimeInput">
+            <input type="hidden" name="endTime" id="endTimeInput">
+            <button type="submit" id="proceedButton" disabled>Proceed</button>
+        </form>
     </div>
-    
 
-      <div class="payment-method">
-        <h3>Choose Payment Method:</h3>
-        <label><input type="radio" name="paymentMethod" value="gcash" /> GCash (+₱15)</label>
-        <label><input type="radio" name="paymentMethod" value="card" /> Credit Card</label>
-        <label><input type="radio" name="paymentMethod" value="cash" /> Cash</label>
-      </div>
-
-      <div class="qr-container">
-        <h3>QR Code:</h3>
-        <img src="images/exqrcode.png" alt="QR Code" />
-      </div>
-
-      <!-- Form for receipt upload -->
-      <form id="paymentForm" action="/upload-receipt" method="POST" enctype="multipart/form-data">
-  <input type="file" name="receipt" id="receiptUpload" required>
-  
-  <button type="submit" id="proceedButton" disabled>Proceed</button>
-</form>
-
-    <!-- Modal -->
     <div class="modal" id="paymentModal">
-      <div class="modal-content">
-        <h3 id="paymentMethodMessage"></h3>
-        <p>Thank you, please wait while Avida confirms the payment and settles your reservation.</p>
-        <button class="close-button" id="closeModalButton">Close</button>
-      </div>
+        <div class="modal-content">
+            <h3 id="paymentMethodMessage"></h3>
+            <p>Thank you, please wait while Avida confirms the payment and settles your reservation.</p>
+            <button class="close-button" id="closeModalButton" onclick="window.location.href='HoHome.html'">Close</button>
+        </div>
     </div>
 
     <script>
-      // Retrieve event data from sessionStorage and update the page
-      const eventData = JSON.parse(sessionStorage.getItem("eventData"));
-      const detailsContainer = document.querySelector(".detail");
-
-      if (eventData) {
-        console.log(eventData); // Check if eventData is retrieved correctly
-
-        // Dynamically populate event details
-        detailsContainer.innerHTML = `
-          <p><strong>Event Name:</strong> ${eventData.eventName}</p>
-          <p><strong>Event Date:</strong> ${eventData.eventDate}</p>
-          <p><strong>Start Time:</strong> ${eventData.startTime}</p>
-          <p><strong>End Time:</strong> ${eventData.endTime}</p>
-          <p><strong>Base Amount:</strong> ₱${eventData.baseAmount}</p>
-          <p><strong>Final Amount:</strong> ₱${eventData.finalAmount}</p>
-        `;
-      } else {
-        // Handle case where no event data is found
-        detailsContainer.innerHTML = `<p style="color: red;">Error: No event data found.</p>`;
-        console.error("No event data found.");
-      }
-
-
-      
-      document.getElementById("proceedButton").disabled = true;
-      // Enable Proceed button once a receipt is uploaded
-      document.getElementById("receiptUpload").addEventListener("change", function() {
-    const proceedButton = document.getElementById("proceedButton");
-    console.log(this.files); // Check if the files array is being populated
-    proceedButton.disabled = !this.files.length; // Enable/Disable based on file presence
-})
-
-document.getElementById("receiptUpload").addEventListener("change", function() {
-    const proceedButton = document.getElementById("proceedButton");
-    console.log(this.files); // Check if the files array is being populated
-    proceedButton.disabled = !this.files.length; // Enable/Disable based on file presence
-});
-
-
-// Handle form submission
-document.getElementById("paymentForm").addEventListener("submit", function (event) {
-    event.preventDefault(); // Prevent default form submission
-    
-    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
-    if (!selectedMethod) {
-        alert("Please select a payment method.");
-        return;
-    }
-
-    const paymentMethod = selectedMethod.value;
-    const formData = new FormData(this);
-    formData.append('paymentMethod', paymentMethod);
-    
-    fetch('/api/payment', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show the modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventData = JSON.parse(sessionStorage.getItem("eventData"));
+            const detailsContainer = document.querySelector(".detail");
+            const baseAmountDisplay = document.getElementById("baseAmount");
+            const finalAmountDisplay = document.getElementById("finalAmount");
+            const totalAmountDisplay = document.getElementById("totalAmount");
+            const finalAmountInput = document.getElementById("finalAmountInput");
+            const proceedButton = document.getElementById("proceedButton");
+            const paymentForm = document.getElementById("paymentForm");
+            const receiptUpload = document.getElementById("receiptUpload");
+            const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
             const modal = document.getElementById("paymentModal");
-            const paymentMethodMessage = document.getElementById("paymentMethodMessage");
-            paymentMethodMessage.innerText = `Pay your ${paymentMethod.toUpperCase()} here`;
-            modal.style.display = "flex";
+            const closeModalButton = document.getElementById("closeModalButton");
 
-            // After closing the modal, redirect to welcome.html
-            document.getElementById("closeModalButton").addEventListener("click", () => {
-                window.location.href = "welcome.html";
+            let baseAmount = 0;
+
+            if (eventData) {
+                document.getElementById("eventName").textContent = eventData.eventName;
+                document.getElementById("eventDate").textContent = eventData.eventDate;
+                document.getElementById("eventStartTime").textContent = eventData.startTime;
+                document.getElementById("eventEndTime").textContent = eventData.endTime;
+                document.getElementById("eventAmenity").textContent = eventData.amenity;
+
+                const startTime = new Date(`1970-01-01T${eventData.startTime}Z`);
+                const endTime = new Date(`1970-01-01T${eventData.endTime}Z`);
+                const duration = (endTime - startTime) / (1000 * 60 * 60); // Convert ms to hours
+
+                let rate = 0;
+                if (eventData.amenity.toLowerCase() === "clubhouse") {
+                    rate = 1000; // Rate per hour for clubhouse
+                } else if (eventData.amenity.toLowerCase() === "pool") {
+                    rate = 500; // Example rate for pool
+                } else if (eventData.amenity.toLowerCase() === "gym") {
+                    rate = 300; // Example rate for gym
+                }
+
+                baseAmount = rate * duration;
+                baseAmountDisplay.textContent = baseAmount.toFixed(2);
+                updateTotalAmount();
+
+                // Update the hidden inputs with event data
+                document.getElementById("eventNameInput").value = eventData.eventName;
+                document.getElementById("eventDateInput").value = eventData.eventDate;
+                document.getElementById("startTimeInput").value = eventData.startTime;
+                document.getElementById("endTimeInput").value = eventData.endTime;
+            } else {
+                detailsContainer.innerHTML = `<p style="color: red;">Error: No event data found.</p>`;
+                console.error("No event data found.");
+            }
+
+            function updateTotalAmount() {
+                let totalAmount = baseAmount;
+                const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
+
+                finalAmountDisplay.textContent = totalAmount.toFixed(2);
+                totalAmountDisplay.textContent = totalAmount.toFixed(2);
+                finalAmountInput.value = totalAmount.toFixed(2);
+            }
+
+            paymentMethods.forEach(method => {
+                method.addEventListener('change', updateTotalAmount);
             });
-        } else {
-            alert("Error processing payment. Please try again.");
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
-});
 
+            receiptUpload.addEventListener("change", function () {
+                proceedButton.disabled = !this.files || this.files.length === 0;
+            });
+
+            paymentForm.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                
+                const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
+                if (!selectedMethod) {
+                    alert("Please select a payment method.");
+                    return;
+                }
+
+                const formData = new FormData(this);
+                formData.append('paymentMethod', selectedMethod.value);
+                
+                try {
+                    const response = await fetch('/upload-receipt', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const modal = document.getElementById("paymentModal");
+                        const paymentMethodMessage = document.getElementById("paymentMethodMessage");
+                        paymentMethodMessage.innerText = `Pay your ${selectedMethod.value.toUpperCase()} here`;
+                        modal.style.display = "flex";
+                    } else {
+                        throw new Error(data.message || 'Payment processing failed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert("An error occurred. Please try again. " + error.message);
+                }
+            });
+
+           
+
+            // Initial call to set the total amount
+            updateTotalAmount();
+        });
     </script>
-  </body>
+</body>
 </html>

@@ -7,13 +7,13 @@
     const session = require("express-session");
     const bcrypt = require("bcryptjs");
     const cors = require('cors');
+    const fs = require('fs');
+    const { ObjectId } = require('mongodb');
+
     const app = express();
     const port = 3000;
     const dbName = "avidadb";
     const uri = "mongodb+srv://ethan:Edj1026@avidadb.upica.mongodb.net/?retryWrites=true&w=majority&appName=avidadb";
-    //const uri = 'mongodb://localhost:27017/';
-    //const client = new MongoClient(uri);
-    //const dbName = 'avidadb';
     const client = new MongoClient(uri, {
       serverApi: {
         version: ServerApiVersion.v1,
@@ -34,40 +34,98 @@
         cookie: { secure: app.get('env') === 'production' },
       })
     );
-    
-    const storage = multer.diskStorage({
-      destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-      },
-      filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
-      },
-    });
-    const upload = multer({ storage: storage });
-    app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
-      const { eventName, eventDate, amount, startTime, endTime } = req.body;
-      const receiptImagePath = req.file ? req.file.path : null;
-      try {
-        await client.connect();
-        const db = client.db(dbName);
-        const paymentsCollection = db.collection('eventPayments');
-        const paymentDetails = {
-          eventName,
-          eventDate,
-          startTime,
-          endTime,
-          amount,
-          receiptImage: receiptImagePath,
-        };
-        await paymentsCollection.insertOne(paymentDetails);
-        res.json({ success: true, message: 'Payment details saved successfully!' });
-      } catch (error) {
-        console.error('Error saving payment details:', error);
-        res.json({ success: false, message: 'Error saving payment details' });
-      } finally {
-        await client.close();
+    // Database connection setup
+    let database;
+
+    async function connectToDatabase() {
+      if (!database) {
+        try {
+          // Connect to the database once
+          await client.connect();
+          console.log("Connected to MongoDB!");
+          database = client.db(dbName);
+        } catch (err) {
+          console.error("Error connecting to MongoDB:", err);
+          throw err;
+        }
       }
-    });
+      return database;
+    }
+
+    const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)){
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage });
+
+app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No file uploaded' 
+            });
+        }
+
+        // Read the uploaded file
+        const filePath = req.file.path;
+        const fileBuffer = fs.readFileSync(filePath);
+
+        // Convert the file to Base64
+        const base64Image = fileBuffer.toString('base64');
+        const mimeType = req.file.mimetype;
+
+        // Construct the MongoDB document
+        const paymentData = {
+            eventName: req.body.eventName,
+            eventDate: req.body.eventDate,
+            amount: req.body.finalAmount,
+            startTime: req.body.startTime,
+            endTime: req.body.endTime,
+            paymentMethod: req.body.paymentMethod,
+            receiptImage: `data:${mimeType};base64,${base64Image}`,
+            timestamp: new Date()
+        };
+
+        // Save to MongoDB
+        const db = await client.db(dbName); //connectToDatabase();
+        const paymentsCollection = db.collection('eventpayments');
+        await paymentsCollection.insertOne(paymentData);
+
+        // Cleanup the temporary file
+        fs.unlinkSync(filePath);
+
+        res.status(200).json({ 
+            success: true, 
+            message: "Receipt uploaded and payment processed successfully!" 
+        });
+    } catch (err) {
+        console.error("Error handling receipt upload:", err);
+        // Cleanup the temporary file if it exists
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkErr) {
+                console.error("Error deleting temporary file:", unlinkErr);
+            }
+        }
+        res.status(500).json({ 
+            success: false, 
+            message: "Error processing payment. Please try again." 
+        });
+    }
+});
+    
     app.get("/", (req, res) => {
       res.sendFile(path.join(__dirname, "Webpages/login.html"));
     });
@@ -75,7 +133,8 @@
     app.post("/login", async (req, res) => {
       const { email, password } = req.body;
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const usersCollection = database.collection("acc");
         const user = await usersCollection.findOne({ email });
@@ -120,7 +179,8 @@
         return res.json({ message: "Missing required fields", success: false });
       }
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const usersCollection = database.collection("acc");
         const existingUser = await usersCollection.findOne({ email });
@@ -165,7 +225,8 @@
 
       try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const usersCollection = database.collection("acc");
 
@@ -226,7 +287,8 @@
     app.post("/delEvent", async (req, res) => {
       const { username } = req.body;
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const eventsCollection = database.collection("events");
         const result = await eventsCollection.findOneAndDelete(
@@ -252,7 +314,8 @@
     });
     app.get('/eventfin', async (req, res) => {
       try {
-          await client.connect();
+        const db = await connectToDatabase();
+
           const database = client.db(dbName);
           const eventsCollection = database.collection('events');
           const events = await eventsCollection.find({}).toArray();
@@ -288,7 +351,8 @@
 
       const { email } = req.session.user;
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const homeownersCollection = database.collection('homeowners');
         const accCollection = database.collection('acc');
@@ -336,7 +400,8 @@
       }
     
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const usersCollection = database.collection("acc");
     
@@ -370,23 +435,19 @@
     });
     
     
-    app.get('/approved-events', async (req, res) => {
+    app.get('/approved-events', async (req, res, next) => {
       try {
-          console.log("Connecting to MongoDB...");
-          await client.connect();
-          const db = client.db(dbName);
-          console.log("Connected to DB:", dbName);
+          const db = await connectToDatabase();
           const eventsCollection = db.collection('aevents');
           const events = await eventsCollection.find({ status: 'approved' }).toArray();
           res.json({ success: true, events });
       } catch (error) {
-          console.error("Error fetching approved events:", error);
-          res.status(500).json({ success: false, message: "Error fetching events" });
-      } finally {
-          await client.close();
-          console.log("MongoDB connection closed.");
+          next(error);
       }
-    });
+  });
+  
+    
+
     app.post('/logout', (req, res) => {
       req.session.destroy((err) => {
         if (err) {
@@ -398,7 +459,8 @@
     });
     async function run() {
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
       } finally {
@@ -410,7 +472,8 @@
     app.get('/getHomeowners', async (req, res) => {
       const client = new MongoClient(uri);
       try {
-          await client.connect();
+        const db = await connectToDatabase();
+
           const database = client.db('avidadb');
           const collection = database.collection('homeowners');
           //fetch all homeowners in dtb
@@ -428,7 +491,8 @@
       const { username, lastname } = req.params;
 
       try {
-        await client.connect();
+        const db = await connectToDatabase();
+
         const database = client.db(dbName);
         const collection = database.collection('acc');
 
@@ -449,12 +513,13 @@
       }
     });
 
-    app.patch('/updateHomeowner/:email', async (req, res) => {
+    app.put('/updateHomeowner/:email', async (req, res) => {
       const { email } = req.params;
       const updateData = req.body;
   
       try {
-          await client.connect();
+        const db = await connectToDatabase();
+
           const database = client.db('avidadb');
           const collection = database.collection('homeowners');
   
@@ -464,9 +529,9 @@
           );
   
           if (result.modifiedCount > 0) {
-              res.json({ success: true });
+              res.json({ success: true, message: 'Homeowner updated successfully' });
           } else {
-              res.json({ success: false });
+              res.json({ success: false, message: 'No document matched the query' });
           }
       } catch (error) {
           console.error('Error updating homeowner:', error);
@@ -476,3 +541,75 @@
       }
   });
   
+  
+  app.get('/pending-events', async (req, res) => {
+    try {
+      const db = await connectToDatabase();
+      const eventpaymentsCollection = db.collection('eventpayments');
+      const pendingEvents = await eventpaymentsCollection.find({ status: { $ne: 'approved' } }).toArray();
+      res.json({ success: true, events: pendingEvents });
+    } catch (error) {
+      console.error('Error fetching pending events:', error);
+      res.status(500).json({ success: false, message: 'Error fetching events' });
+    }
+  });
+  
+  // Update the existing approve event route
+  app.put('/approveEvent/:eventId', async (req, res) => {
+    const { eventId } = req.params;
+  
+    try {
+      const eventpaymentsCollection = req.db.collection('eventpayments');
+  
+      const event = await eventpaymentsCollection.findOne({ _id: new ObjectId(eventId) });
+
+  
+      if (!event) {
+        return res.json({ success: false, message: 'Event not found' });
+      }
+  
+      const updateResult = await eventpaymentsCollection.updateOne(
+        { _id: new MongoClient.ObjectId(eventId) },
+        { $set: { status: 'approved' } }
+      );
+  
+      if (updateResult.modifiedCount > 0) {
+        res.json({ success: true, message: 'Event approved successfully' });
+      } else {
+        res.json({ success: false, message: 'Failed to approve event' });
+      }
+    } catch (error) {
+      console.error('Error approving event:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  });
+  
+  // Add a new route to fetch the receipt image
+  app.get('/receipt-image', async (req, res) => {
+    const { eventName, eventDate } = req.query;
+    try {
+      const eventpaymentsCollection = req.db.collection('eventpayments');
+      const event = await eventpaymentsCollection.findOne({ eventName, eventDate });
+      if (event && event.receiptImage) {
+        res.json({ success: true, imageUrl: event.receiptImage });
+      } else {
+        res.json({ success: false, message: 'Receipt image not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching receipt image:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  });
+  
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    if (client) {
+      await client.close();
+      console.log('MongoDB connection closed');
+    }
+    process.exit(0);
+  });
+  
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
