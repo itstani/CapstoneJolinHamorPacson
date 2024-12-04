@@ -3,9 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar</title>
+    <title>Admin Calendar</title>
     <style>
-        /* Top Bar */ /* test *//*test*//*test*/
+        /* Reset and general styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Top Bar */
         .top-bar {
             background-color: #AF2630;
             position: fixed;
@@ -17,13 +30,7 @@
             align-items: center;
             justify-content: flex-end;
             padding-right: 20px;
-        }
-
-        .avidalogo {
-            width: 500px;
-            height: 170px;
-            margin-left: 69%;
-            padding-top: 12%;
+            z-index: 1000;
         }
 
         /* Sidebar */
@@ -33,80 +40,72 @@
             top: 50px;
             left: 0;
             width: 90px;
-            height: 100%;
+            height: calc(100% - 50px);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 20px;
+            z-index: 900;
         }
 
         .side-bar button {
             background-color: transparent;
             border: none;
             margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
 
         .side-bar button:hover {
             background-color: #ccc;
-            cursor: pointer;
         }
 
         /* Calendar Layout */
         .calendar {
-            margin: 100px auto 0;
+            margin: 70px 0 0 110px;
             padding: 20px;
-            max-width: 1500px;
-            font-family: 'Inter', sans-serif;
+            max-width: calc(100% - 110px);
             color: #AF2630;
-            text-align: center;
-            margin-top: 8%;
         }
 
-        header {
+        .calendar header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.5rem;
-            font-weight: bold;
             margin-bottom: 20px;
         }
 
-        header button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        .calendar h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
         }
 
-        header button:hover {
-            background-color: #8C2027;
+        .days-of-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background-color: #AF2630;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 10px;
+            margin-bottom: 10px;
         }
 
         .days-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-gap: 10px;
-            margin-top: 20px;
+            gap: 10px;
         }
 
         .day {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             border: 1px solid #AF2630;
             padding: 10px;
-            height: 90px;
+            min-height: 100px;
             background-color: #f8f8f8;
-            border-radius: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 10px;
             cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .day:hover {
@@ -114,8 +113,8 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        .day:nth-child(7n+1) { background-color: #F4CCCC; } /* Sunday */
-        .day:nth-child(7n+6), .day:nth-child(7n) { background-color: #EAD1DC; } /* Saturday */
+        .day:nth-child(7n+1) { background-color: #F4CCCC; }
+        .day:nth-child(7n), .day:nth-child(7n-1) { background-color: #EAD1DC; }
 
         .day.empty {
             border: none;
@@ -123,24 +122,23 @@
         }
 
         .event-bar {
-            color: #FFFFFF; /* White text for better contrast */
-            background-color: #AF2630; /* Match your theme */
-            border-radius: 4px; /* Rounded edges */
+            background-color: #AF2630;
+            color: white;
+            border-radius: 4px;
             padding: 2px 5px;
-            font-size: 0.8rem; /* Adjust font size to fit within the day */
-            text-align: center;
+            font-size: 0.8rem;
             margin-top: 2px;
             overflow: hidden;
-            text-overflow: ellipsis; /* Handle long text gracefully */
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        /* Bottom Navigation Arrows */
+        /* Navigation Buttons */
         .navigation-buttons {
-            margin-top: 20px;
             display: flex;
             justify-content: center;
             gap: 20px;
+            margin-top: 20px;
         }
 
         .navigation-buttons button {
@@ -152,116 +150,155 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
         }
 
         .navigation-buttons button:hover {
             background-color: white;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            padding: 10px;
             color: #AF2630;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
-        /* Popup overlay (background) */
-            .event-popup-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: rgba(0, 0, 0, 0.5); /* Dimmed background */
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1000; /* Make sure it appears above other elements */
-            }
 
-            /* Popup box */
-            .event-popup {
-                background-color: #fff; /* White background */
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
-                max-width: 400px;
-                width: 90%;
-                text-align: center;
-                position: relative;
-            }
+        /* Modal Styling */
+        .event-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+        }
 
-            /* Close button */
-            .close-popup-btn {
-                background-color: #AF2630;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-size: 14px;
-                cursor: pointer;
-                margin-top: 20px;
-                transition: background-color 0.3s;
-            }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 60%;
+            max-width: 600px;
+            border-radius: 10px;
+            position: relative;
+        }
 
-            .close-popup-btn:hover {
-                background-color: #8C2027;
-            }
-            /* Days of the week header */
-            .days-of-week {
-                display: grid;
-                grid-template-columns: repeat(7, 1fr);
-                font-weight: bold;
-                text-align: center;
-                padding: 10px 0;
-                background-color: #AF2630;
-                color: white;
-                border-radius: 10px;
-                margin-bottom: 10px;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            }
+        .modal-header {
+            background-color: #AF2630;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 20px;
+        }
 
-            .event-container {
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-flex {
             display: flex;
-            margin-top: 20px;
+            gap: 20px;
         }
+
+        .event-details {
+            flex: 1;
+        }
+
+        .event-image {
+            flex-shrink: 0;
+            max-width: 300px;
+            max-height: 300px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+
+        .event-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        /* Event List Styling */
         .event-list {
-            width: 300px;
-            border-right: 1px solid #ccc;
-            padding-right: 20px;
-            height: 500px;
-            overflow-y: auto;
+            width: 80%;
+            margin: 20px auto;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #fff;
         }
+
         .event-list-item {
             cursor: pointer;
             padding: 10px;
-            border-bottom: 1px solid #eee;
+            color: #AF2630;
+            margin-bottom: 5px;
+            background-color: white;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            border: 2px #AF2630 ;
+            border-radius: 10px;
+       
         }
+
         .event-list-item:hover {
-            background-color: #f0f0f0;
+            background-color: #ead1dc;
+            color: #AF2630;
+            border: 10px ;
         }
-        .event-details {
-            flex-grow: 1;
-            padding-left: 20px;
+
+        .eventlistheader {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            background-color: #AF2630;
+            border-radius: 10px;
+            padding: 2px;
         }
-        .event-image {
-            max-width: 100%;
-            height: auto;
+
+        /* Button Styles */
+        .approve-btn, .disapprove-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        .approval-buttons {
-            margin-top: 20px;
+
+        .approve-btn {
+            background-color: #28a745;
         }
-        .approval-buttons button {
-            margin-right: 10px;
+
+        .disapprove-btn {
+            background-color: #dc3545;
         }
+
+        .approve-btn:hover, .disapprove-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
         #disapprovalReason {
             width: 100%;
             margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
         }
-
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        
-    </div>
+    <div class="top-bar"></div>
 
     <div class="side-bar">
         <button onclick="window.location.href='AdHome.html'">
@@ -277,68 +314,64 @@
 
     <div class="calendar">
         <header>
-            <h1 id="monthDisplay">Month</h1>
+            <h1 id="monthDisplay"></h1>
         </header>
-        <div class="days-of-week">
-            <!-- Days of the week will be dynamically populated -->
-        </div>
-        <div class="days-grid">
-            <!-- Calendar days populated dynamically -->
-        </div>
+        <div class="days-of-week"></div>
+        <div class="days-grid"></div>
         <div class="navigation-buttons">
             <button id="prevMonth">Previous Month</button>
             <button id="nextMonth">Next Month</button>
         </div>
     </div>
 
-    <div class="event-container">
-        <div class="event-list" id="eventList">
-            <!-- Event list items will be dynamically added here -->
-        </div>
-        <div class="event-details" id="eventDetails">
-            <!-- Event details will be dynamically added here -->
+    <div id="eventDetails" class="event-modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>Event Details</h2>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </header>
+            <div id="modalContent"></div>
         </div>
     </div>
-    
+
+    <div id="eventList" class="event-list">
+        <h2 class="eventlistheader">Pending Events</h2>
+        <!-- Pending events will be dynamically inserted here -->
+    </div>
 
     <script>
         const monthDisplay = document.getElementById('monthDisplay');
         const daysGrid = document.querySelector('.days-grid');
+        const daysOfWeekContainer = document.querySelector('.days-of-week');
+        const eventList = document.getElementById('eventList');
+        const modal = document.getElementById('eventDetails');
+        const modalContent = document.getElementById('modalContent');
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
         let eventsByDate = {};
+        let currentEvents = [];
 
-        // Days of the week
         const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        // Render the days of the week
         function renderDaysOfWeek() {
-            const daysOfWeekContainer = document.querySelector('.days-of-week');
             daysOfWeekContainer.innerHTML = daysOfWeek.map(day => `<div>${day}</div>`).join('');
         }
 
-
-        // Fetch approved events from the server
         async function fetchApprovedEvents() {
             try {
-                const response = await fetch('http://localhost:3000/approved-events'); // Update the port if necessary
+                const response = await fetch('http://localhost:3000/approved-events');
                 const data = await response.json();
-
                 if (data.success) {
-                    // Process events into `eventsByDate`
                     eventsByDate = data.events.reduce((acc, event) => {
-                        const formattedDate = event.eventDate; // Already in YYYY-MM-DD format
+                        const formattedDate = event.eventDate;
                         acc[formattedDate] = acc[formattedDate] || [];
                         acc[formattedDate].push({
                             name: event.eventName,
                             time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
                             amenity: event.amenity
-                            
                         });
                         return acc;
                     }, {});
-
-                    console.log("EventsByDate structure:", eventsByDate); // Log processed events
                 } else {
                     console.error("Failed to fetch events:", data.message);
                 }
@@ -347,13 +380,6 @@
             }
         }
 
-        // Format date to YYYY-MM-DD
-        function formatDate(date) {
-            const [month, day, year] = date.split('-'); // Assuming 'MM-DD-YYYY'
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        }
-
-        // Format time to 12-hour format
         function formatTime(time) {
             const [hour, minute] = time.split(':');
             const period = hour >= 12 ? 'PM' : 'AM';
@@ -361,7 +387,6 @@
             return `${adjustedHour}:${minute} ${period}`;
         }
 
-        // Render the calendar grid
         function renderCalendar() {
             const date = new Date(currentYear, currentMonth, 1);
             monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -370,20 +395,15 @@
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             const startDay = date.getDay();
 
-            // Add empty slots for days before the start of the month
             for (let i = 0; i < startDay; i++) {
                 daysGrid.innerHTML += '<div class="day empty"></div>';
             }
 
-            // Add day slots with event bars
             for (let i = 1; i <= daysInMonth; i++) {
                 const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
                 const events = eventsByDate[currentDate] || [];
-                
-                // Generate event bar HTML only if there are events
                 const eventHTML = events.map(event => `<div class="event-bar">${event.time}</div>`).join('');
 
-                // Render the day with the event bar if any events exist
                 daysGrid.innerHTML += `
                     <div class="day" data-date="${currentDate}">
                         ${i}
@@ -392,91 +412,36 @@
                 `;
             }
 
-            console.log("Rendered calendar for:", `${currentYear}-${currentMonth + 1}`); // Debug calendar rendering
             addDayClickEvents();
         }
 
-        // Add click event listeners to days
         function addDayClickEvents() {
-            document.querySelectorAll('.day').forEach(day => {
-                if (!day.classList.contains('empty')) {
-                    day.addEventListener('click', () => {
-                        const date = day.getAttribute('data-date');
-                        displayEventDetails(date);
-                    });
-                }
+            document.querySelectorAll('.day:not(.empty)').forEach(day => {
+                day.addEventListener('click', () => {
+                    const date = day.getAttribute('data-date');
+                    displayEventDetails(date);
+                });
             });
         }
 
-        // Display event details in a popup
         function displayEventDetails(date) {
-    const events = eventsByDate[date] || [];
-    const popupHtml = `
-        <div class="event-popup-overlay">
-            <div class="event-popup">
+            const events = eventsByDate[date] || [];
+            modalContent.innerHTML = `
                 <h3>Events on ${date}</h3>
                 ${events.length
-                    ? events.map(event => `<p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>`).join('')
+                    ? events.map(event => `
+                        <p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
+                    `).join('')
                     : '<p>No events for this day.</p>'}
-                <button class="close-popup-btn" onclick="closeEventPopup()">Close</button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', popupHtml);
-}
-
-        // Close the event popup
-    
-        function closeEventPopup() {
-            const overlay = document.querySelector('.event-popup-overlay');
-            if (overlay) overlay.remove();
+            `;
+            modal.style.display = 'block';
         }
 
-        // Close popup when clicking on the overlay
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('event-popup-overlay')) {
-                closeEventPopup();
-            }
-        });
+        function closeModal() {
+            modal.style.display = 'none';
+        }
 
-
-        // Navigate to the previous month
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            currentMonth = (currentMonth - 1 + 12) % 12;
-            if (currentMonth === 11) currentYear--;
-            renderCalendar();
-        });
-
-        // Navigate to the next month
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            currentMonth = (currentMonth + 1) % 12;
-            if (currentMonth === 0) currentYear++;
-            renderCalendar();
-        });
-
-        // Close popup when clicking outside of it
-        document.addEventListener('click', (e) => {
-            const popup = document.querySelector('.event-popup');
-            if (popup && !popup.contains(e.target) && !e.target.closest('.day')) {
-                closeEventPopup();
-            }
-        });
-
-        // Initialize the calendar on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            await fetchApprovedEvents();
-            renderCalendar();
-        });
-        // Initialize the calendar on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderDaysOfWeek(); // Render the days of the week
-            await fetchApprovedEvents();
-            renderCalendar();
-        });
-
-        let currentEvents = []; // Declare currentEvents variable
-
-        async function fetchEvents() {
+        async function fetchPendingEvents() {
             try {
                 const response = await fetch('http://localhost:3000/pending-events');
                 const data = await response.json();
@@ -484,63 +449,96 @@
                     currentEvents = data.events;
                     displayEventList();
                 } else {
-                    console.error("Failed to fetch events:", data.message);
+                    console.error("Failed to fetch pending events:", data.message);
                 }
             } catch (error) {
-                console.error("Error fetching events:", error);
+                console.error("Error fetching pending events:", error);
             }
         }
 
         function displayEventList() {
-            const eventList = document.getElementById('eventList');
-            eventList.innerHTML = '';
-            currentEvents.forEach((event, index) => {
-                const listItem = document.createElement('div');
-                listItem.className = 'event-list-item';
-                listItem.textContent = `${event.eventName} - ${event.eventDate}`;
-                listItem.onclick = () => displayPendingEventDetails(index);
-                eventList.appendChild(listItem);
-            });
-        }
-
-
-        async function displayPendingEventDetails(index) {
-            const event = currentEvents[index];
-            const detailsContainer = document.getElementById('eventDetails');
-
-            // Fetch receipt image
-            const receiptImageResponse = await fetch(`http://localhost:3000/receipt-image?eventName=${encodeURIComponent(event.eventName)}&eventDate=${encodeURIComponent(event.eventDate)}`);
-            const receiptImageData = await receiptImageResponse.json();
-            const receiptImage = receiptImageData.success ? receiptImageData.imageUrl : null;
-
-            detailsContainer.innerHTML = `
-                <h2>${event.eventName}</h2>
-                <p>Date: ${event.eventDate}</p>
-                <p>Time: ${event.startTime} - ${event.endTime}</p>
-                <p>Amenity: ${event.amenity || 'Not specified'}</p>
-                <p>Host: ${event.hostName || 'Not specified'}</p>
-                <p>Email: ${event.email || 'Not specified'}</p>
-                <p>Amount: ₱${event.amount}</p>
-                <p>Payment Method: ${event.paymentMethod}</p>
-                ${receiptImage ? `<img src="${receiptImage}" alt="Receipt" class="event-image">` : '<p>No receipt image available</p>'}
-                <div class="approval-buttons">
-                    <button onclick="approveEvent('${event._id}')">Approve</button>
-                    <button onclick="disapproveEvent('${event._id}')">Disapprove</button>
+            const listContent = currentEvents.map((event, index) => `
+                <div class="event-list-item" onclick="displayPendingEventDetails(${index})">
+                    ${event.eventName} - ${event.eventDate}
                 </div>
-                <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
+            `).join('');
+            eventList.innerHTML = `
+                <h2 class="eventlistheader">Pending Events</h2>
+                ${listContent}
             `;
         }
 
-        async function approveEvent(eventId) {
+        async function displayPendingEventDetails(index) {
+            const event = currentEvents[index];
             try {
-                const response = await fetch(`http://localhost:3000/approveEvent/${eventId}`, {
+                const receiptImageResponse = await fetch(
+                    `http://localhost:3000/receipt-image?eventName=${encodeURIComponent(event.eventName)}&eventDate=${encodeURIComponent(event.eventDate)}`
+                );
+                const receiptImageData = await receiptImageResponse.json();
+
+                if (receiptImageData.success) {
+                    const { receiptImage, paymentDetails, eventDetails } = receiptImageData;
+                    modalContent.innerHTML = `
+                        <div class="modal-flex">
+                            <div class="event-details">
+                                <h2>${paymentDetails.eventName || 'Not specified'}</h2>
+                                <p><strong>Date:</strong> ${paymentDetails.eventDate || 'Not specified'}</p>
+                                <p><strong>Time:</strong> ${eventDetails?.combinedTime || 'Not specified'}</p>
+                                <p><strong>Amenity:</strong> ${eventDetails?.amenity || 'Not specified'}</p>
+                                <p><strong>Host:</strong> ${eventDetails?.hostName || 'Not specified'}</p>
+                                <p><strong>Email:</strong> ${eventDetails?.email || 'Not specified'}</p>
+                                <p><strong>Amount:</strong> ₱${paymentDetails.amount || '0.00'}</p>
+                                <p><strong>Payment Method:</strong> ${paymentDetails.paymentMethod || 'Not specified'}</p>
+                            </div>
+                            
+                            ${receiptImage ? `<div class="event-image"><img src="${receiptImage}" alt="Receipt"></div>` : '<p>No receipt image available</p>'}
+                        
+                        </div>
+                         <div class="modal-actions">
+                            <button class="approve-btn" onclick="approveEvent('${event.eventName}')">Approve</button>
+                            <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">Deny</button>
+                        </div>
+                        <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
+                    
+                    `;
+                    modal.style.display = 'block';
+                } else {
+                    alert("Failed to load event details.");
+                }
+            } catch (error) {
+                console.error("Error fetching receipt image or displaying event details:", error);
+                alert("Failed to load event details. Please try again.");
+            }
+        }
+
+
+        function showDisapprovalReason(eventName) {
+            const reasonTextarea = document.getElementById('disapprovalReason');
+            reasonTextarea.style.display = 'block';
+            reasonTextarea.focus();
+            reasonTextarea.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitDisapproval(eventName, reasonTextarea.value); // Pass eventName instead of eventId
+                }
+            };
+        }
+
+            // Approve Event
+        
+            async function approveEvent(eventName) {
+            try {
+                const response = await fetch(`http://localhost:3000/approveEvent/${encodeURIComponent(eventName)}`, {
                     method: 'PUT',
                 });
                 const data = await response.json();
                 if (data.success) {
                     alert('Event approved successfully');
-                    await fetchEvents(); // Refresh the event list
-                    document.getElementById('eventDetails').innerHTML = '';
+                    closeModal();
+                    await fetchPendingEvents();
+                    await fetchApprovedEvents();
+                    renderCalendar();
+                    window.location.reload(); 
                 } else {
                     alert('Failed to approve event: ' + data.message);
                 }
@@ -550,33 +548,21 @@
             }
         }
 
-        function disapproveEvent(eventId) {
-            const reasonTextarea = document.getElementById('disapprovalReason');
-            reasonTextarea.style.display = 'block';
-            reasonTextarea.onkeyup = async (e) => {
-                if (e.key === 'Enter') {
-                    const reason = reasonTextarea.value.trim();
-                    if (reason) {
-                        await submitDisapproval(eventId, reason);
-                    }
-                }
-            };
-        }
-
-        async function submitDisapproval(eventId, reason) {
+        // Disapprove Event
+        async function submitDisapproval(eventName, reason) {
             try {
                 const response = await fetch('http://localhost:3000/disapprove-event', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ eventId, reason }),
+                    body: JSON.stringify({ eventName, reason }),
                 });
                 const data = await response.json();
                 if (data.success) {
                     alert('Event disapproved successfully');
-                    await fetchEvents(); // Refresh the event list
-                    document.getElementById('eventDetails').innerHTML = '';
+                    closeModal();
+                    await fetchPendingEvents();
                 } else {
                     alert('Failed to disapprove event: ' + data.message);
                 }
@@ -586,8 +572,38 @@
             }
         }
 
-        // Call fetchEvents when the page loads
-        document.addEventListener('DOMContentLoaded', fetchEvents);
+
+
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentMonth = (currentMonth - 1 + 12) % 12;
+            if (currentMonth === 11) currentYear--;
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentMonth = (currentMonth + 1) % 12;
+            if (currentMonth === 0) currentYear++;
+            renderCalendar();
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderDaysOfWeek();
+            await fetchApprovedEvents();
+            renderCalendar();
+            await fetchPendingEvents();
+        });
     </script>
 </body>
 </html>
