@@ -9,56 +9,82 @@
         .top-bar {
             background-color: #AF2630;
             position: fixed;
+            color: #6b6a6a; 
             top: 0;
             left: 0;
             right: 0;
-            height: 50px;
+            width: 100%;
+            height: 50px; 
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            padding-right: 20px;
+            justify-content: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 1000;
         }
 
-        .avidalogo {
-            width: 500px;
-            height: 170px;
-            margin-left: 69%;
-            padding-top: 12%;
-        }
-
-        /* Sidebar */
         .side-bar {
             background-color: #D9D9D9;
             position: fixed;
+            color: #AF2630; 
             top: 50px;
             left: 0;
-            width: 90px;
-            height: 100%;
+            width: 110px;
+            height: 100vh; /* Full height of the viewport */
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 20px;
+            justify-content: flex-start;
+            padding-top: 5px;
+            box-sizing: border-box;
         }
 
-        .side-bar button {
-            background-color: transparent;
+        .Home img, .homeownerstatus img, .analytics img, .CalendarButton img, .Profile img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .mainarea {
+            margin-left: 20px; /* Adjusted to align with the sidebar */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .Home, .homeownerstatus, .analytics, .CalendarButton, .Profile {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            font-family: 'Inter';
+            padding-top: 5px;
+        }
+
+        .Home button, .homeownerstatus button, .analytics button, .CalendarButton button,.Profile button {
+            background-color: #D9D9D9;
+            margin: 0 auto;
             border: none;
-            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
         }
 
-        .side-bar button:hover {
+        .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .CalendarButton button:hover, .Profile button:hover {
             background-color: #ccc;
             cursor: pointer;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-
         /* Calendar Layout */
         .calendar {
-            margin: 100px auto 0;
             padding: 20px;
             max-width: 1500px;
             font-family: 'Inter', sans-serif;
             color: #AF2630;
             text-align: center;
+            margin: auto;
+            margin-top: 2%;
+            margin-left: 6%;
         }
 
         header {
@@ -185,6 +211,7 @@
                 width: 90%;
                 text-align: center;
                 position: relative;
+                font-size: 20px;
             }
 
             /* Close button */
@@ -192,7 +219,7 @@
                 background-color: #AF2630;
                 color: white;
                 border: none;
-                padding: 10px 20px;
+                padding: 5px 5px;
                 border-radius: 5px;
                 font-size: 14px;
                 cursor: pointer;
@@ -217,25 +244,112 @@
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             }
 
+            .button {
+      margin-top: auto;
+      margin-bottom: 20px; /* Adjust this as needed */
+      width: 100%;
+      text-align: center;
+      
+      
+    }
 
+    #logoutButton {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px; /* Adds space at the bottom */
+            font-weight: bold;
+      
+        }
+
+        #logoutButton:hover {
+            background-color: #C44A53;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform: translateY(-3px);
+        }
+        .event-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+            
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 60%;
+            max-width: 600px;
+            border-radius: 10px;
+            position: relative;
+            font-size: 20px; /* Change the size as needed */
+            line-height: 1.5; /* Optional: Adjusts the spacing between lines */
+            font-family: 'inter';
+        }
+
+        .modal-header {
+            background-color: #AF2630;
+            color: white;
+            padding: 1px 1px;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 20px;
+            font-family: 'inter';
+            text-align: center; /* Centers text horizontally */
+            display: flex; /* Enables flexbox */
+            justify-content: center; /* Centers horizontally */
+            align-items: center; /* Centers vertically */
+        }
+
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-flex {
+            display: flex;
+            gap: 20px;
+        }
+
+        .event-details {
+            flex: 1;
+        }
 
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
+       
     </div>
 
     <div class="side-bar">
-        <button onclick="window.location.href='HoHome.html'">
-            <img src="images/house.png" alt="Home" width="60">
+        <div class="Home">
+        <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
+          <img src="images/house.png" alt="Home" />
         </button>
         <p>Home</p>
+      </div>
 
-        <button onclick="window.location.href='calendar.html'">
-            <img src="images/calendar.png" alt="Calendar" width="60">
+      <div class="Profile">
+        <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
+          <img src="images/profileicon.png" alt="Profile" />
         </button>
-        <p>Calendar</p>
+        <p>Profile</p>
+      </div>
     </div>
 
     <div class="calendar">
@@ -253,6 +367,15 @@
             <button id="nextMonth">Next Month</button>
         </div>
     </div>
+    <div id="eventDetails" class="event-modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>Event Details</h2>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </header>
+            <div id="modalContent"></div>
+        </div>
+    </div>
     
 
     <script>
@@ -260,6 +383,7 @@
         const daysGrid = document.querySelector('.days-grid');
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
+        const modal = document.getElementById('eventDetails');
         let eventsByDate = {};
 
         // Days of the week
@@ -364,26 +488,23 @@
 
         // Display event details in a popup
         function displayEventDetails(date) {
-    const events = eventsByDate[date] || [];
-    const popupHtml = `
-        <div class="event-popup-overlay">
-            <div class="event-popup">
-                <h3>Events on ${date}</h3>
+            const events = eventsByDate[date] || [];
+            modalContent.innerHTML = `
+                
                 ${events.length
-                    ? events.map(event => `<p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>`).join('')
+                    ? events.map(event => `
+                        <p><strong>Event Name:</strong> ${event.name}</p>
+                        <p><strong>Event Time:</strong> ${event.time}</p>
+                        <p><strong>Event Location:</strong> ${event.amenity}</p>
+                    `).join('')
                     : '<p>No events for this day.</p>'}
-                <button class="close-popup-btn" onclick="closeEventPopup()">Close</button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', popupHtml);
-}
+            `;
+            modal.style.display = 'block';
+        }
 
-        // Close the event popup
-    
-        function closeEventPopup() {
-            const overlay = document.querySelector('.event-popup-overlay');
-            if (overlay) overlay.remove();
+
+        function closeModal() {
+            modal.style.display = 'none';
         }
 
         // Close popup when clicking on the overlay

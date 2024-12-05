@@ -5,7 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
-<body>
+<style>
+    .top-bar {
+      background-color: #AF2630;
+      position: fixed;
+      color: #6b6a6a; 
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 50px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      box-sizing: border-box;
+      z-index: 1000;
+  }
+
+  .side-bar {
+      background-color: #D9D9D9;
+      position: fixed;
+      color: #AF2630; 
+      top: 50px;
+      left: 0;
+      width: 110px;
+      height: 100vh; /* Full height of the viewport */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 5px;
+      box-sizing: border-box;
+  }
+
+  .Home img, .homeownerstatus img, .analytics img, .Calendar img {
+      width: 60px;
+      height: 60px;
+  }
+
+  .mainarea {
+      margin-left: 20px; /* Adjusted to align with the sidebar */
+      padding: 20px;
+      box-sizing: border-box;
+  }
+
+  .Home, .homeownerstatus, .analytics, .Calendar {
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: bold;
+      font-family: 'Inter';
+      padding-top: 5px;
+  }
+
+  .Home button, .homeownerstatus button, .analytics button, .Calendar button {
+      background-color: #D9D9D9;
+      margin: 0 auto;
+      border: none;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border-radius: 10px;
+  }
+
+  .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
+      background-color: #ccc;
+      cursor: pointer;
+      transform: scale(1.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  #logoutButton {
+      background-color: #AF2630;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: auto; /* Pushes the logout button to the bottom */
+      margin-bottom: 90px; /* Adds space at the bottom */
+      font-weight: bold;
+  }
+
+  #logoutButton:hover {
+      background-color: #C44A53;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transform: translateY(-3px);
+  }
+
+  .Welcome {
+      font-size: 30px;
+      font-family: 'Inter';
+      color: #AF2630;
+      font-weight: bold;
+      padding-left: 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+  }
+
+  .Welcome h1 {
+      margin: 0;
+  }
+
+  .Welcome img {
+      width: 700px;
+      height: 250px;
+      margin-left: 20px;
+  }
+
+  /* Optional: Responsive adjustments */
+  @media (max-width: 600px) {
     
+    .top-bar {
+      padding: 0 10px;
+    }
+  }
+    </style>
+<body>
+    <div class="top-bar"></div>
+    <div class="side-bar">
+        <div class="Home">
+          <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
+          <img src="images/house.png">
+        </button>
+          <p>Home</p>
+        </div>
+        <div class="homeownerstatus">
+          <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
+          <img src="images/Documents.png">
+        </button>
+          <p>Homeowner status</p>
+        </div>
+        <div class="Calendar">
+          <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
+          <img src="images/Calendar.png">
+        </button>
+          <p>Calendar</p>
+        </div>
+        <button id="logoutButton" class="logoutButton">Logout</button>
+      </div>
 </body>
 </html>
