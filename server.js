@@ -471,6 +471,8 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
       }
     }
     run().catch(console.dir);
+
+
     //get data from acc collection to display in homeowner table hotable.html
     app.get('/getHomeowners', async (req, res) => {
       try {
@@ -668,8 +670,46 @@ app.post('/disapprove-event', async (req, res) => {
 });
 
 
+//Submit Concern
+app.post('/addconcern', async (req, res) => {
+  const { username, email, subject, message } = req.body;
 
-  
+  try {   
+    const createdAt = new Date();  
+
+    const concern = {
+      username,
+      email,
+      subject,
+      message,
+      createdAt
+    };
+
+    const db = client.db('avidadb');
+    await db.collection('Concerns').insertOne(concern);
+
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding concern:', error);
+    res.json({ success: false, message: error.message });
+  }
+});
+
+
+//Concern Table
+    app.get('/getConcerns', async (req, res) => {
+      try {
+        const db = await connectToDatabase();
+        const collection = db.collection('Concerns');
+        const concerns = await collection.find().toArray();
+        res.json(concerns);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ error: 'Failed to fetch data' });
+      }
+    });
+
   process.on('SIGINT', async () => {
     console.log('Shutting down server...');
     if (client) {
