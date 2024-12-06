@@ -213,7 +213,80 @@
           font-size: 30px; /* Adjust the size for smaller screens */
         }
       }
-      
+
+      .popup {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .popup-content {
+    background-color: #af2630;
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 900px;
+    height: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+    font-family: sans-serif;
+  }
+
+  .popup-content h2 {
+    margin: 0 0 10px;
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .popup-content label {
+    display: block;
+    margin: 10px 0 5px;
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+  .popup-content input[type="text"],
+.popup-content textarea {
+  width: 100%; 
+  padding: 10px; 
+  margin-bottom: 15px;
+  border: 1px solid #ccc; 
+  border-radius: 5px; 
+  box-sizing: border-box;
+  font-size: 20px;
+}
+
+  .popup-content textarea {
+    resize: none;
+  }
+
+  .popup-buttons {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .popup-buttons button {
+    background-color: #fff;
+    color: #af2630;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .popup-buttons button:hover {
+    background-color: #d9d9d9;
+  }
 
     </style>
   </head>
@@ -289,8 +362,86 @@
         <p class="raisetext">Raise your concern to an admin</p>
       </div>
     </div>
+
+    <div id="adminPopup" class="popup">
+      <div class="popup-content">
+        <h2>Raise a Concern</h2>
+        <form id="adminForm">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" name="subject" placeholder="Enter subject" required />
+    
+          <label for="message">Message</label>
+          <textarea id="message" name="message" placeholder="Enter your message" rows="5" required></textarea>
+    
+          <div class="popup-buttons">
+            <button type="button" id="closePopup">Cancel</button>
+            <button type="submit">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </body>
   <script>
+  const adminButton = document.getElementById("adminbutton");
+  const popup = document.getElementById("adminPopup");
+  const closePopup = document.getElementById("closePopup");
+  const form = document.getElementById("adminForm");
+  const subject = document.getElementById('subject').value;
+  const message = document.getElementById('message').value; 
+  
+// Show popup
+adminButton.addEventListener("click", () => {
+  popup.style.display = "flex";
+});
+
+// Hide popup
+closePopup.addEventListener("click", () => {
+  popup.style.display = "none";
+
+  adminForm.reset();
+});
+
+// Submit concern data
+form.addEventListener('submit', async (event) => {
+  event.preventDefault(); // Prevent the default form submission
+  
+  // Gather form data
+  const concernData = {
+    username: localStorage.getItem('username'),
+    email: localStorage.getItem('email'),
+    subject: document.getElementById('subject').value,
+    message: document.getElementById('message').value,
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    // Send concern data to the backend via fetch
+    const response = await fetch('http://localhost:3000/addconcern', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(concernData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert("Your concern has been submitted successfully!");
+      // Clear the input fields after successful submission
+      adminForm.reset();
+      popup.style.display = "none"; // Optionally close the popup after submission
+    } else {
+      alert("Failed to submit the concern. Please try again.");
+    }
+  } catch (error) {
+    console.error('Error submitting concern:', error);
+    alert("There was an error submitting your concern. Please try again.");
+  }
+});
+
+
     document.getElementById("logout-button").addEventListener("click", async () => {
       await fetch("/logout", { method: "POST" });
       window.location.href = "/login.html"; 
