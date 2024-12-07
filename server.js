@@ -43,6 +43,7 @@ require("dotenv").config();
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(express.static(path.join(__dirname, "Webpages")));
+    app.use("/CSS", express.static(path.join(__dirname,"CSS")));
     app.use("/images", express.static(path.join(__dirname, "images")));
     app.use(cors());
     app.use(
@@ -148,78 +149,92 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
     });
 
     app.post("/login", async (req, res) => {
-      const { email, password } = req.body;
-      try {
-        const usersCollection = req.db.collection("acc"); 
-        const user = await usersCollection.findOne({ email });
-        
-        if (user) {
-          const isPasswordValid = await bcrypt.compare(password, user.password);
-          if (isPasswordValid) {
-            const isAdmin = user.email === "admin@gmail.com";
-            req.session.user = { username: user.username, email: user.email };
+      const { login, password } = req.body; // login can be email or username
     
-            req.session.save((err) => {
-              if (err) {
-                console.error("Session save error:", err);
-                return res.json({ success: false, message: "Failed to save session." });
-              }
-              return res.json({
-                success: true,
-                message: "Login successful",
-                username: user.username,
-                email: user.email,
-                isAdmin,
-                redirectUrl: isAdmin ? "../AdHome.html" : "../HoHome.html",
-              });
-            });
-          } else {
-            return res.json({ message: "Invalid email or password", success: false });
-          }
-        } else {
-          return res.json({ message: "Invalid email or password", success: false });
-        }
-      } catch (error) {
-        console.error("Error during login:", error);
-        return res.json({ message: "An error occurred", success: false });
-      }
-    });
-    
-
-    app.post("/register", async (req, res) => {
-      const { username, lastname, email, password, address, number, landline} = req.body;
-      if (!username || !lastname || !email || !password || !address || !number || !landline) {
-        return res.json({ message: "Missing required fields", success: false });
-      }
       try {
-        const db = await connectToDatabase();
-
-        const database = client.db(dbName);
-        const usersCollection = database.collection("acc");
-        const existingUser = await usersCollection.findOne({ email });
-        if (existingUser) {
-          return res.json({
-            message: "Email already exists. Please choose a different one.",
-            success: false,
+          const usersCollection = req.db.collection("acc");
+  
+          // Find user by email or username
+          const user = await usersCollection.findOne({
+              $or: [
+                { email: { $regex: new RegExp(`^${login}$`, 'i') } },
+                { username: { $regex: new RegExp(`^${login}$`, 'i') } }
+              ]
           });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = {
-          username,
-          lastname,
-          email,
-          password: hashedPassword,
-          address,
-          number,
-          landline,
-        };
-        await usersCollection.insertOne(newUser);
-        res.json({ message: "Registration successful", success: true });
+  
+          if (user) {
+              // Check if the password matches
+              const isPasswordValid = await bcrypt.compare(password, user.password);
+              if (isPasswordValid) {
+                  const isAdmin = user.role === 'admin'; // Adjust this logic as needed
+                  res.json({
+                      success: true,
+                      username: user.username,
+                      email: user.email,
+                      redirectUrl: isAdmin ? '../AdHome.html' : '../HoHome.html',
+                  });
+              } else {
+                  res.status(401).json({ success: false, message: 'Invalid credentials' });
+              }
+          } else {
+              res.status(401).json({ success: false, message: 'Invalid credentials' });
+          }
       } catch (error) {
-        console.error("Error during registration:", error);
-        res.json({ message: "An error occurred", success: false });
+          console.error("Error during login:", error);
+          res.status(500).json({ success: false, message: 'Server error' });
       }
-    });
+  });
+  
+    
+  app.get("/check-existence", async (req, res) => {
+    const { field, value } = req.query;
+    
+    try {
+      const db = await connectToDatabase();
+      const usersCollection = db.collection("acc");
+      
+      const query = { [field]: value };
+      const existingUser = await usersCollection.findOne(query);
+      
+      res.json({ exists: !!existingUser });
+    } catch (error) {
+      console.error("Error checking existence:", error);
+      res.status(500).json({ error: "An error occurred" });
+    }
+  });
+  
+  app.post("/register", async (req, res) => {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.json({ message: "Missing required fields", success: false });
+    }
+    try {
+      const db = await connectToDatabase();
+      const usersCollection = db.collection("acc");
+      
+      const existingUser = await usersCollection.findOne({ $or: [{ username }, { email }] });
+      if (existingUser) {
+        return res.json({
+          message: "Username or email already exists. Please choose different ones.",
+          success: false,
+        });
+      }
+      
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = {
+        username,
+        email,
+        password: hashedPassword,
+      };
+      
+      await usersCollection.insertOne(newUser);
+      res.json({ message: "Registration successful", success: true });
+    } catch (error) {
+      console.error("Error during registration:", error);
+      res.json({ message: "An error occurred", success: false });
+    }
+  });
+
     app.post("/updateProfile", async (req, res) => {
       const { firstName, lastName, password } = req.body;
 

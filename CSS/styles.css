@@ -1,98 +1,143 @@
 .top-bar {
-    background-color: #AF2630;
-    position: fixed;
-    color: #6b6a6a; 
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 50px; 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 20px; /* Optional: Adds horizontal padding */
-    box-sizing: border-box; /* Ensures padding doesn't affect total width */
-  }
-
-  .search-bar {
-    background-color: #C1696F;
-    position: relative;
-    width: 20%; /* Set a fixed width or adjust as needed */
-  }
-
-  .search-bar input[type="text"] {
-    width: 100%; /* Take up the full width of the container */
-    padding: 10px 40px 10px 10px; /* Adjust padding to make space for the button */
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    box-sizing: border-box; /* Ensures padding doesn't affect total width */
-  }
-
-  .search-bar button[type="button"] {
-    position: absolute; /* Position the button absolutely within the search-bar */
-    right: 5px; /* Adjust as needed for spacing from the right edge */
-    top: 50%;
-    transform: translateY(-50%); /* Vertically center the button */
-    border: none;
-    background: transparent; /* Remove default button background */
-    cursor: pointer;
-    padding: 0; /* Remove default padding */
-  }
-
-  .search-bar button[type="button"] img {
-    width: 20px; /* Adjust the width as needed */
-    height: 20px; /* Adjust the height as needed */
-  }
-
-  /* Optional: Add hover effect for the button */
-  .search-bar button[type="button"]:hover img {
-    filter: brightness(0.8);
-  }
-  .side-bar {
-    background-color: #D9D9D9;
-    position: fixed;
-    color: #AF2630; 
-    top: 50px;
-    left: 0;
-    width: 90px;
-    height: 100%; 
-    display: flex;
-    flex-direction: column; /* Add this to stack elements vertically */
-    align-items: center;
-    justify-content: flex-start; /* Update this to start from the top */
-    padding: 0 20px; /* Optional: Adds horizontal padding */
-    box-sizing: border-box; /* Ensures padding doesn't affect total width */
-  }
-
-  .Home, .homeownerstatus {
-    margin-bottom: 20px; /* Add some space between elements */
-    text-align: center; /* Center the text and image */
-    font-size: 15px;
-    font-weight: bold;
-    font-family: 'Inter';
-  }
-  .Home img, .homeownerstatus img {
-    width: 60px; /* Adjust the width as needed */
-    height: 60px; /* Adjust the height as needed */
-  }
-
-  .Home button, .homeownerstatus button {
-    background-color: #D9D9D9;
-    margin: 0 auto; /* Center the button */
-    border: none;
-    
-  }
-  .Home p, .homeownerstatus p {
-margin-top: 5px; /* Add some space between the button and text */
+  background-color: #AF2630;
+  position: fixed;
+  color: #6b6a6a; 
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 50px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+  z-index: 1000;
 }
 
-  /* Optional: Responsive adjustments */
-  @media (max-width: 600px) {
-    .search-bar {
-      width: 100%;
-    }
-    .top-bar {
-      padding: 0 10px;
-    }
-  }
+.side-bar {
+  background-color: #D9D9D9;
+  position: fixed;
+  color: #AF2630; 
+  top: 50px;
+  left: 0;
+  width: 110px;
+  height: 100vh; /* Full height of the viewport */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 5px;
+  box-sizing: border-box;
+}
+
+.Home img, .homeownerstatus img, .analytics img, .Calendar img, .Profile img {
+  width: 60px;
+  height: 60px;
+}
+
+.mainarea {
+  margin-left: 20px; /* Adjusted to align with the sidebar */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.Home, .homeownerstatus, .analytics, .Calendar, .Profile {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: 'Inter';
+  padding-top: 5px;
+}
+
+.Home button, .homeownerstatus button, .analytics button, .Calendar button,.Profile button {
+  background-color: #D9D9D9;
+  margin: 0 auto;
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover, .Profile button:hover {
+  background-color: #ccc;
+  cursor: pointer;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.Welcome {
+font-size: 30px;
+font-family: "Inter";
+color: #af2630;
+font-weight: bold;
+padding-left: 5%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+.Welcome h1 {
+margin: 0;
+padding-left: 40px;
+}
+
+.avidalogo {
+width: 700px;
+height: 250px;
+margin-left: 20px;
+padding-top: 30px;
+}
+
+
+.button {
+margin-top: auto;
+margin-bottom: 20px; /* Adjust this as needed */
+width: 100%;
+text-align: center;
+
+
+}
+
+#logoutButton {
+  background-color: #AF2630;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 10px; /* Adds space at the bottom */
+  font-weight: bold;
+
+}
+
+#logoutButton:hover {
+  background-color: #C44A53;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+}
+
+
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 600px) {
+.search-bar {
+width: 100%;
+}
+
+.top-bar {
+padding: 0 10px;
+}
+
+.reserve {
+flex-direction: column; /* Stack buttons vertically on small screens */
+gap: 20px;
+}
+
+.reservetext1 {
+font-size: 30px; /* Adjust the size for smaller screens */
+}
+}

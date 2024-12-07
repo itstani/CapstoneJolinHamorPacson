@@ -110,40 +110,51 @@
             padding-left: 5px;
             text-align: center;
         }
+        .fpw {
+            font-size: 20px;
+            font-family: 'inter';
+            margin-top: 15px;
+            cursor: pointer;
+            color: #AF2630;
+            text-decoration: underline;
+            padding-left: 5px;
+            text-align: center;
+        }
 
     </style>
     <script>
         async function handleLogin(event) {
-            event.preventDefault(); // Prevent form from reloading the page
-    
-            // Get the input values
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("pw").value;
-    
-            // Send the login request to the server
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-    
-            const userData = await response.json();
-    
-            // Check if login is successful
-            if (userData.success) {
-                // Store the user's data in localStorage
-                localStorage.setItem('username', userData.username);
-                localStorage.setItem('email', userData.email);
-    
-                // Redirect based on whether the user is admin or not
-                window.location.href = userData.redirectUrl; // Use redirectUrl from the server
-            } else {
-                alert('Login failed: ' + userData.message);
-            }
+        event.preventDefault(); // Prevent form from reloading the page
+
+        // Get the input values
+        const login = document.getElementById("login").value; // Username or email
+        const password = document.getElementById("pw").value;
+
+        // Send the login request to the server
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ login, password }),
+        });
+
+        const userData = await response.json();
+
+        // Check if login is successful
+        if (userData.success) {
+            // Store the user's data in localStorage
+            localStorage.setItem('username', userData.username);
+            localStorage.setItem('email', userData.email);
+
+            // Redirect based on whether the user is admin or not
+            window.location.href = userData.redirectUrl; // Use redirectUrl from the server
+        } else {
+            alert('Login failed: ' + userData.message);
         }
-    
+    }
+
+        
         // Attach the event listener to the form
         document.getElementById("loginForm").addEventListener("submit", handleLogin);
     </script>
@@ -158,25 +169,31 @@
         </div>
 
         <!-- Update the form to call handleLogin function on submit -->
-        <form action="/login" method="POST" onsubmit="handleLogin(event)">
+        <form id="loginForm" onsubmit="handleLogin(event)">
             <div class="column">
                 <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Email" name="email" id="email">
+                    <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="email">
                 </div>
             </div>
             <div class="column">
                 <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Enter Password" name="password" id="pw">
+                    <input type="password" class="rounded-input" placeholder="Enter Password" id="pw" name="password">
                 </div>
             </div>
-         
             <div class="Loginbutton">
                 <button type="submit" class="Login">Login</button>
             </div>
-
+        </form>
+        
+        <div>
             <div class="regis-here" onclick="window.location.href='register.html'">
                 Sign up here
             </div>
+            <div class="fpw" onclick="window.location.href='cpw.html'">
+                Forgot password?
+            </div>
+        </div>
+            
         </form>
     </div>
 

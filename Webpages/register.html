@@ -6,13 +6,27 @@
     <title>Registration Form</title>
     <style>
         body {
-            padding-top: 60px;  /* Adjust based on the height of your top bar */
+            padding-top: 60px; /* Adjust based on the height of your top bar */
+            margin: 0;
+            height: 100vh; /* Full viewport height */
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh; /* Take the full viewport height */
-            margin: 0;
-            background-color: #f8f8f8; /* Optional background color */
+            background: url('/images/clubhouseimg.jpg') no-repeat center center; /* Set image as background */
+            background-size: cover; /* Make sure it covers the whole area */
+            background-attachment: fixed; /* Keeps the background fixed while scrolling (optional) */
+            background-color: #f8f8f8; /* Fallback background color */
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(253, 252, 252, 0.9); /* Black overlay with 30% opacity */
+            z-index: -1; /* Ensure it stays behind all content */
         }
 
         .top-bar {
@@ -26,14 +40,34 @@
         }
 
         .container {
-            margin-top: 20px;   /* Space between the top bar and the first row */
             display: flex;
+            background: #fff;
+            padding: 100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             flex-direction: column;
-            align-items: center; /* Centers the form content */
+            align-items: center; /* Align content to the left */
         }
 
         .column {
-            margin-bottom: 20px; /* Space between rows */
+            width: 100%;
+            padding: 10px 0; /* Add spacing between rows */
+            display: flex; /* Use flexbox for alignment */
+            flex-direction: column; /* Stack items vertically */
+            align-items:center; /* Align inputs and errors to the left */
+            gap: 5px; /* Add space between input and error message */
+        }
+
+        .rounded-input {
+            width: 100%; /* Ensure inputs take the full width */
+            max-width: 300px; /* Limit maximum width for better readability */
+            margin-right: 0; /* Remove horizontal margin */
+            padding: 0px 20px;
+        }
+
+        span {
+            font-size: 12px; /* Keep error message small */
+            color: red;
         }
 
         .col-12 {
@@ -46,7 +80,7 @@
             height: 130px; /* Adjust the height as needed */
             margin-bottom: 20px; /* Add some space between the logo and the form */
         }
-/* test *//* test *//*test*//*test*//*test*/
+
         .rounded-input {
             border-radius: 20px; /* Adjust the radius for desired curvature */
             border: 2px solid #ccc; /* Add a border */
@@ -57,6 +91,7 @@
             font-family: 'inter';
             text-align: center;
             margin-bottom: 15px;
+            
         }
 
         .registerbutton {
@@ -76,28 +111,6 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .fbbutton, .gbutton{
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-        }
-
-        .fbbutton img{
-            width: 50px;
-            height: 50px;
-            
-        }
-        .gbutton img{
-            width: 50px;
-            height: 50px;
-            
-        }
-        
-        .altregis{
-            font-size: 20px;
-            font-family: 'inter';
-            text-align: center;
-        }
 
         /* Style for the "Or login here" label */
         .login-here {
@@ -113,119 +126,176 @@
     </style>
 </head>
 <body>
+
     <div class="top-bar"></div>
     
     <div class="container">
-        <div class="Welcome">
-            <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
+        <!-- Registration Form -->
+        <div class="form-container">
+            <div class="Welcome">
+                <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
+            </div>
+
+            <form id="registerForm" method="POST">
+                <div class="column">
+                    <input type="text" class="rounded-input" placeholder="Enter Username" name="un" id="un">
+                    <span id="unError"></span>
+                </div>
+                <div class="column">
+                    <input type="text" class="rounded-input" placeholder="Enter Email" name="email" id="email">
+                    <span id="emailError"></span>
+                </div>
+                <div class="column">
+                    <input type="password" class="rounded-input" placeholder="Enter Password" name="password" id="pw">
+                    <span id="pwError"></span>
+                </div>
+                <div class="column">
+                    <input type="password" class="rounded-input" placeholder="Confirm Password" name="cpassword" id="cpw">
+                    <span id="cpwError"></span>
+                </div>
+                
+                <div class="registerbutton">
+                    <button type="submit" class="regis">Register</button>
+                </div>
+                <div class="login-here" onclick="window.location.href='login.html'">
+                    Or login here
+                </div>
+            </form>
+            
         </div>
 
-        <form id="registerForm" method="POST">
-            <div class="column">
-                <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter First Name" name="un" id="un">
-                </div>
-            </div>
-            <div class="column">
-                <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Last Name" name="ln" id="ln">
-                </div>
-            </div>
-            <div class="column">
-                <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Block and lot" name="address" id="address">
-                </div>
-            </div>
-                <div class="column">
-                    <div class="col-12">
-                        <input type="text" class="rounded-input" placeholder="Enter Number" name="number" id="number">
-                    </div>
-                </div>
-                    <div class="column">
-                        <div class="col-12">
-                            <input type="text" class="rounded-input" placeholder="Enter House landline" name="landline" id="landline">
-                        </div>
-                    </div>
-                <div class="column">
-                    <div class="col-12">
-                        <input type="text" class="rounded-input" placeholder="Enter Email" name="email" id="email">
-                    </div>
-            </div>
-            <div class="column">
-                <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Enter Password" name="password" id="pw">
-                </div>
-            </div>
-            <div class="column">
-                <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Confirm Password" name="cpassword" id="cpw">
-                </div>
-            </div>
-            <div class="registerbutton">
-                <button type="submit" class="regis">Register</button>
-            </div>
-
-            <div class="login-here" onclick="window.location.href='login.html'">
-                Or login here
-            </div>
-
-        </form>
+        
         
         <script>
             const form = document.getElementById('registerForm');
-        
+            const unInput = document.getElementById('un');
+            const emailInput = document.getElementById('email');
+            const pwInput = document.getElementById('pw');
+            const cpwInput = document.getElementById('cpw');
+
+            const unError = document.getElementById('unError');
+            const emailError = document.getElementById('emailError');
+            const pwError = document.getElementById('pwError');
+            const cpwError = document.getElementById('cpwError');
+
+            function setErrorMessage(element, message) {
+                element.textContent = message;
+                element.style.color = 'red';
+            }
+
+            function clearErrorMessage(element) {
+                element.textContent = '';
+            }
+
+            async function checkExistence(field, value) {
+                const response = await fetch(`http://localhost:3000/check-existence?field=${field}&value=${value}`);
+                const result = await response.json();
+                return result.exists;
+            }
+
+            function validatePassword(password) {
+                return password.length >= 8 && /[!@#$%^&*(),.?":{}|<>]/.test(password) && /\d/.test(password);
+            }
+
+            unInput.addEventListener('blur', async () => {
+                if (unInput.value) {
+                    const exists = await checkExistence('username', unInput.value);
+                    if (exists) {
+                        setErrorMessage(unError, 'Username already exists');
+                    } else {
+                        clearErrorMessage(unError);
+                    }
+                }
+            });
+
+            emailInput.addEventListener('blur', async () => {
+                if (emailInput.value) {
+                    const exists = await checkExistence('email', emailInput.value);
+                    if (exists) {
+                        setErrorMessage(emailError, 'Email already exists');
+                    } else {
+                        clearErrorMessage(emailError);
+                    }
+                }
+            });
+
+            pwInput.addEventListener('input', () => {
+                if (!validatePassword(pwInput.value)) {
+                    setErrorMessage(pwError, 'Password must be at least 8 characters with a special character and a number');
+                } else {
+                    clearErrorMessage(pwError);
+                }
+            });
+
             form.addEventListener('submit', async function(event) {
-                event.preventDefault();  // Prevent the default form submission
-        
-                const username = document.getElementById('un').value;
-                const lastname = document.getElementById('ln').value;
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('pw').value;
-                const confirmPassword = document.getElementById('cpw').value;
-                const address = document.getElementById('address').value;
-                const number = document.getElementById('number').value;
-                const landline = document.getElementById('landline').value;
-        
-                // Simple password confirmation check
+                event.preventDefault();
+
+                const username = unInput.value;
+                const email = emailInput.value;
+                const password = pwInput.value;
+                const confirmPassword = cpwInput.value;
+
+                // Clear all error messages
+                clearErrorMessage(unError);
+                clearErrorMessage(emailError);
+                clearErrorMessage(pwError);
+                clearErrorMessage(cpwError);
+
+                let hasError = false;
+
+                if (await checkExistence('username', username)) {
+                    setErrorMessage(unError, 'Username already exists');
+                    hasError = true;
+                }
+
+                if (await checkExistence('email', email)) {
+                    setErrorMessage(emailError, 'Email already exists');
+                    hasError = true;
+                }
+
+                if (!validatePassword(password)) {
+                    setErrorMessage(pwError, 'Password must be at least 8 characters with a special character and a number');
+                    hasError = true;
+                }
+
                 if (password !== confirmPassword) {
-                    alert('Passwords do not match');
+                    setErrorMessage(cpwError, 'Passwords do not match');
+                    hasError = true;
+                }
+
+                if (hasError) {
                     return;
                 }
-        
-                // Send form data to the backend using fetch
+
                 const response = await fetch('http://localhost:3000/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        username: username, // dapat firstname pero d ko pa nachange
-                        lastname: lastname,
+                        username: username,
                         email: email,
-                        password: password, //homeowner monthly status to be verified by admin if paid or not nasa backend naka auto set 'to be verified' pag naayos na admin side pwede iverify'
-                        address: address,
-                        number: number,
-                        landline: landline
+                        password: password,
                     }),
                 });
-        
+
                 const result = await response.json();
-        
+
                 if (result.success) {
-                    // Create a new window with a success message
                     const successWindow = window.open('', '_blank', 'width=200,height=100');
                     successWindow.document.write('<h2>Login/Register Successful!</h2>');
-        
-                    // Redirect the user to the login page after 2 seconds
+
                     setTimeout(function() {
-                        window.location.href = 'login.html';
+                        window.location.href = 'rhdetails.html';
                         successWindow.close();
                     }, 2000);
                 } else {
-                    // Display error message if username or email already exists
                     alert(result.message);
                 }
             });
+                
+                
+        
         </script>
     </div>
 </body>
