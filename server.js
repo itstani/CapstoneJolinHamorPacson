@@ -733,4 +733,29 @@ app.post('/addconcern', async (req, res) => {
     }
     process.exit(0);
   });
+//recent activity
+  app.get('/getRecentActivity', async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1; // Default to page 1
+        const limit = 10; // 10 activities per page
+        const skip = (page - 1) * limit;
+
+        const totalActivities = await db.collection('activityLogs').countDocuments();
+        const recentActivity = await db.collection('activityLogs')
+            .find({})
+            .sort({ timestamp: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+
+        res.json({
+            activities: recentActivity,
+            totalPages: Math.ceil(totalActivities / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to fetch activity logs.' });
+    }
+});
+
 

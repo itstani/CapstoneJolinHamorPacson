@@ -162,33 +162,64 @@
 
   
  /*----------------------------------------------Recent Concerns style-----------------------*/
- .concern-table {
-    
-    width: 100%;
-    border-collapse: collapse; 
-    margin-top: 20px; 
-}
+        .concern-table {
+            
+            width: 100%;
+            border-collapse: collapse; 
+            margin-top: 20px; 
+        }
 
-.concern-table th, .concern-table td {
-    padding: 10px;
-    text-align: left;
-    
-}
+        .concern-table th, .concern-table td {
+            padding: 10px;
+            text-align: left;
+            
+        }
 
-.concern-table th {
-    background-color: #AF2630; 
-    color: white;
-    font-weight: bold;
-    
-}
+        .concern-table th {
+            background-color: #AF2630; 
+            color: white;
+            font-weight: bold;
+            
+        }
 
-.concern-table tr:nth-child(even) {
-    background-color: #f9f9f9; 
-}
+        .concern-table tr:nth-child(even) {
+            background-color: #f9f9f9; 
+        }
 
-.concern-table tr:hover {
-    background-color: #e9e9e9; 
-}
+        .concern-table tr:hover {
+            background-color: #e9e9e9; 
+        }
+
+        #pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        #pagination-controls button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #current-page-display {
+            margin: 0 10px;
+            font-size: 16px;
+        }
+        header{
+          text-align: center;
+        }
+
 
 /*----------------------------------------------Recent Concerns style-----------------------*/
 
@@ -264,17 +295,19 @@
               
           </div>
           <div class="box">
-              <h2 class="section-title">Recent Activity</h2>
-              <div class="content-box"></div> 
+            <div>
+                <h2 class="section-title">Recent Activity</h2>
+            </div>
+            <div class="content-box" id="recent-activity-box">
+                <!-- Activity items will be dynamically loaded here -->
+            </div>
+            <div id="pagination-controls">
+              <button id="prev-page" onclick="loadRecentActivity(currentPage - 1)">◀</button>
+              <span id="current-page-display">Page 1</span>
+              <button id="next-page" onclick="loadRecentActivity(currentPage + 1)">▶</button>
           </div>
-          <div class="box">
-              <h2 class="section-title">Upcoming Events</h2>
-              <div class="content-box"></div> 
-          </div>
-          <div class="box">
-              <h2 class="section-title">Currently Reserved Amenity</h2>
-              <div class="content-box"></div> 
-          </div>
+        </div>
+        
       </div>
       
         
@@ -316,6 +349,39 @@ window.onload = loadConcerns;
 //recent concerns---------------------------------------------------------
 
 
+let currentPage = 1;
+let totalPages = 1;
+
+async function loadRecentActivity(page = 1) {
+    if (page < 1 || page > totalPages) return; // Prevent invalid page requests
+
+    try {
+        const response = await fetch(`/getRecentActivity?page=${page}`);
+        const { activities, totalPages: total, currentPage: current } = await response.json();
+
+        totalPages = total;
+        currentPage = current;
+
+        const recentActivityBox = document.getElementById('recent-activity-box');
+        recentActivityBox.innerHTML = activities.map(activity => `
+            <div class="activity-item">
+                <p>${activity.details}</p>
+                <small>${new Date(activity.timestamp).toLocaleString()}</small>
+            </div>
+        `).join('');
+
+        // Update pagination controls
+        document.getElementById('current-page-display').textContent = `Page ${currentPage}`;
+        document.getElementById('prev-page').disabled = currentPage === 1;
+        document.getElementById('next-page').disabled = currentPage === totalPages;
+    } catch (error) {
+        console.error('Error loading recent activity:', error);
+    }
+}
+
+window.onload = () => {
+    loadRecentActivity(); // Load first page on load
+};
 
 
           document.getElementById('logoutButton').addEventListener('click', async () => {
