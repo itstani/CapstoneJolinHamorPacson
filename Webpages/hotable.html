@@ -205,6 +205,28 @@
       #saveChangesButton:hover {
           background-color: #D94A50;
       }
+      select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #AF2630;
+            border-radius: 5px;
+            background-color: white;
+            font-size: 14px;
+            color: #333;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:hover {
+            border-color: #C1696F;
+        }
+
+        select:focus {
+            border-color: #D94A50;
+            box-shadow: 0 0 4px rgba(217, 74, 80, 0.4);
+        }
+
 
     </style>
 </head>
@@ -383,9 +405,8 @@
 
                 if (result.success) {
                     alert('Homeowner updated successfully!');
-                    // Assuming loadHomeowners function exists to reload data
-                    //loadHomeowners(); 
                     cancelEdit(); // Clear the edit table
+                    loadHomeowners(); // Refresh the main table
                 } else {
                     alert('Failed to update homeowner: ' + result.message);
                 }
@@ -394,6 +415,7 @@
                 alert('An error occurred while saving changes. Please try again.');
             }
         }
+
 
         // Filter table rows
         function filterTable() {

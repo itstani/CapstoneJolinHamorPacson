@@ -17,6 +17,7 @@ require("dotenv").config();
     const uri = "mongodb+srv://ethan:Edj1026@avidadb.upica.mongodb.net/?retryWrites=true&w=majority&appName=avidadb";
     let client;
     let database;
+    let activityLogsCollection; // Declare activityLogsCollection here
 
     async function connectToDatabase() {
       if (!client) {
@@ -32,6 +33,7 @@ require("dotenv").config();
           await client.connect();
           console.log("Connected to MongoDB!");
           database = client.db(dbName);
+          activityLogsCollection = database.collection('activityLogs'); // Initialize activityLogsCollection after connecting to the database
         } catch (err) {
           console.error("Error connecting to MongoDB:", err);
           throw err;
@@ -87,103 +89,106 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'No file uploaded' 
-            });
-        }
+  try {
+      if (!req.file) {
+          return res.status(400).json({ 
+              success: false, 
+              message: 'No file uploaded' 
+          });
+      }
 
-        // Read the uploaded file
-        const filePath = req.file.path;
-        const fileBuffer = fs.readFileSync(filePath);
+      // Read the uploaded file
+      const filePath = req.file.path;
+      const fileBuffer = fs.readFileSync(filePath);
 
-        // Convert the file to Base64
-        const base64Image = fileBuffer.toString('base64');
-        const mimeType = req.file.mimetype;
+      // Convert the file to Base64
+      const base64Image = fileBuffer.toString('base64');
+      const mimeType = req.file.mimetype;
 
-        // Construct the MongoDB document
-        const paymentData = {
-            eventName: req.body.eventName,
-            eventDate: req.body.eventDate,
-            amount: req.body.finalAmount,
-            startTime: req.body.startTime,
-            endTime: req.body.endTime,
-            paymentMethod: req.body.paymentMethod,
-            receiptImage: `data:${mimeType};base64,${base64Image}`,
-            timestamp: new Date()
-        };
+      // Construct the MongoDB document
+      const paymentData = {
+          eventName: req.body.eventName,
+          eventDate: req.body.eventDate,
+          amount: req.body.finalAmount,
+          startTime: req.body.startTime,
+          endTime: req.body.endTime,
+          paymentMethod: req.body.paymentMethod,
+          receiptImage: `data:${mimeType};base64,${base64Image}`,
+          timestamp: new Date()
+      };
 
-        // Save to MongoDB
-        const db = await client.db(dbName); 
-        const paymentsCollection = db.collection('eventpayments');
-        await paymentsCollection.insertOne(paymentData);
+      // Save to MongoDB
+      const db = await client.db(dbName); 
+      const paymentsCollection = db.collection('eventpayments');
+      await paymentsCollection.insertOne(paymentData);
 
-        // Cleanup the temporary file
-        fs.unlinkSync(filePath);
 
-        res.status(200).json({ 
-            success: true, 
-            message: "Receipt uploaded and payment processed successfully!" 
-        });
-    } catch (err) {
-        console.error("Error handling receipt upload:", err);
-        // Cleanup the temporary file if it exists
-        if (req.file && req.file.path) {
-            try {
-                fs.unlinkSync(req.file.path);
-            } catch (unlinkErr) {
-                console.error("Error deleting temporary file:", unlinkErr);
-            }
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Error processing payment. Please try again." 
-        });
-    }
+      // Cleanup the temporary file
+      fs.unlinkSync(filePath);
+
+      res.status(200).json({ 
+          success: true, 
+          message: "Receipt uploaded and payment processed successfully!" 
+      });
+  } catch (err) {
+      console.error("Error handling receipt upload:", err);
+      // Cleanup the temporary file if it exists
+      if (req.file && req.file.path) {
+          try {
+              fs.unlinkSync(req.file.path);
+          } catch (unlinkErr) {
+              console.error("Error deleting temporary file:", unlinkErr);
+          }
+      }
+      res.status(500).json({ 
+          success: false, 
+          message: "Error processing payment. Please try again." 
+      });
+  }
 });
     
     app.get("/", (req, res) => {
       res.sendFile(path.join(__dirname, "Webpages/login.html"));
     });
 
-    app.post("/login", async (req, res) => {
-      const { login, password } = req.body; // login can be email or username
     
-      try {
-          const usersCollection = req.db.collection("acc");
-  
-          // Find user by email or username
-          const user = await usersCollection.findOne({
-              $or: [
-                { email: { $regex: new RegExp(`^${login}$`, 'i') } },
-                { username: { $regex: new RegExp(`^${login}$`, 'i') } }
-              ]
-          });
-  
-          if (user) {
-              // Check if the password matches
-              const isPasswordValid = await bcrypt.compare(password, user.password);
-              if (isPasswordValid) {
-                  const isAdmin = user.role === 'admin'; // Adjust this logic as needed
-                  res.json({
-                      success: true,
-                      username: user.username,
-                      email: user.email,
-                      redirectUrl: isAdmin ? '../AdHome.html' : '../HoHome.html',
-                  });
-              } else {
-                  res.status(401).json({ success: false, message: 'Invalid credentials' });
-              }
+app.post("/login", async (req, res) => {
+  const { login, password } = req.body; // login can be email or username
+
+  try {
+      const usersCollection = req.db.collection("acc");
+
+      // Find user by email or username
+      const user = await usersCollection.findOne({
+          $or: [
+            { email: { $regex: new RegExp(`^${login}$`, 'i') } },
+            { username: { $regex: new RegExp(`^${login}$`, 'i') } }
+          ]
+      });
+
+      if (user) {
+          // Check if the password matches
+          const isPasswordValid = await bcrypt.compare(password, user.password);
+          if (isPasswordValid) {
+              const isAdmin = user.role === 'admin'; // Adjust this logic as needed
+              
+              res.json({
+                  success: true,
+                  username: user.username,
+                  email: user.email,
+                  redirectUrl: isAdmin ? '../AdHome.html' : '../HoHome.html',
+              });
           } else {
               res.status(401).json({ success: false, message: 'Invalid credentials' });
           }
-      } catch (error) {
-          console.error("Error during login:", error);
-          res.status(500).json({ success: false, message: 'Server error' });
+      } else {
+          res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
-  });
+  } catch (error) {
+      console.error("Error during login:", error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
   
     
   app.get("/check-existence", async (req, res) => {
@@ -228,6 +233,7 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
       };
       
       await usersCollection.insertOne(newUser);
+      
       res.json({ message: "Registration successful", success: true });
     } catch (error) {
       console.error("Error during registration:", error);
@@ -235,50 +241,53 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
     }
   });
 
-    app.post("/updateProfile", async (req, res) => {
-      const { firstName, lastName, password } = req.body;
-
-      if (!req.session.user) {
-        return res.json({
-          message: "You must be logged in to update your profile",
-          success: false,
-        });
-      }
-
-      if (!firstName || !lastName || !password) {
-        return res.json({ message: "Missing required fields", success: false });
-      }
-
-      try {
+  app.post("/updateProfile", async (req, res) => {
+    const { newUsername, password } = req.body;
+  
+    if (!req.session.user) {
+      return res.json({
+        success: false,
+        message: "You must be logged in to update your profile.",
+      });
+    }
+  
+    if (!newUsername || newUsername.trim() === "") {
+      return res.json({ success: false, message: "Username cannot be empty." });
+    }
+  
+    try {
+      const db = await connectToDatabase();
+  
+      const database = client.db(dbName);
+      const usersCollection = database.collection("acc");
+  
+      // Update user details
+      const updateFields = { username: newUsername };
+  
+      if (password) {
         const hashedPassword = await bcrypt.hash(password, 10);
-        const db = await connectToDatabase();
-
-        const database = client.db(dbName);
-        const usersCollection = database.collection("acc");
-
-        const result = await usersCollection.updateOne(
-          { email: req.session.user.email },
-          {
-            $set: {
-              username: `${firstName} ${lastName}`,
-              password: hashedPassword,
-            },
-          }
-        );
-
-        if (result.modifiedCount > 0) {
-          return res.json({ message: "Profile updated successfully", success: true });
-        } else {
-          return res.json({ message: "No changes made to the profile", success: false });
-        }
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        return res.json({
-          message: "An error occurred while updating profile",
-          success: false,
-        });
+        updateFields.password = hashedPassword;
       }
-    });
+  
+      const result = await usersCollection.updateOne(
+        { email: req.session.user.email },
+        { $set: updateFields }
+      );
+  
+      if (result.modifiedCount > 0) {
+        await logActivity('profileUpdate', `User ${req.session.user.email} updated their profile`); // Log activity
+        res.json({ success: true, message: "Profile updated successfully." });
+      } else {
+        res.json({ success: false, message: "No changes made to the profile." });
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.json({
+        success: false,
+        message: "An error occurred while updating profile.",
+      });
+    }
+  });
 
     app.post('/addevent', async (req, res) => {
       const { username, email, hostName, eventName, eventDate, startTime, endTime, amenity, guests, homeownerStatus } = req.body;
@@ -406,54 +415,6 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
     });
 
     
-
-    app.post("/updateProfile", async (req, res) => {
-      const { newUsername, password } = req.body;
-    
-      if (!req.session.user) {
-        return res.json({
-          success: false,
-          message: "You must be logged in to update your profile.",
-        });
-      }
-    
-      if (!newUsername || newUsername.trim() === "") {
-        return res.json({ success: false, message: "Username cannot be empty." });
-      }
-    
-      try {
-        const db = await connectToDatabase();
-
-        const database = client.db(dbName);
-        const usersCollection = database.collection("acc");
-    
-        // Update user details
-        const updateFields = { username: newUsername };
-    
-        if (password) {
-          const hashedPassword = await bcrypt.hash(password, 10);
-          updateFields.password = hashedPassword;
-        }
-    
-        const result = await usersCollection.updateOne(
-          { email: req.session.user.email },
-          { $set: updateFields }
-        );
-    
-        if (result.modifiedCount > 0) {
-          res.json({ success: true, message: "Profile updated successfully." });
-        } else {
-          res.json({ success: false, message: "No changes made to the profile." });
-        }
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        res.json({
-          success: false,
-          message: "An error occurred while updating profile.",
-        });
-      }
-    });
-    
     
     app.get('/approved-events', async (req, res, next) => {
       try {
@@ -464,7 +425,7 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
       } catch (error) {
           next(error);
       }
-  });
+    });
   
     
 
@@ -474,6 +435,7 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
           console.error('Failed to destroy session:', err);
           return res.status(500).json({ message: 'Failed to log out' });
         }
+      
         res.status(200).json({ message: 'Logout successful' });
       });
     });
@@ -486,6 +448,7 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
       }
     }
     run().catch(console.dir);
+    
 
 
     //get data from acc collection to display in homeowner table hotable.html
@@ -502,39 +465,23 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
     });
     
 
-    app.patch('/toggleStatus/:username/:lastname', async (req, res) => {
-      const { username, lastname } = req.params;
-
-      try {
-        const db = await connectToDatabase();
-
-        const database = client.db(dbName);
-        const collection = database.collection('acc');
-
-        const user = await collection.findOne({ username, lastname });
-        if (!user) {
-          return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        const newStatus = user.status === 'Paid' ? 'Unpaid' : 'Paid';
-        await collection.updateOne({ username, lastname }, { $set: { status: newStatus } });
-
-        return res.status(200).json({ success: true, status: newStatus });
-      } catch (error) {
-        console.error('Error toggling status:', error);
-        return res.status(500).json({ success: false, message: 'Server error' });
-      }
-    });
 
     app.put('/updateHomeowner/:email', async (req, res) => {
       const { email } = req.params;
       const updateData = req.body;
   
       try {
-        const db = await connectToDatabase();
-
+          const db = await connectToDatabase();
+  
           const database = client.db('avidadb');
           const collection = database.collection('homeowners');
+  
+          // Retrieve the homeowner's document to get the last name
+          const homeowner = await collection.findOne({ email: email });
+  
+          if (!homeowner) {
+              return res.json({ success: false, message: 'Homeowner not found' });
+          }
   
           const result = await collection.updateOne(
               { email: email },
@@ -542,6 +489,8 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
           );
   
           if (result.modifiedCount > 0) {
+              const lastName = homeowner.lastName; // Assuming 'lastName' is the field storing the last name
+              await logActivity('homeownerUpdate', `Homeowner with Last Name ${lastName} updated`); // Log activity
               res.json({ success: true, message: 'Homeowner updated successfully' });
           } else {
               res.json({ success: false, message: 'No document matched the query' });
@@ -551,6 +500,7 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
           res.status(500).json({ success: false, error: 'Failed to update homeowner' });
       }
   });
+  
   
   
   app.get('/pending-events', async (req, res) => {
@@ -590,7 +540,7 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
           { eventName: event.eventName },
           { $set: { status: 'approved' } }
         );
-  
+        await logActivity('eventApproval', `Event ${eventName} approved`); // Log activity
         res.json({ success: true, message: 'Event approved and moved to approved events.' });
       } else {
         res.status(404).json({ success: false, message: 'Event not found in events collection.' });
@@ -604,40 +554,41 @@ app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
 
 
 
-app.post('/disapprove-event', async (req, res) => {
-  const { eventName, reason } = req.body;
 
-  try {
-      const db = await connectToDatabase();
-      const eventpaymentsCollection = db.collection('eventpayments');
-      const eventsCollection = db.collection('events');
-      const deventsCollection = db.collection('devents'); // Disapproved events collection
-
-      // Fetch event from the events collection
-      const event = await eventsCollection.findOne({ eventName });
-
-      if (event) {
-          // Move event to devents collection
-          await deventsCollection.insertOne({ ...event, disapprovalReason: reason });
-
-          // Remove from events collection
-          await eventsCollection.deleteOne({ eventName });
-
-          // Update status to 'disapproved' in eventpayments collection with reason
-          await eventpaymentsCollection.updateOne(
-              { eventName },
-              { $set: { status: 'disapproved', disapprovalReason: reason } }
-          );
-
-          res.json({ success: true, message: 'Event disapproved and moved to disapproved events.' });
-      } else {
-          res.status(404).json({ success: false, message: 'Event not found in events collection.' });
-      }
-  } catch (error) {
-      console.error('Error disapproving event:', error);
-      res.status(500).json({ success: false, message: 'Server error while disapproving event.' });
-  }
-});
+  app.post('/disapprove-event', async (req, res) => {
+    const { eventName, reason } = req.body;
+  
+    try {
+        const db = await connectToDatabase();
+        const eventpaymentsCollection = db.collection('eventpayments');
+        const eventsCollection = db.collection('events');
+        const deventsCollection = db.collection('devents'); // Disapproved events collection
+  
+        // Fetch event from the events collection
+        const event = await eventsCollection.findOne({ eventName });
+  
+        if (event) {
+            // Move event to devents collection
+            await deventsCollection.insertOne({ ...event, disapprovalReason: reason });
+  
+            // Remove from events collection
+            await eventsCollection.deleteOne({ eventName });
+  
+            // Update status to 'disapproved' in eventpayments collection with reason
+            await eventpaymentsCollection.updateOne(
+                { eventName },
+                { $set: { status: 'disapproved', disapprovalReason: reason } }
+            );
+            await logActivity('eventDisapproval', `Event ${eventName} disapproved. Reason: ${reason}`); // Log activity
+            res.json({ success: true, message: 'Event disapproved and moved to disapproved events.' });
+        } else {
+            res.status(404).json({ success: false, message: 'Event not found in events collection.' });
+        }
+    } catch (error) {
+        console.error('Error disapproving event:', error);
+        res.status(500).json({ success: false, message: 'Server error while disapproving event.' });
+    }
+  });
 
 
 
@@ -702,6 +653,7 @@ app.post('/addconcern', async (req, res) => {
 
     const db = client.db('avidadb');
     await db.collection('Concerns').insertOne(concern);
+    
 
     
     res.json({ success: true });
@@ -733,29 +685,42 @@ app.post('/addconcern', async (req, res) => {
     }
     process.exit(0);
   });
-//recent activity
-  app.get('/getRecentActivity', async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1; // Default to page 1
-        const limit = 10; // 10 activities per page
-        const skip = (page - 1) * limit;
+//recent activity logs
+app.get('/getRecentActivity', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
-        const totalActivities = await db.collection('activityLogs').countDocuments();
-        const recentActivity = await db.collection('activityLogs')
-            .find({})
-            .sort({ timestamp: -1 })
-            .skip(skip)
-            .limit(limit)
-            .toArray();
+    const totalActivities = await activityLogsCollection.countDocuments();
+    const recentActivity = await activityLogsCollection
+      .find({})
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
 
-        res.json({
-            activities: recentActivity,
-            totalPages: Math.ceil(totalActivities / limit),
-            currentPage: page
-        });
-    } catch (error) {
-        res.status(500).send({ error: 'Failed to fetch activity logs.' });
-    }
+    res.json({
+      activities: recentActivity,
+      totalPages: Math.ceil(totalActivities / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    console.error('Error fetching recent activity:', error);
+    res.status(500).json({ error: 'Failed to fetch recent activity' });
+  }
 });
+
+async function logActivity(action, details) {
+  try {
+    await activityLogsCollection.insertOne({
+      action,
+      details,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Error logging activity:', error);
+  }
+}
 
 

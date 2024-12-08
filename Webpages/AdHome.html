@@ -1,4 +1,4 @@
-      <!DOCTYPE html>
+<!DOCTYPE html>
       <html lang="en">
       <head>
           <meta charset="UTF-8">
@@ -140,12 +140,16 @@
             gap: 50px; 
             padding-left: 100px;
             padding-right: 100px;
+            background-color: white;
         }
 
         .box {
-   
-             background-color: #ffffff; 
-        }
+          background-color: #f9f9f9; /* Ensure consistent background color */
+          border-radius: 8px;
+          padding: 10px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Consistent shadow */
+      }
+
 
         .section-title {
             font-size: 24px;
@@ -154,41 +158,16 @@
             margin-bottom: 10px;
           }
 
-        .content-box {
-           height: 400px; 
-           background-color: #e9e9e9; 
-           border-radius: 10px;
+          .content-box {
+            height: 400px; 
+            border-radius: 10px;
+          
         }
 
-  
+
+        
  /*----------------------------------------------Recent Concerns style-----------------------*/
-        .concern-table {
-            
-            width: 100%;
-            border-collapse: collapse; 
-            margin-top: 20px; 
-        }
-
-        .concern-table th, .concern-table td {
-            padding: 10px;
-            text-align: left;
-            
-        }
-
-        .concern-table th {
-            background-color: #AF2630; 
-            color: white;
-            font-weight: bold;
-            
-        }
-
-        .concern-table tr:nth-child(even) {
-            background-color: #f9f9f9; 
-        }
-
-        .concern-table tr:hover {
-            background-color: #e9e9e9; 
-        }
+        
 
         #pagination-controls {
             display: flex;
@@ -220,20 +199,62 @@
           text-align: center;
         }
 
+        .activity-item {
+          background-color: #fff;
+          margin: 10px;
+          padding: 15px;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .activity-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+      }
+
+      .activity-item p {
+          margin: 0;
+          font-size: 16px;
+          color: #333;
+          font-weight: bold;
+      }
+
+      .activity-item small {
+          color: #999;
+          font-size: 14px;
+          display: block;
+          margin-top: 5px;
+      }
+
+      #recent-activity-box {
+          padding: 10px;
+          overflow-y: auto;
+          height: 300px; /* Adjust height as needed */
+          background-color: #f9f9f9;
+          border-radius: 10px;
+      }
+
 
 /*----------------------------------------------Recent Concerns style-----------------------*/
 
 
 
         
-        @media (max-width: 600px) {
-          .search-bar {
-            width: 100%;
-          }
-          .top-bar {
-            padding: 0 10px;
-          }
+      @media (max-width: 600px) {
+        .side-bar {
+          width: 80px; /* Reduce width */
+          font-size: 12px; /* Smaller font */
         }
+        .side-bar img {
+          width: 40px;
+          height: 40px; /* Smaller icons */
+        }
+        #logoutButton {
+          padding: 5px 10px;
+        }
+      }
+
           </style>
       </head>
       <body>
@@ -274,26 +295,17 @@
           <p id="username"></p>
           <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
         </div>
+
         <div class="container">
-          <div class="box">
-              <h2 class="section-title">Recent Concerns</h2>
-              <div class="content-box">
-                <table class="concern-table">
-                  <thead>
-                      <tr>
-                          <th>Email</th>
-                          <th>Subject</th>
-                          <th>Date</th>
-                      </tr>
-                  </thead>
-                  <tbody id="concernTableBody">
-                      
-                     
-                  </tbody>
-              </table>
-              </div> 
-              
+            <div class="box">
+              <div>
+                  <h2 class="section-title">Recent Concerns</h2>
+              </div>
+              <div class="content-box" id="recent-concerns-box">
+                  <!-- Concerns items will be dynamically loaded here -->
+              </div>
           </div>
+        
           <div class="box">
             <div>
                 <h2 class="section-title">Recent Activity</h2>
@@ -305,8 +317,8 @@
               <button id="prev-page" onclick="loadRecentActivity(currentPage - 1)">◀</button>
               <span id="current-page-display">Page 1</span>
               <button id="next-page" onclick="loadRecentActivity(currentPage + 1)">▶</button>
+            </div>
           </div>
-        </div>
         
       </div>
       
@@ -315,73 +327,98 @@
       </div> 
 
         <script>
-//recent concerns---------------------------------------------------------
-// Load recent concerns data
-async function loadConcerns() {
-    try {
-        const response = await fetch('/getConcerns');
-        const concerns = await response.json();
-        
-        if (concerns.length === 0) {
-            console.log('No concerns found');
+          //recent concerns---------------------------------------------------------
+          // Load recent concerns data
+          async function loadConcerns() {
+            try {
+                const response = await fetch('/getConcerns');
+                const concerns = await response.json();
+
+                const concernsBox = document.getElementById('recent-concerns-box');
+                concernsBox.innerHTML = ''; // Clear existing content
+
+                concerns.forEach(concern => {
+                    const concernItem = document.createElement('div');
+                    concernItem.className = 'activity-item'; // Reuse activity-item styling
+                    concernItem.innerHTML = `
+                        <p>Email: <span style="color: #AF2630; text-decoration: underline;">${concern.email}</span></p>
+                        <p>Subject: <span style="color: #AF2630; text-decoration: underline;">${concern.subject}</span></p>
+                        <small>${new Date(concern.createdAt).toLocaleString()}</small>
+                    `;
+                    concernsBox.appendChild(concernItem);
+                });
+
+                if (concerns.length === 0) {
+                    concernsBox.innerHTML = `<p>No recent concerns found.</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading concerns:', error);
+            }
         }
 
-        const tableBody = document.querySelector('.concern-table tbody');
-        tableBody.innerHTML = ''; 
-
-        concerns.forEach(concern => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${concern.email}</td>
-                <td>${concern.subject}</td>
-                <td>${new Date(concern.createdAt).toLocaleDateString()}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    } catch (error) {
-        console.error('Error loading concerns:', error);
-    }
-}
 
 
-window.onload = loadConcerns;
-
-//recent concerns---------------------------------------------------------
+          //recent concerns---------------------------------------------------------
 
 
-let currentPage = 1;
-let totalPages = 1;
+          let currentPage = 1;
+          let totalPages = 1;
 
-async function loadRecentActivity(page = 1) {
-    if (page < 1 || page > totalPages) return; // Prevent invalid page requests
+          async function loadRecentActivity(page = 1) {
+            if (page < 1 || page > totalPages) return;
 
-    try {
-        const response = await fetch(`/getRecentActivity?page=${page}`);
-        const { activities, totalPages: total, currentPage: current } = await response.json();
+            try {
+              const response = await fetch(`/getRecentActivity?page=${page}`);
+              const { activities, totalPages: total, currentPage: current } = await response.json();
 
-        totalPages = total;
-        currentPage = current;
+              totalPages = total;
+              currentPage = current;
 
-        const recentActivityBox = document.getElementById('recent-activity-box');
-        recentActivityBox.innerHTML = activities.map(activity => `
-            <div class="activity-item">
-                <p>${activity.details}</p>
-                <small>${new Date(activity.timestamp).toLocaleString()}</small>
-            </div>
-        `).join('');
+              const recentActivityBox = document.getElementById('recent-activity-box');
+              
+              recentActivityBox.innerHTML = activities.map(activity => {
+                // Map action to descriptive text
+                let actionDescription;
+                switch (activity.action) {
+                  case 'profileUpdate':
+                    actionDescription = 'Homeowner Profile Updated';
+                    break;
+                  case 'homeownerUpdate':
+                    actionDescription = 'Homeowner Updated';
+                    break;
+                  case 'eventApproval': 
+                    actionDescription = 'Event Approved';
+                    break;
+                  case 'eventDisapproval': 
+                    actionDescription = 'Event Disapproved';
+                    break;
+                  // Add more cases as needed
+                  default:
+                    actionDescription = activity.action; // Use the raw action as fallback
+                }
 
-        // Update pagination controls
-        document.getElementById('current-page-display').textContent = `Page ${currentPage}`;
-        document.getElementById('prev-page').disabled = currentPage === 1;
-        document.getElementById('next-page').disabled = currentPage === totalPages;
-    } catch (error) {
-        console.error('Error loading recent activity:', error);
-    }
-}
+                return `
+                  <div class="activity-item">
+                    <p>${actionDescription}: <span style="color: #AF2630; text-decoration: underline;">${activity.details}</span></p>
+                    <small>${new Date(activity.timestamp).toLocaleString()}</small>
+                  </div>
+                `;
+              }).join('');
 
-window.onload = () => {
-    loadRecentActivity(); // Load first page on load
-};
+
+              document.getElementById('current-page-display').textContent = `Page ${currentPage}`;
+              document.getElementById('prev-page').disabled = currentPage === 1;
+              document.getElementById('next-page').disabled = currentPage === totalPages;
+            } catch (error) {
+              console.error('Error loading recent activity:', error);
+            }
+          }
+
+
+          window.onload = () => {
+            loadConcerns();
+            loadRecentActivity();
+          };
 
 
           document.getElementById('logoutButton').addEventListener('click', async () => {
@@ -401,3 +438,4 @@ window.onload = () => {
 
       </body>
       </html>
+
