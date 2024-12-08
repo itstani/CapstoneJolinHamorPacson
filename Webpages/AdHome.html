@@ -49,7 +49,7 @@
 
         .mainarea {
             margin-left: 20px; /* Adjusted to align with the sidebar */
-            padding: 20px;
+            padding: 10px;
             box-sizing: border-box;
         }
 
@@ -142,6 +142,14 @@
             padding-right: 100px;
             background-color: white;
         }
+        .container2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 50px; 
+            padding-left: 100px;
+            padding-right: 100px;
+            padding-top: 40px;
+        }
 
         .box {
           background-color: #f9f9f9; /* Ensure consistent background color */
@@ -161,7 +169,6 @@
           .content-box {
             height: 400px; 
             border-radius: 10px;
-          
         }
 
 
@@ -235,8 +242,37 @@
           border-radius: 10px;
       }
 
+      
 
-/*----------------------------------------------Recent Concerns style-----------------------*/
+        .event-item {
+          background-color: #fff;
+          margin: 10px;
+          padding: 15px;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .event-item h3 {
+            margin: 0 0 10px 0;
+            color: #AF2630;
+        }
+
+        .event-item p {
+          margin: 0;
+          font-size: 16px;
+          color: #333;
+        }
+        .event-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+      }
+      .event-item small {
+          color: #999;
+          font-size: 14px;
+          display: block;
+          margin-top: 5px;
+      }
 
 
 
@@ -253,6 +289,50 @@
         #logoutButton {
           padding: 5px 10px;
         }
+      }
+      /* New styles for currently reserved amenity */
+      #currently-reserved-amenity {
+          grid-column: 1 / -1;
+          text-align: center;
+      }
+
+      #amenity-container {
+          position: relative;
+          display: inline-block;
+      }
+
+      #amenity-image {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+      }
+
+      .amenity-nav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background-color: rgba(255, 255, 255, 0.7);
+          border: none;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          font-size: 24px;
+          cursor: pointer;
+          display: none;
+      }
+
+      #prev-amenity {
+          left: 10px;
+      }
+
+      #next-amenity {
+          right: 10px;
+      }
+
+      #amenity-name {
+          margin-top: 10px;
+          font-weight: bold;
+          color: #AF2630;
       }
 
           </style>
@@ -307,28 +387,47 @@
           </div>
         
           <div class="box">
-            <div>
-                <h2 class="section-title">Recent Activity</h2>
+              <div>
+                  <h2 class="section-title">Recent Activity</h2>
+              </div>
+              <div class="content-box" id="recent-activity-box">
+                  <!-- Activity items will be dynamically loaded here -->
+              </div>
+              <div id="pagination-controls">
+                <button id="prev-page" onclick="loadRecentActivity(currentPage - 1)">◀</button>
+                <span id="current-page-display">Page 1</span>
+                <button id="next-page" onclick="loadRecentActivity(currentPage + 1)">▶</button>
+              </div>
             </div>
-            <div class="content-box" id="recent-activity-box">
-                <!-- Activity items will be dynamically loaded here -->
-            </div>
-            <div id="pagination-controls">
-              <button id="prev-page" onclick="loadRecentActivity(currentPage - 1)">◀</button>
-              <span id="current-page-display">Page 1</span>
-              <button id="next-page" onclick="loadRecentActivity(currentPage + 1)">▶</button>
-            </div>
+        </div>
+      <div class="container2">
+        <div class="box">
+          <div>
+              <h2 class="section-title">Upcoming Events</h2>
           </div>
-        
+          <div class="content-box" id="upcoming-events-box">
+              <!-- Upcoming events will be dynamically loaded here -->
+          </div>
+
+          
+        </div>
+        <div class="box">
+          <div id="currently-reserved-amenity" class="box">
+            <h2 class="section-title">Currently Reserved Amenity</h2>
+            <div id="amenity-container">
+                <img id="amenity-image" src="" alt="Reserved Amenity">
+                <button id="prev-amenity" class="amenity-nav">&lt;</button>
+                <button id="next-amenity" class="amenity-nav">&gt;</button>
+            </div>
+            <p id="amenity-name"></p>
+          </div>
+        </div>
       </div>
-      
         
 
       </div> 
 
         <script>
-          //recent concerns---------------------------------------------------------
-          // Load recent concerns data
           async function loadConcerns() {
             try {
                 const response = await fetch('/getConcerns');
@@ -357,11 +456,7 @@
         }
 
 
-
-          //recent concerns---------------------------------------------------------
-
-
-          let currentPage = 1;
+        let currentPage = 1;
           let totalPages = 1;
 
           async function loadRecentActivity(page = 1) {
@@ -414,12 +509,149 @@
             }
           }
 
+                async function loadUpcomingEvents() {
+                  try {
+                      const response = await fetch('/getUpcomingEvents');
+                      const events = await response.json();
+
+                      const eventsBox = document.getElementById('upcoming-events-box');
+                      eventsBox.innerHTML = '';
+
+                      events.forEach(event => {
+                          const eventItem = document.createElement('div');
+                          eventItem.className = 'event-item';
+                          eventItem.innerHTML = `
+                              <h3>${event.eventName}</h3>
+                              <p>Date: ${new Date(event.eventDate).toLocaleDateString()}</p>
+                              <p>Time: ${event.startTime} - ${event.endTime}</p>
+                              <p>Amenity: ${event.amenity}</p>
+                          `;
+                          eventsBox.appendChild(eventItem);
+                      });
+
+                      if (events.length === 0) {
+                          eventsBox.innerHTML = '<p>No upcoming events found.</p>';
+                      }
+                  } catch (error) {
+                      console.error('Error loading upcoming events:', error);
+                  }
+              }
+              let currentAmenityIndex = 0;
+              let reservedAmenities = [];
+
+              async function loadCurrentlyReservedAmenities() {
+                  try {
+                      const response = await fetch('/getCurrentlyReservedAmenities');
+                      if (!response.ok) {
+                          throw new Error(`HTTP error! status: ${response.status}`);
+                      }
+                      const data = await response.json();
+                      console.log('Received amenities data:', data); // Debug log
+
+                      if (Array.isArray(data) && data.length > 0) {
+                          reservedAmenities = data;
+                          displayCurrentAmenity();
+                          updateAmenityNavigation();
+                      } else {
+                          const container = document.getElementById('currently-reserved-amenity');
+                          container.innerHTML = `
+                            <h2 class="section-title">Currently Reserved Amenity</h2>
+                            <p>No amenities are currently reserved for today.</p>
+                          `;
+                      }
+                  } catch (error) {
+                      console.error('Error loading currently reserved amenities:', error);
+                      const container = document.getElementById('currently-reserved-amenity');
+                      container.innerHTML = `
+                        <h2 class="section-title">Currently Reserved Amenity</h2>
+                        <p>Error loading reserved amenities. Please try again later.</p>
+                      `;
+                  }
+              }
+
+              function displayCurrentAmenity() {
+                const amenity = reservedAmenities[currentAmenityIndex];
+                const imageElement = document.getElementById('amenity-image');
+                const nameElement = document.getElementById('amenity-name');
+
+                if (amenity) {
+                  imageElement.onerror = function() {
+                    console.error('Failed to load image:', this.src);
+                    this.src = 'images/placeholder.jpg';
+                  };
+                  
+                  imageElement.src = amenity.imagePath;
+                  imageElement.alt = `${amenity.name} Image`;
+                  nameElement.textContent = amenity.name;
+                  
+                  console.log('Displaying amenity:', amenity);
+                } else {
+                  console.error('No amenity to display');
+                  imageElement.src = 'images/placeholder.jpg';
+                  imageElement.alt = 'No amenity available';
+                  nameElement.textContent = 'No amenity currently reserved';
+                }
+              }
+
+              function updateAmenityNavigation() {
+                  const prevButton = document.getElementById('prev-amenity');
+                  const nextButton = document.getElementById('next-amenity');
+
+                  if (reservedAmenities.length > 1) {
+                      prevButton.style.display = 'block';
+                      nextButton.style.display = 'block';
+
+                      prevButton.onclick = () => {
+                          currentAmenityIndex = (currentAmenityIndex - 1 + reservedAmenities.length) % reservedAmenities.length;
+                          displayCurrentAmenity();
+                      };
+
+                      nextButton.onclick = () => {
+                          currentAmenityIndex = (currentAmenityIndex + 1) % reservedAmenities.length;
+                          displayCurrentAmenity();
+                      };
+                  } else {
+                      prevButton.style.display = 'none';
+                      nextButton.style.display = 'none';
+                  }
+              }
+
+              function updatePagination(section, currentPage, totalPages) {
+                const prevButton = document.getElementById(`prev-${section}`);
+                const nextButton = document.getElementById(`next-${section}`);
+                const pageDisplay = document.getElementById(`${section}-page-display`);
+        
+                prevButton.disabled = currentPage === 1;
+                nextButton.disabled = currentPage === totalPages;
+                pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
+        
+                prevButton.onclick = () => loadSection(section, currentPage - 1);
+                nextButton.onclick = () => loadSection(section, currentPage + 1);
+              }
+        
+              function loadSection(section, page) {
+                switch (section) {
+                  case 'concerns':
+                    concernsPage = page;
+                    loadConcerns(page);
+                    break;
+                  case 'activity':
+                    activityPage = page;
+                    loadRecentActivity(page);
+                    break;
+                  case 'events':
+                    eventsPage = page;
+                    loadUpcomingEvents(page);
+                    break;
+                }
+              }
 
           window.onload = () => {
-            loadConcerns();
-            loadRecentActivity();
+            loadConcerns(concernsPage);
+            loadRecentActivity(activityPage);
+            loadUpcomingEvents(eventsPage);
+            loadCurrentlyReservedAmenities();
           };
-
 
           document.getElementById('logoutButton').addEventListener('click', async () => {
             // Optional: Send a request to the server to clear the session

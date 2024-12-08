@@ -435,7 +435,6 @@ app.post("/login", async (req, res) => {
           console.error('Failed to destroy session:', err);
           return res.status(500).json({ message: 'Failed to log out' });
         }
-      
         res.status(200).json({ message: 'Logout successful' });
       });
     });
@@ -665,17 +664,27 @@ app.post('/addconcern', async (req, res) => {
 
 
 //Concern Table
-    app.get('/getConcerns', async (req, res) => {
-      try {
-        const db = await connectToDatabase();
-        const collection = db.collection('Concerns');
-        const concerns = await collection.find().toArray();
-        res.json(concerns);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ error: 'Failed to fetch data' });
-      }
+app.get('/getConcerns', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const collection = db.collection('Concerns');
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const skip = (page - 1) * limit;
+
+    const totalConcerns = await collection.countDocuments();
+    const concerns = await collection.find().sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
+
+    res.json({
+      concerns,
+      currentPage: page,
+      totalPages: Math.ceil(totalConcerns / limit)
     });
+  } catch (error) {
+    console.error('Error fetching concerns:', error);
+    res.status(500).json({ error: 'Failed to fetch concerns' });
+  }
+});
 
   process.on('SIGINT', async () => {
     console.log('Shutting down server...');
@@ -689,7 +698,7 @@ app.post('/addconcern', async (req, res) => {
 app.get('/getRecentActivity', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = 10;
+    const limit = 5;
     const skip = (page - 1) * limit;
 
     const totalActivities = await activityLogsCollection.countDocuments();
@@ -723,4 +732,82 @@ async function logActivity(action, details) {
   }
 }
 
+app.get('/getUpcomingEvents', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const eventsCollection = db.collection('aevents');
+    
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const skip = (page - 1) * limit;
 
+    // Get the current date
+    const currentDate = new Date();
+    
+    // Find events that are upcoming (event date is greater than or equal to the current date)
+    const totalEvents = await eventsCollection.countDocuments({
+      eventDate: { $gte: currentDate.toISOString().split('T')[0] }
+    });
+
+    const upcomingEvents = await eventsCollection.find({
+      eventDate: { $gte: currentDate.toISOString().split('T')[0] }
+    }).sort({ eventDate: 1 }).skip(skip).limit(limit).toArray();
+
+    res.json({
+      events: upcomingEvents,
+      currentPage: page,
+      totalPages: Math.ceil(totalEvents / limit)
+    });
+  } catch (error) {
+    console.error('Error fetching upcoming events:', error);
+    res.status(500).json({ error: 'Failed to fetch upcoming events' });
+  }
+});
+
+
+app.get('/getCurrentlyReservedAmenities', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const reservationsCollection = db.collection('aevents');
+    
+    // Get the current date in YYYY-MM-DD format
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    // Find reservations for today
+    const reservations = await reservationsCollection.find({
+      eventDate: currentDate,
+      status: 'approved'
+    }).toArray();
+
+    console.log('Reservations found:', reservations); // Debug log
+
+    // Extract unique amenities from today's reservations
+    const uniqueAmenities = [...new Set(reservations.map(r => r.amenity))];
+
+    // Create an array of amenity objects with image paths
+    const amenities = uniqueAmenities.map(amenity => ({
+      name: amenity,
+      imagePath: getAmenityImagePath(amenity)
+    }));
+
+    console.log('Amenities to be sent:', amenities); // Debug log
+
+    res.json(amenities);
+  } catch (error) {
+    console.error('Error fetching currently reserved amenities:', error);
+    res.status(500).json({ error: 'Failed to fetch currently reserved amenities' });
+  }
+});
+// Helper function to get the image path for each amenity
+function getAmenityImagePath(amenityName) {
+  switch (amenityName.toLowerCase()) {
+    case 'clubhouse':
+      return 'images/clubhouseimg.jpg';
+    case 'court':
+      return 'images/Courtimg.jpg';
+    case 'pool':
+      return 'images/poolimg.png';
+    default:
+      return 'images/placeholder.jpg';
+  }
+}
