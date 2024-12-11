@@ -293,105 +293,45 @@ app.post('/addevent', async (req, res) => {
   const { hostName, eventName, eventDate, startTime, endTime, amenity, guests, homeownerStatus } = req.body;
 
   try {
-      const db = await connectToDatabase();
-      const eventsCollection = db.collection('events');
+    const db = await connectToDatabase();
+    const eventsCollection = db.collection('events');
 
-      // Convert times to Date objects for comparison
-      const start = new Date(`${eventDate}T${startTime}`);
-      const end = new Date(`${eventDate}T${endTime}`);
-      
-      // If end time is before start time, assume it's the next day
-      if (end < start) {
-          end.setDate(end.getDate() + 1);
-      }
+    // Convert times to Date objects for comparison
+    const start = new Date(`${eventDate}T${startTime}`);
+    const end = new Date(`${eventDate}T${endTime}`);
+    
+    // If end time is before start time, assume it's the next day
+    if (end < start) {
+      end.setDate(end.getDate() + 1);
+    }
 
-      // Get base date for opening/closing time comparison
-      const baseDate = new Date(eventDate);
-      
-      // Set opening and closing times
-      const openingTime = new Date(baseDate.setHours(8, 0, 0));
-      const poolClosingTime = new Date(baseDate.setHours(23, 30, 0));
-      const regularClosingTime = new Date(baseDate.setHours(22, 0, 0));
-      
-      // Determine closing time based on amenity
-      const closingTime = amenity.toLowerCase() === 'pool' ? poolClosingTime : regularClosingTime;
+    // Perform your validations here (time range, duration, etc.)
 
-      // Validate time range
-      if (start < openingTime) {
-          return res.status(400).json({ 
-              success: false, 
-              message: "Events cannot start before 8:00 AM" 
-          });
-      }
+    // Add event to database
+    const newEvent = {
+      hostName,
+      eventName,
+      eventDate,
+      startTime,
+      endTime,
+      amenity,
+      guests,
+      homeownerStatus,
+      createdAt: new Date()
+    };
 
-      if (end > closingTime) {
-          return res.status(400).json({ 
-              success: false, 
-              message: amenity.toLowerCase() === 'pool' ? 
-                  "Pool events must end by 11:30 PM" : 
-                  "Events must end by 10:00 PM" 
-          });
-      }
-
-      // Calculate duration in hours
-      const duration = (end - start) / (1000 * 60 * 60);
-      
-      // Check if duration exceeds 4 hours
-      if (duration > 4) {
-          return res.status(400).json({
-              success: false,
-              message: "Events cannot exceed 4 hours in duration"
-          });
-      }
-
-      // Check for overlapping events
-      const existingEvents = await eventsCollection.find({
-          amenity: amenity,
-          eventDate: eventDate,
-          $or: [
-              {
-                  $and: [
-                      { startTime: { $lte: endTime } },
-                      { endTime: { $gte: startTime } }
-                  ]
-              }
-          ]
-      }).toArray();
-
-      if (existingEvents.length > 0) {
-          return res.status(400).json({
-              success: false,
-              message: "This time slot conflicts with an existing event"
-          });
-      }
-
-      // Add event to database
-      const newEvent = {
-          hostName,
-          eventName,
-          eventDate,
-          startTime,
-          endTime,
-          amenity,
-          guests,
-          homeownerStatus,
-          duration,
-          createdAt: new Date()
-      };
-
-      await eventsCollection.insertOne(newEvent);
-      await logActivity('eventCreation', `New event "${eventName}" created by ${hostName}`);
-      
-      res.status(201).json({ 
-          success: true, 
-          message: "Event created successfully." 
-      });
+    await eventsCollection.insertOne(newEvent);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: "Event created successfully." 
+    });
   } catch (error) {
-      console.error('Error creating event:', error);
-      res.status(500).json({ 
-          success: false, 
-          message: "An error occurred while creating the event." 
-      });
+    console.error('Error creating event:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: "An error occurred while creating the event." 
+    });
   }
 });
 app.post("/delEvent", async (req, res) => {
@@ -969,3 +909,4 @@ app.get('/api/notifications', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+

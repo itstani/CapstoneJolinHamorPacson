@@ -1,326 +1,421 @@
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-    <style>
-    .top-bar {
-      background-color: #AF2630;
-      position: fixed;
-      color: #6b6a6a; 
-      top: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: 50px; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 20px;
-      box-sizing: border-box;
-    }
-
-    .search-bar {
-      background-color: #C1696F;
-      position: relative;
-      width: 20%;
-    }
-
-    .search-bar input[type="text"] {
-      width: 100%;
-      padding: 10px 40px 10px 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-
-    .search-bar button[type="button"] {
-      position: absolute;
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .search-bar button[type="button"] img {
-      width: 20px;
-      height: 20px;
-    }
-
-    .search-bar button[type="button"]:hover img {
-      filter: brightness(0.8);
-    }
-
-    .side-bar {
-      background-color: #D9D9D9;
-      position: fixed;
-      color: #AF2630;
-      top: 50px;
-      left: 0;
-      width: 90px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0 20px;
-      box-sizing: border-box;
-    }
-
-    .Home, .homeownerstatus, .analytics, .Calendar {
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 15px;
-      font-weight: bold;
-      font-family: 'Inter';
-    }
-
-    .Home img, .homeownerstatus img, .analytics img, .Calendar img {
-      width: 60px;
-      height: 60px;
-    }
-
-    .Home button, .homeownerstatus button, .analytics button, .Calendar button {
-      background-color: #D9D9D9;
-      margin: 0 auto;
-      border: none;
-      transition: background-color 0.3s;
-    }
-
-    .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
-      background-color: #ccc;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-
-    .Welcome {
-      font-size: 30px;
-      font-family: 'Inter';
-      color: #AF2630;
-      font-weight: bold;
-      padding-left: 5%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .Welcome h1 {
-      margin: 0;
-      padding-left: 40px;
-    }
-
-    .avidalogo {
-      width: 400px;
-      height: 130px;
-      margin-left: 20px;
-      padding-top: 60px;
-    }
-    /* Reserve Section in Columns */
-    .reserve {
-      display: flex;
-      justify-content: center; /* Centers content horizontally */
-      gap: 20%; /* Space between the buttons */
-      text-align: center;
-      flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
-    }
-    .container {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* Aligns the content to the left */
-    padding-left: 5%; /* Add padding from the left side */
-    }
-
-        .column {
-            margin-bottom: 20px; /* Space between rows */
-        }
-
-        .col-12 {
-            width: 100%; 
-            text-align: left; /* Center the content horizontally */
-            padding-left: 10%;
-        }
-        .form-image-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start; /* Align form and image at the top */
-        gap: 30px; /* Space between the form and image */
-        padding-left: 7%; /* Add some padding from the left */
-      }
-
-        form {
-          background-color: #AF2630;
-          padding: 20px;
-          border-radius: 10px;
-          max-width: 500px; /* Keeps the form width limited */
-          width: 50%; /* Set width to make room for the image */
-          color: white;
-        }
-
-      form h2 {
-          margin-bottom: 20px;
-      }
-
-      form label, form input {
-          display: block;
-          margin-bottom: 10px;
-          width: 100%;
-      }
-
-      input[type="text"], input[type="date"] {
-          padding: 10px;
-          border: none;
-          border-radius: 5px;
-          width: calc(100% - 20px);
-          border-color: white;
-          font-family: 'inter';
-          color: #C1696F;
-      }
-              /* Amenity Buttons Hover Effect */
-          .amenities div {
-              display: inline-block;
-              align-items: center;
-          }
-
-          .amenities img{
-            border-color: white;
-          }
-
-          
-          
-          .amenities input[type="radio"] {
-            display: none; /* Hide default radio button */
-        }
-
-        .amenities label img {
-            width: 100px;
-            height: 100px;
-            border-radius: 10px;
-            border: 3px solid #AF2630; /* Adds a solid border */
-            transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
-        }
-
-          .amenities label img {
-              width: 100px;
-              height: 100px;
-              border-radius: 10px;
-              transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
-
-          }
-
-          .amenities input[type="radio"]:checked + label img {
-              transform: scale(1.1); /* Enlarge the button when selected */
-              border: 3px solid white; /* Add border on hover */
-              box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
-          }
-
-          .amenities label:hover img {
-              transform: scale(1.1); /* Enlarge the button */
-              border: 3px solid #f86a73; /* Add border on hover */
-              box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
-              
-          }
-
-        .homeowner {
-            display: flex;
-            align-items: center; /* Aligns items vertically */
-            gap: 10px; /* Adds space between the radio buttons */
-        }
-
-        .homeowner input[type="radio"] {
-            display: none; /* Hide default radio button */
-        }
-
-        .homeowner label {
-            font-size: 16px;
-            padding: 10px 20px;
-            border: 5px solid #c44c57;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
-            background-color: white;
-            color: #C1696F;
-        }
-
-        .homeowner input[type="radio"]:checked + label {
-            background-color: #c44c57;
-            color: white;
-        }
-
-        /* Hover effect for radio buttons */
-        .homeowner label:hover {
-            background-color: #c44c57;
-            color: white;
-        }
-
-        .guests, .homeowner {
-            margin-bottom: 20px;
-        }
-
-        .guests input {
-            width: calc(100% - 20px);
-        }
-
-        .create-button {
-            display: block;
+<!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Dashboard</title>
+          <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+          <style>
+          .top-bar {
+            background-color: #AF2630;
+            position: fixed;
+            color: #6b6a6a; 
+            top: 0;
+            left: 0;
+            right: 0;
             width: 100%;
-            padding: 10px;
-            background-color: #c44c57;
+            height: 50px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+
+        .side-bar {
+            background-color: #D9D9D9;
+            position: fixed;
+            color: #AF2630; 
+            top: 50px;
+            left: 0;
+            width: 110px;
+            height: 100vh; /* Full height of the viewport */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 5px;
+            box-sizing: border-box;
+        }
+
+        .Home img, .homeownerstatus img, .analytics img, .Calendar img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .mainarea {
+            margin-left: 20px; /* Adjusted to align with the sidebar */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .Home, .homeownerstatus, .analytics, .Calendar {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            font-family: 'Inter';
+            padding-top: 5px;
+        }
+
+        .Home button, .homeownerstatus button, .analytics button, .Calendar button {
+            background-color: #D9D9D9;
+            margin: 0 auto;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
+            background-color: #ccc;
+            cursor: pointer;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #logoutButton {
+            background-color: #AF2630;
             color: white;
             border: none;
+            padding: 10px 15px;
             border-radius: 5px;
-            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: auto; /* Pushes the logout button to the bottom */
+            margin-bottom: 90px; /* Adds space at the bottom */
+            font-weight: bold;
+        }
+
+        #logoutButton:hover {
+            background-color: #C44A53;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .Welcome {
+            font-size: 30px;
+            font-family: 'Inter';
+            color: #AF2630;
+            font-weight: bold;
+            padding-left: 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .Welcome h1 {
+            margin: 0;
+        }
+
+        .Welcome img {
+            width: 700px;
+            height: 250px;
+            margin-left: 20px;
+        }
+
+        .recentactivity, .upcomingevents, .currentlyreservedamenity, .recentconcerns {
+            font-family: bold;
+            color: #AF2630;
+            font-size: 25px;
+            margin-left: 5%;
+            position: relative;
+        }
+        .section-title {
+            font-family: 'bold';
+            color: #AF2630;
+            font-size: 25px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 50px; 
+            padding-left: 100px;
+            padding-right: 100px;
+            background-color: white;
+        }
+        .container2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 50px; 
+            padding-left: 100px;
+            padding-right: 100px;
+            padding-top: 40px;
+        }
+
+        .box {
+          background-color: #f9f9f9; /* Ensure consistent background color */
+          border-radius: 8px;
+          padding: 10px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Consistent shadow */
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+      }
+
+
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #AF2630;
+            margin-bottom: 10px;
+          }
+
+          .content-box {
+            flex: 1;
+            overflow-y: auto;
+            height: 350px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+
+        
+ /*----------------------------------------------Recent Concerns style-----------------------*/
+        
+
+        #pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        #pagination-controls button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
             cursor: pointer;
         }
 
-        .create-button:hover {
-            background-color: #b93e4b;
+        #pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
-        .preview-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Two columns */ /* test */
-    justify-items: start; /* Aligns the image to the left */
-}
-        .amenity-preview {
-            width: 40%;
-            height: auto;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 3px solid #AF2630; 
-            padding-right:0; 
-            margin: 15px 0; 
-            box-sizing: border-box; 
-            position: relative;
-            left: -10%;
+
+        #current-page-display {
+            margin: 0 10px;
+            font-size: 16px;
+        }
+        header{
+          text-align: center;
+        }
+
+        .activity-item {
+          background-color: #fff;
+          margin: 10px;
+          padding: 15px;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .activity-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+      }
+
+      .activity-item p {
+          margin: 0;
+          font-size: 16px;
+          color: #333;
+          font-weight: bold;
+      }
+
+      .activity-item small {
+          color: #999;
+          font-size: 14px;
+          display: block;
+          margin-top: 5px;
+      }
+
+      #recent-activity-box {
+          padding: 10px;
+          overflow-y: auto;
+          height: 300px; /* Adjust height as needed */
+          background-color: #f9f9f9;
+          border-radius: 10px;
+      }
+
+      
+
+        .event-item {
+          background-color: #fff;
+          margin: 10px;
+          padding: 15px;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .event-item h3 {
+            margin: 0 0 10px 0;
+            color: #AF2630;
+        }
+
+        .event-item p {
+          margin: 0;
+          font-size: 16px;
+          color: #333;
+        }
+        .event-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+      }
+      .event-item small {
+          color: #999;
+          font-size: 14px;
+          display: block;
+          margin-top: 5px;
+      }
+
+
+
+        
+      @media (max-width: 600px) {
+        .side-bar {
+          width: 80px; /* Reduce width */
+          font-size: 12px; /* Smaller font */
+        }
+        .side-bar img {
+          width: 40px;
+          height: 40px; /* Smaller icons */
+        }
+        #logoutButton {
+          padding: 5px 10px;
+        }
+      }
+      /* New styles for currently reserved amenity */
+    #currently-reserved-amenity {
+        grid-column: 1 / -1;
+        text-align: center;
+    }
+
+    #amenity-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    #amenity-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    .amenity-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: rgba(255, 255, 255, 0.7);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        cursor: pointer;
+        display: none;
+    }
+
+    #prev-amenity {
+        left: 10px;
+    }
+
+    #next-amenity {
+        right: 10px;
+    }
+
+    #amenity-name {
+        margin-top: 10px;
+        font-weight: bold;
+        color: #AF2630;
+    }
+    .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: auto;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        .pagination-controls button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls span {
+            margin: 0 10px;
+            font-size: 14px;
+        }
+        .modal {
+          display: none;
+          position: fixed;
+          z-index: 1000;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          overflow: auto;
+          background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+          background-color: #fefefe;
+          margin: 15% auto;
+          padding: 20px;
+          border: 1px solid #888;
+          width: 80%;
+          max-width: 500px;
+        }
+        
+        .modal-content button {
+          margin-top: 10px;
+          margin-right: 10px;
+          padding: 5px 10px;
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          cursor: pointer;
+        }
+        
+        .modal-content button:hover {
+          background-color: #8c1e26;
         }
         .custom-alert {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Ensure it's above the modal */
         }
 
         .custom-alert-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-            border-radius: 5px;
             text-align: center;
         }
 
@@ -331,259 +426,439 @@
             color: #AF2630;
         }
 
+        .custom-alert-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
         .custom-alert button {
             background-color: #AF2630;
             color: white;
             border: none;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
+            padding: 8px 15px;
             border-radius: 5px;
+            cursor: pointer;
         }
 
-        .custom-alert button:hover {
-            background-color: #8c1e26;
-        }
-    
-    @media (max-width: 600px) {
-      .search-bar {
-        width: 100%;
-      }
-
-      .top-bar {
-        padding: 0 10px;
-      }
-
-      .reserve {
-        flex-direction: column; 
-        gap: 20px;
-      }
-
-      .reservetext1 {
-        font-size: 30px; 
-      }
-      .amenity-preview {
-            width: 100%;
-            height: auto; 
-        }
-        .form-image-container {
-        flex-direction: column; 
-        gap: 20px;
-      }
-    }
-    </style>
-</head>
-<body>
-  <div class="top-bar">
-    <div class="search-bar">
-      <input type="text" placeholder="Search...">
-      <button type="button" id="searchbutton" name="searchbutton" aria-label="Search">
-        <img src="images/Searchicon.png">
-      </button>
-    </div>
-  </div> 
-
-  <div class="side-bar">
-    <div class="Home">
-      <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-        <img src="images/house.png" alt="Home">
-      </button>
-      <p>Home</p>
-    </div>
-
-    <div class="Calendar">
-      <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
-        <img src="images/Calendar.png" alt="calendar">
-      </button>
-      <p>Calendar</p>
-    </div>
-
-  </div>
-  
-
-  <div class="Welcome">
-    <h1>Add new event</h1>
-    <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
-  </div>
-
-  <div class="form-image-container">
-    <!-- Form Section -->
-    <form id="eventForm" method="POST"> <!-- eto lang pala problema ahahaha naka form event -->
-     
-      <h2>New Event Details</h2>
-      <input type="hidden" id="username" name="username">
-    <input type="hidden" id="email" name="email">
-
-    <label for="hostName">Host Name:</label>
-  <input type="text" id="hostName" name="hostName" required><br>
-  
-    <label for="eventName">Event Name:</label>
-    <input type="text" id="eventName" name="eventName" required><br>
-
-    <label for="eventTime">Event Start Time:</label>
-    <input type="time" id="eventStartTime" name="eventStartTime" required><br>
-
-    <label for="eventEndTime">Event End Time:</label>
-    <input type="time" id="eventEndTime" name="eventEndTime" required><br>
-
-
-  
-    <label for="eventDate">Date of Event:</label>
-    <input type="date" id="eventDate" name="eventDate" required><br>
-  
-      <div class="amenities">
-        <div>
-          <label>Choose an amenity</label>
-            <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
-            <label for="amenityPool">
-                <img src="images/pool.png" alt="Pool">
-            </label>
+          </style>
+      </head>
+      <body>
+        <div class="top-bar">
+        
+        </div> 
+        <div class="side-bar">
+          <div class="Home">
+            <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
+            <img src="images/house.png">
+          </button>
+            <p>Home</p>
+          </div>
+          <div class="homeownerstatus">
+            <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
+            <img src="images/Documents.png">
+          </button>
+            <p>Homeowner status</p>
+          </div>
+          <div class="analytics">
+            <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics" onclick="window.location.href='analytics.html'">
+            <img src="images/Data.png">
+          </button>
+            <p>analytics</p>
+          </div>
+          <div class="Calendar">
+            <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
+            <img src="images/Calendar.png">
+          </button>
+            <p>Calendar</p>
+          </div>
+          <button id="logoutButton" class="logoutButton">Logout</button>
         </div>
-        <div>
-            <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse">
-            <label for="amenityClubhouse">
-                <img src="images/clubhouse.png" alt="Clubhouse">
-            </label>
+
+    <div class="mainarea">
+        <div class="Welcome">
+          <h1>Welcome,</h1>
+          <p id="username"></p>
+          <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
         </div>
-        <div>
-            <input type="radio" id="amenityCourt" name="amenity" value="Court">
-            <label for="amenityCourt">
-                <img src="images/court.png" alt="Court">
-            </label>
+
+        <div class="container">
+            <div class="box">
+              <div>
+                  <h2 class="section-title">Recent Concerns</h2>
+              </div>
+              <div class="content-box" id="recent-concerns-box">
+                  <!-- Concerns items will be dynamically loaded here -->
+              </div>
+              <div class="pagination-controls" id="concerns-pagination">
+                <button id="prev-concerns">◀</button>
+                <span id="concerns-page-display">Page 1</span>
+                <button id="next-concerns">▶</button>
+              </div>
+          </div>
+        
+          <div class="box">
+              <div>
+                  <h2 class="section-title">Recent Activity</h2>
+              </div>
+              <div class="content-box" id="recent-activity-box">
+                  <!-- Activity items will be dynamically loaded here -->
+              </div>
+              <div class="pagination-controls" id="activity-pagination">
+                <button id="prev-activity">◀</button>
+                <span id="activity-page-display">Page 1</span>
+                <button id="next-activity">▶</button>
+              </div>
+            </div>
+        </div>
+      <div class="container2">
+        <div class="box">
+          <div>
+              <h2 class="section-title">Upcoming Events</h2>
+          </div>
+          <div class="content-box" id="upcoming-events-box">
+              <!-- Upcoming events will be dynamically loaded here -->
+          </div>
+          <div class="pagination-controls" id="events-pagination">
+                <button id="prev-events">◀</button>
+                <span id="events-page-display">Page 1</span>
+                <button id="next-events">▶</button>
+              </div>
+        </div>
+        <div class="box">
+          <div id="currently-reserved-amenity" class="box">
+            <h2 class="section-title">Currently Reserved Amenity</h2>
+            <div id="amenity-container">
+                <img id="amenity-image" src="" alt="Reserved Amenity">
+                <button id="prev-amenity" class="amenity-nav">&lt;</button>
+                <button id="next-amenity" class="amenity-nav">&gt;</button>
+            </div>
+            <p id="amenity-name"></p>
+          </div>
         </div>
       </div>
-  
-      <div class="guests">
-          <label for="numberofguests">Number of guests:</label>
-          <input type="text" id="guests" name="guests">
-      </div>
-  
-      <div class="homeonwerstatuslabel">
-        <label for="homeownerStatus">Homeowner status:</label>
-      </div>
-  
-      <div class="homeowner">
-        <input type="radio" id="homeownerYes" name="homeownerStatus" value="Yes">
-        <label for="homeownerYes">Yes</label>
-    
-        <input type="radio" id="homeownerNo" name="homeownerStatus" value="No">
-        <label for="homeownerNo">No</label>
-      </div>
-  
-      <button type="submit" class="create-button">Create</button>
+        
 
-    </form>
-  
-    <!-- Preview Image -->
-    <img id="amenityPreview" src="images/poolimg.png" alt="Amenity Preview" class="amenity-preview">
-  </div>
+      </div> 
 
-  <script>
-    const amenities = document.querySelectorAll('input[name="amenity"]');
-    const previewImage = document.getElementById('amenityPreview');
+        <script>
+          let concernsPage = 1;
+          let activityPage = 1;
+          let eventsPage = 1;
 
-    // Event listener for changing the image preview based on selected amenity
-    amenities.forEach(amenity => {
-        amenity.addEventListener('change', function() {
-            if (this.checked) {
-                let selectedImage;
-                switch (this.value) {
-                    case 'Pool':
-                        selectedImage = 'images/poolimg.png';
-                        break;
-                    case 'Clubhouse':
-                        selectedImage = 'images/clubhouseimg.jpg';
-                        break;
-                    case 'Court':
-                        selectedImage = 'images/courtimg.jpg';
-                        break;
-                }
-                previewImage.src = selectedImage;
+          async function loadConcerns(page = 1) {
+            try {
+                const response = await fetch(`/getConcerns?page=${page}`);
+                const data = await response.json();
+                
+                const concernsBox = document.getElementById('recent-concerns-box');
+                concernsBox.innerHTML = '';
+
+                data.concerns.forEach(concern => {
+                    const concernItem = document.createElement('div');
+                    concernItem.className = 'activity-item';
+                    concernItem.innerHTML = `
+                        <p>Email: <span style="color: #AF2630; text-decoration: underline;">${concern.email}</span></p>
+                        <p>Subject: <span style="color: #AF2630; text-decoration: underline;">${concern.subject}</span></p>
+                        <small>${new Date(concern.createdAt).toLocaleString()}</small>
+                    `;
+                    concernItem.onclick = () => showConcernModal(concern);
+                    concernsBox.appendChild(concernItem);
+                });
+
+                // Add pagination controls for concerns
+                
+                updatePagination('concerns', data.currentPage, data.totalPages);
+
+            } catch (error) {
+                console.error('Error loading concerns:', error);
             }
-        });
-    });
-
-    
-    document.getElementById('eventForm').addEventListener('submit', async function(event) {
-    event.preventDefault();  // Prevent default form submission
-
-    const startTime = document.getElementById('eventStartTime').value;
-    const endTime = document.getElementById('eventEndTime').value;
-    const eventDate = document.getElementById('eventDate').value;
-    const amenity = document.querySelector('input[name="amenity"]:checked').value;
-
-    // Convert times to Date objects for validation
-    const start = new Date(`${eventDate}T${startTime}`);
-    const end = new Date(`${eventDate}T${endTime}`);
-    if (end < start) {
-        end.setDate(end.getDate() + 1);
-    }
-
-    // Set opening and closing times
-    const baseDate = new Date(eventDate);
-    const openingTime = new Date(baseDate.setHours(8, 0, 0));
-    const poolClosingTime = new Date(baseDate.setHours(23, 30, 0));
-    const regularClosingTime = new Date(baseDate.setHours(22, 0, 0));
-    const closingTime = amenity.toLowerCase() === 'pool' ? poolClosingTime : regularClosingTime;
-
-    // Client-side validation
-    if (start < openingTime) {
-        showCustomAlert("Events cannot start before 8:00 AM");
-        return;
-    }
-
-    if (end > closingTime) {
-        showCustomAlert(amenity.toLowerCase() === 'pool' ? 
-            "Pool events must end by 11:30 PM" : 
-            "Events must end by 10:00 PM");
-        return;
-    }
-
-    // Check duration (4 hours max)
-    const duration = (end - start) / (1000 * 60 * 60);
-    if (duration > 4) {
-        showCustomAlert("Events cannot exceed 4 hours in duration");
-        return;
-    }
-
-    const formData = {
-        hostName: document.getElementById('hostName').value,
-        eventName: document.getElementById('eventName').value,
-        eventDate: eventDate,
-        startTime: startTime,
-        endTime: endTime,
-        amenity: amenity,
-        guests: document.getElementById('guests').value,
-        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
-    };
-
-    try {
-        const response = await fetch('/addevent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
-        const result = await response.json();
-
-        if (result.success) {
-            showCustomAlert('Event created successfully!');
-            setTimeout(() => {
-                window.location.href = 'eventfin.html';
-            }, 2000);
-        } else {
-            showCustomAlert(result.message || 'Failed to create event. Please try again.');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        showCustomAlert('An error occurred. Please try again.');
-    }
-});
 
-function showCustomAlert(message) {
+          function showConcernModal(concern) {
+            const modal = document.getElementById('concernModal');
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = `
+              <h2>Concern Details</h2>
+              <p><strong>Email:</strong> ${concern.email}</p>
+              <p><strong>Subject:</strong> ${concern.subject}</p>
+              <p><strong>Message:</strong> ${concern.message}</p>
+              <p><strong>Date:</strong> ${new Date(concern.createdAt).toLocaleString()}</p>
+              <p><strong>Status:</strong> 
+                <select id="concernStatus">
+                  <option value="new" ${concern.status === 'new' ? 'selected' : ''}>New</option>
+                  <option value="in-progress" ${concern.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                  <option value="resolved" ${concern.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                </select>
+              </p>
+              <button id="updateStatus">Update Status</button>
+
+              <button id="closeModal">Close</button>
+            `;
+            modal.style.display = 'block';
+          
+            document.getElementById('closeModal').onclick = () => {
+              modal.style.display = 'none';
+            };
+          
+          
+          
+            document.getElementById('updateStatus').onclick = async () => {
+              const newStatus = document.getElementById('concernStatus').value;
+              try {
+                const response = await fetch(`/updateConcernStatus/${concern._id}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ status: newStatus }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                  showCustomAlert('Concern status updated successfully');
+                  modal.style.display = 'none';
+                  loadConcerns(concernsPage); // Reload concerns
+                } else {
+                  showCustomAlert('Failed to update concern status');
+                }
+              } catch (error) {
+                console.error('Error updating concern status:', error);
+                showCustomAlert('Error updating concern status');
+              }
+            };
+          }
+          
+          async function resolveConcern(concernId) {
+            try {
+                const response = await fetch(`/resolveConcern/${concernId}`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showCustomAlert('Concern resolved successfully');
+                    document.getElementById('concernModal').style.display = 'none';
+                    loadConcerns(concernsPage); // Reload concerns
+                } else {
+                    showCustomAlert('Failed to resolve concern');
+                }
+            } catch (error) {
+                console.error('Error resolving concern:', error);
+                showCustomAlert('Error resolving concern');
+            }
+          }
+          let currentPage = 1;
+          let totalPages = 1;
+          
+
+          async function loadRecentActivity(page = 1) {
+            if (page < 1 || page > totalPages) return;
+
+            try {
+              const response = await fetch(`/getRecentActivity?page=${page}`);
+              const data = await response.json();
+
+              totalPages = data.totalPages;
+              currentPage = data.currentPage;
+
+              const recentActivityBox = document.getElementById('recent-activity-box');
+              
+              recentActivityBox.innerHTML = data.activities.map(activity => {
+                // Map action to descriptive text
+                let actionDescription;
+                switch (activity.action) {
+                  case 'profileUpdate':
+                    actionDescription = 'Homeowner Profile Updated';
+                    break;
+                  case 'homeownerUpdate':
+                    actionDescription = 'Homeowner Updated';
+                    break;
+                  case 'eventApproval': 
+                    actionDescription = 'Event Approved';
+                    break;
+                  case 'eventDisapproval': 
+                    actionDescription = 'Event Disapproved';
+                    break;
+                  // Add more cases as needed
+                  default:
+                    actionDescription = activity.action; // Use the raw action as fallback
+                }
+
+                return `
+                  <div class="activity-item">
+                    <p>${actionDescription}: <span style="color: #AF2630; text-decoration: underline;">${activity.details}</span></p>
+                    <small>${new Date(activity.timestamp).toLocaleString()}</small>
+                  </div>
+                `;
+              }).join('');
+
+
+              updatePagination('activity', data.currentPage, data.totalPages);
+            } catch (error) {
+              console.error('Error loading recent activity:', error);
+            }
+          }
+
+                async function loadUpcomingEvents(page = 1) {
+                  try {
+                      const response = await fetch(`/getUpcomingEvents?page=${page}`);
+                      const data = await response.json();
+
+                      const eventsBox = document.getElementById('upcoming-events-box');
+                      eventsBox.innerHTML = '';
+
+                      data.events.forEach(event => {
+                          const eventItem = document.createElement('div');
+                          eventItem.className = 'event-item';
+                          eventItem.innerHTML = `
+                              <h3>${event.eventName}</h3>
+                              <p>Date: ${new Date(event.eventDate).toLocaleDateString()}</p>
+                              <p>Time: ${event.startTime} - ${event.endTime}</p>
+                              <p>Amenity: ${event.amenity}</p>
+                          `;
+                          eventsBox.appendChild(eventItem);
+                      });
+
+                      updatePagination('events', data.currentPage, data.totalPages);
+
+                      if (data.events.length === 0) {
+                          eventsBox.innerHTML = '<p>No upcoming events found.</p>';
+                      }
+                  } catch (error) {
+                      console.error('Error loading upcoming events:', error);
+                  }
+              }
+              let currentAmenityIndex = 0;
+              let reservedAmenities = [];
+
+              async function loadCurrentlyReservedAmenities() {
+                  try {
+                      const response = await fetch('/getCurrentlyReservedAmenities');
+                      if (!response.ok) {
+                          throw new Error(`HTTP error! status: ${response.status}`);
+                      }
+                      const data = await response.json();
+                      console.log('Received amenities data:', data); // Debug log
+
+                      if (Array.isArray(data) && data.length > 0) {
+                          reservedAmenities = data;
+                          displayCurrentAmenity();
+                          updateAmenityNavigation();
+                      } else {
+                          const container = document.getElementById('currently-reserved-amenity');
+                          container.innerHTML = `
+                            <h2 class="section-title">Currently Reserved Amenity</h2>
+                            <p>No amenities are currently reserved for today.</p>
+                          `;
+                      }
+                  } catch (error) {
+                      console.error('Error loading currently reserved amenities:', error);
+                      const container = document.getElementById('currently-reserved-amenity');
+                      container.innerHTML = `
+                        <h2 class="section-title">Currently Reserved Amenity</h2>
+                        <p>Error loading reserved amenities. Please try again later.</p>
+                      `;
+                  }
+              }
+
+              function displayCurrentAmenity() {
+                const amenity = reservedAmenities[currentAmenityIndex];
+                const imageElement = document.getElementById('amenity-image');
+                const nameElement = document.getElementById('amenity-name');
+
+                if (amenity) {
+                  imageElement.onerror = function() {
+                    console.error('Failed to load image:', this.src);
+                    this.src = 'images/placeholder.jpg';
+                  };
+                  
+                  imageElement.src = amenity.imagePath;
+                  imageElement.alt = `${amenity.name} Image`;
+                  nameElement.textContent = amenity.name;
+                  
+                  console.log('Displaying amenity:', amenity);
+                } else {
+                  console.error('No amenity to display');
+                  imageElement.src = 'images/placeholder.jpg';
+                  imageElement.alt = 'No amenity available';
+                  nameElement.textContent = 'No amenity currently reserved';
+                }
+              }
+
+              function updateAmenityNavigation() {
+                  const prevButton = document.getElementById('prev-amenity');
+                  const nextButton = document.getElementById('next-amenity');
+
+                  if (reservedAmenities.length > 1) {
+                      prevButton.style.display = 'block';
+                      nextButton.style.display = 'block';
+
+                      prevButton.onclick = () => {
+                          currentAmenityIndex = (currentAmenityIndex - 1 + reservedAmenities.length) % reservedAmenities.length;
+                          displayCurrentAmenity();
+                      };
+
+                      nextButton.onclick = () => {
+                          currentAmenityIndex = (currentAmenityIndex + 1) % reservedAmenities.length;
+                          displayCurrentAmenity();
+                      };
+                  } else {
+                      prevButton.style.display = 'none';
+                      nextButton.style.display = 'none';
+                  }
+              }
+
+              function updatePagination(section, currentPage, totalPages) {
+                const prevButton = document.getElementById(`prev-${section}`);
+                const nextButton = document.getElementById(`next-${section}`);
+                const pageDisplay = document.getElementById(`${section}-page-display`);
+        
+                prevButton.disabled = currentPage === 1;
+                nextButton.disabled = currentPage === totalPages;
+                pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
+        
+                prevButton.onclick = () => loadSection(section, currentPage - 1);
+                nextButton.onclick = () => loadSection(section, currentPage + 1);
+              }
+        
+              function loadSection(section, page) {
+                switch (section) {
+                  case 'concerns':
+                    concernsPage = page;
+                    loadConcerns(page);
+                    break;
+                  case 'activity':
+                    activityPage = page;
+                    loadRecentActivity(page);
+                    break;
+                  case 'events':
+                    eventsPage = page;
+                    loadUpcomingEvents(page);
+                    break;
+                }
+              }
+
+          window.onload = () => {
+            loadConcerns(concernsPage);
+            loadRecentActivity(activityPage);
+            loadUpcomingEvents(eventsPage);
+            loadCurrentlyReservedAmenities();
+          };
+
+          document.getElementById('logoutButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    localStorage.clear(); // Clear user data
+                    window.location.href = 'login.html'; // Redirect to the login page
+                } else {
+                    showCustomAlert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+                showCustomAlert('An error occurred during logout. Please try again.');
+            }
+          });
+
+          function showCustomAlert(message) {
             const alertElement = document.getElementById('customAlert');
             const messageElement = document.getElementById('customAlertMessage');
             messageElement.textContent = message;
@@ -594,16 +869,21 @@ function showCustomAlert(message) {
             const alertElement = document.getElementById('customAlert');
             alertElement.style.display = 'none';
         }
-            
-</script>
-<div id="customAlert" class="custom-alert">
-  <div class="custom-alert-content">
-      <div class="custom-alert-header">Notice</div>
-      <div class="custom-alert-body">
-          <p id="customAlertMessage"></p>
-          <button onclick="closeCustomAlert()">OK</button>
-      </div>
-  </div>
-</div>
-</body>
-</html>
+        </script>
+        <div id="concernModal" class="modal">
+          <div id="modalContent" class="modal-content">
+            <!-- Modal content will be dynamically inserted here -->
+          </div>
+        </div>
+        <div id="customAlert" class="custom-alert">
+            <div class="custom-alert-content">
+                <div class="custom-alert-header">Notice</div>
+                <div class="custom-alert-body">
+                    <p id="customAlertMessage"></p>
+                    <button onclick="closeCustomAlert()">OK</button>
+                </div>
+            </div>
+        </div>
+      </body>
+      </html>
+
