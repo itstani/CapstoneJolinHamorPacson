@@ -49,7 +49,7 @@
 
         .mainarea {
             margin-left: 20px; /* Adjusted to align with the sidebar */
-            padding: 10px;
+            padding: 20px;
             box-sizing: border-box;
         }
 
@@ -291,50 +291,76 @@
         }
       }
       /* New styles for currently reserved amenity */
-      #currently-reserved-amenity {
-          grid-column: 1 / -1;
-          text-align: center;
-      }
+    #currently-reserved-amenity {
+        grid-column: 1 / -1;
+        text-align: center;
+    }
 
-      #amenity-container {
-          position: relative;
-          display: inline-block;
-      }
+    #amenity-container {
+        position: relative;
+        display: inline-block;
+    }
 
-      #amenity-image {
-          max-width: 100%;
-          height: auto;
-          border-radius: 8px;
-      }
+    #amenity-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
 
-      .amenity-nav {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          background-color: rgba(255, 255, 255, 0.7);
-          border: none;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          font-size: 24px;
-          cursor: pointer;
-          display: none;
-      }
+    .amenity-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: rgba(255, 255, 255, 0.7);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        cursor: pointer;
+        display: none;
+    }
 
-      #prev-amenity {
-          left: 10px;
-      }
+    #prev-amenity {
+        left: 10px;
+    }
 
-      #next-amenity {
-          right: 10px;
-      }
+    #next-amenity {
+        right: 10px;
+    }
 
-      #amenity-name {
-          margin-top: 10px;
-          font-weight: bold;
-          color: #AF2630;
-      }
+    #amenity-name {
+        margin-top: 10px;
+        font-weight: bold;
+        color: #AF2630;
+    }
+    .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
 
+        .pagination-controls button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls span {
+            margin: 0 10px;
+            font-size: 14px;
+        }
           </style>
       </head>
       <body>
@@ -384,6 +410,11 @@
               <div class="content-box" id="recent-concerns-box">
                   <!-- Concerns items will be dynamically loaded here -->
               </div>
+              <div class="pagination-controls" id="concerns-pagination">
+                <button id="prev-concerns">◀</button>
+                <span id="concerns-page-display">Page 1</span>
+                <button id="next-concerns">▶</button>
+              </div>
           </div>
         
           <div class="box">
@@ -393,10 +424,10 @@
               <div class="content-box" id="recent-activity-box">
                   <!-- Activity items will be dynamically loaded here -->
               </div>
-              <div id="pagination-controls">
-                <button id="prev-page" onclick="loadRecentActivity(currentPage - 1)">◀</button>
-                <span id="current-page-display">Page 1</span>
-                <button id="next-page" onclick="loadRecentActivity(currentPage + 1)">▶</button>
+              <div class="pagination-controls" id="activity-pagination">
+                <button id="prev-activity">◀</button>
+                <span id="activity-page-display">Page 1</span>
+                <button id="next-activity">▶</button>
               </div>
             </div>
         </div>
@@ -408,8 +439,11 @@
           <div class="content-box" id="upcoming-events-box">
               <!-- Upcoming events will be dynamically loaded here -->
           </div>
-
-          
+          <div class="pagination-controls" id="events-pagination">
+                <button id="prev-events">◀</button>
+                <span id="events-page-display">Page 1</span>
+                <button id="next-events">▶</button>
+              </div>
         </div>
         <div class="box">
           <div id="currently-reserved-amenity" class="box">
@@ -428,17 +462,21 @@
       </div> 
 
         <script>
-          async function loadConcerns() {
+          let concernsPage = 1;
+          let activityPage = 1;
+          let eventsPage = 1;
+
+          async function loadConcerns(page = 1) {
             try {
-                const response = await fetch('/getConcerns');
-                const concerns = await response.json();
-
+                const response = await fetch(`/getConcerns?page=${page}`);
+                const data = await response.json();
+                
                 const concernsBox = document.getElementById('recent-concerns-box');
-                concernsBox.innerHTML = ''; // Clear existing content
+                concernsBox.innerHTML = '';
 
-                concerns.forEach(concern => {
+                data.concerns.forEach(concern => {
                     const concernItem = document.createElement('div');
-                    concernItem.className = 'activity-item'; // Reuse activity-item styling
+                    concernItem.className = 'activity-item';
                     concernItem.innerHTML = `
                         <p>Email: <span style="color: #AF2630; text-decoration: underline;">${concern.email}</span></p>
                         <p>Subject: <span style="color: #AF2630; text-decoration: underline;">${concern.subject}</span></p>
@@ -447,31 +485,33 @@
                     concernsBox.appendChild(concernItem);
                 });
 
-                if (concerns.length === 0) {
-                    concernsBox.innerHTML = `<p>No recent concerns found.</p>`;
-                }
+                // Add pagination controls for concerns
+                
+                updatePagination('concerns', data.currentPage, data.totalPages);
+
             } catch (error) {
                 console.error('Error loading concerns:', error);
             }
         }
 
 
-        let currentPage = 1;
+          let currentPage = 1;
           let totalPages = 1;
+          
 
           async function loadRecentActivity(page = 1) {
             if (page < 1 || page > totalPages) return;
 
             try {
               const response = await fetch(`/getRecentActivity?page=${page}`);
-              const { activities, totalPages: total, currentPage: current } = await response.json();
+              const data = await response.json();
 
-              totalPages = total;
-              currentPage = current;
+              totalPages = data.totalPages;
+              currentPage = data.currentPage;
 
               const recentActivityBox = document.getElementById('recent-activity-box');
               
-              recentActivityBox.innerHTML = activities.map(activity => {
+              recentActivityBox.innerHTML = data.activities.map(activity => {
                 // Map action to descriptive text
                 let actionDescription;
                 switch (activity.action) {
@@ -501,23 +541,21 @@
               }).join('');
 
 
-              document.getElementById('current-page-display').textContent = `Page ${currentPage}`;
-              document.getElementById('prev-page').disabled = currentPage === 1;
-              document.getElementById('next-page').disabled = currentPage === totalPages;
+              updatePagination('activity', data.currentPage, data.totalPages);
             } catch (error) {
               console.error('Error loading recent activity:', error);
             }
           }
 
-                async function loadUpcomingEvents() {
+                async function loadUpcomingEvents(page = 1) {
                   try {
-                      const response = await fetch('/getUpcomingEvents');
-                      const events = await response.json();
+                      const response = await fetch(`/getUpcomingEvents?page=${page}`);
+                      const data = await response.json();
 
                       const eventsBox = document.getElementById('upcoming-events-box');
                       eventsBox.innerHTML = '';
 
-                      events.forEach(event => {
+                      data.events.forEach(event => {
                           const eventItem = document.createElement('div');
                           eventItem.className = 'event-item';
                           eventItem.innerHTML = `
@@ -529,7 +567,9 @@
                           eventsBox.appendChild(eventItem);
                       });
 
-                      if (events.length === 0) {
+                      updatePagination('events', data.currentPage, data.totalPages);
+
+                      if (data.events.length === 0) {
                           eventsBox.innerHTML = '<p>No upcoming events found.</p>';
                       }
                   } catch (error) {

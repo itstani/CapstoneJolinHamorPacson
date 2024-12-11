@@ -673,7 +673,11 @@ app.get('/getConcerns', async (req, res) => {
     const skip = (page - 1) * limit;
 
     const totalConcerns = await collection.countDocuments();
-    const concerns = await collection.find().sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
+    const concerns = await collection.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
 
     res.json({
       concerns,
@@ -698,7 +702,7 @@ app.get('/getConcerns', async (req, res) => {
 app.get('/getRecentActivity', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = 5;
+    const limit = 5; 
     const skip = (page - 1) * limit;
 
     const totalActivities = await activityLogsCollection.countDocuments();
@@ -721,15 +725,15 @@ app.get('/getRecentActivity', async (req, res) => {
 });
 
 async function logActivity(action, details) {
-  try {
-    await activityLogsCollection.insertOne({
-      action,
-      details,
-      timestamp: new Date()
-    });
-  } catch (error) {
-    console.error('Error logging activity:', error);
-  }
+try {
+  await activityLogsCollection.insertOne({
+    action,
+    details,
+    timestamp: new Date()
+  });
+} catch (error) {
+  console.error('Error logging activity:', error);
+}
 }
 
 app.get('/getUpcomingEvents', async (req, res) => {
@@ -763,6 +767,7 @@ app.get('/getUpcomingEvents', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch upcoming events' });
   }
 });
+
 
 
 app.get('/getCurrentlyReservedAmenities', async (req, res) => {
