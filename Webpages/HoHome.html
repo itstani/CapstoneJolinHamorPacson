@@ -178,7 +178,9 @@
   </head>
   <body>
     <div class="top-bar">
-      
+      <div id="notificationArea" class="notification-area">
+        <div id="notificationContent" class="notification-content"></div>
+      </div>
     </div>
 
     <div class="side-bar">
@@ -269,6 +271,10 @@
 
   </body>
   <script>
+    function showNotification(message) {
+    const notificationContent = document.getElementById('notificationContent');
+    notificationContent.textContent = message;
+  }
   const adminButton = document.getElementById("adminbutton");
   const popup = document.getElementById("adminPopup");
   const closePopup = document.getElementById("closePopup");
@@ -328,9 +334,19 @@ form.addEventListener('submit', async (event) => {
 });
 
 
-    document.getElementById("logout-button").addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST" });
-      window.location.href = "/login.html"; 
-  });
+document.getElementById('logoutButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    localStorage.clear(); // Clear user data
+                    window.location.href = 'login.html'; // Redirect to the login page
+                } else {
+                    showCustomAlert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+                showCustomAlert('An error occurred during logout. Please try again.');
+            }
+          });
   </script>
 </html>

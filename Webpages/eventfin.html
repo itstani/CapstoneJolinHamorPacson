@@ -67,64 +67,60 @@
       <h2>Event Confirmation</h2>
       <div id="confirmationDetails" class="confirmation-detail"></div>
       <button id="proceedButton" class="proceed-button">
-        Proceed to Payment
+          Proceed to Payment
       </button>
       <button id="backButton" class="back-button">Back</button>
-    </div>
+  </div>
 
-    <script>
-      // Retrieve event data from sessionStorage
-      const eventData = JSON.parse(sessionStorage.getItem("eventData"));
+  <script>
+  // Retrieve event data from sessionStorage
+  const eventData = JSON.parse(sessionStorage.getItem("eventData"));
 
-      // Display the event details
-      const confirmationDetails = document.getElementById(
-        "confirmationDetails"
-      );
+  // Display the event details
+  const confirmationDetails = document.getElementById("confirmationDetails");
+  if (eventData) {
+      confirmationDetails.innerHTML = `
+          <p><strong>Host Name:</strong> ${eventData.hostName}</p>
+          <p><strong>Event Name:</strong> ${eventData.eventName}</p>
+          <p><strong>Event Date:</strong> ${eventData.eventDate}</p>
+          <p><strong>Event Start Time:</strong> ${eventData.startTime}</p>
+          <p><strong>Event End Time:</strong> ${eventData.endTime}</p>
+          <p><strong>Amenity:</strong> ${eventData.amenity}</p>
+          <p><strong>Number of Guests:</strong> ${eventData.guests}</p>
+          <p><strong>Homeowner Status:</strong> ${eventData.homeownerStatus}</p>
+      `;
+  } else {
+      confirmationDetails.innerHTML = "<p>Error: No event data available.</p>";
+  }
+
+  // Proceed to payment
+  document.getElementById("proceedButton").addEventListener("click", () => {
+      window.location.href = "payment.html";
+  });
+
+  // Back button functionality
+  document.getElementById("backButton").addEventListener("click", async () => {
       if (eventData) {
-  confirmationDetails.innerHTML = `
-    <p><strong>Host Name:</strong> ${eventData.hostName}</p>
-    <p><strong>Event Name:</strong> ${eventData.eventName}</p>
-    <p><strong>Event Date:</strong> ${eventData.eventDate}</p>
-    <p><strong>Event Start Time:</strong> ${eventData.startTime}</p>
-    <p><strong>Event End Time:</strong> ${eventData.endTime}</p>
-    <p><strong>Amenity:</strong> ${eventData.amenity}</p>
-    <p><strong>Number of Guests:</strong> ${eventData.guests}</p>
-    <p><strong>Homeowner Status:</strong> ${eventData.homeownerStatus}</p>
-  `;
-} else {
-  confirmationDetails.innerHTML =
-    "<p>Error: No event data available.</p>";
-}
-
-
-      // redirect to final payment nakalagay muna welcome wala pa html para sa final
-      document.getElementById("proceedButton").addEventListener("click", () => {
-        window.location.href = "payment.html";
-      });
-
-      // back button remove recent event from dtb
-      document
-        .getElementById("backButton")
-        .addEventListener("click", async () => {
-          const username = eventData.username;
-
-          const response = await fetch("http://localhost:3000/delEvent", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ username }),
+          const response = await fetch("/delEvent", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ eventName: eventData.eventName }),
           });
 
           const result = await response.json();
           if (result.success) {
-            alert("Most recent event deleted successfully.");
+              alert("Most recent event deleted successfully.");
           } else {
-            alert(result.message);
+              alert(result.message);
           }
+      }
 
-          window.location.href = "addevent.html";
-        });
+      // Clear the event data from sessionStorage
+      sessionStorage.removeItem("eventData");
+      window.location.href = "addevent.html";
+  });
     </script>
   </body>
 </html>

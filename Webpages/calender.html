@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendar</title>
+    <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
     <style>
         /* Top Bar */ /* test *//*test*//*test*/
         .top-bar {
@@ -77,61 +78,50 @@
         }
         /* Calendar Layout */
         .calendar {
+            margin: 70px 0 0 110px;
             padding: 20px;
-            max-width: 1500px;
-            font-family: 'Inter', sans-serif;
+            max-width: calc(100% - 110px);
             color: #AF2630;
-            text-align: center;
-            margin: auto;
-            margin-top: 2%;
-            margin-left: 6%;
         }
 
-        header {
+        .calendar header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.5rem;
-            font-weight: bold;
             margin-bottom: 20px;
         }
 
-        header button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        .calendar h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
         }
 
-        header button:hover {
-            background-color: #8C2027;
+        .days-of-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background-color: #AF2630;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 10px;
+            margin-bottom: 10px;
         }
 
         .days-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-gap: 10px;
-            margin-top: 20px;
+            gap: 10px;
         }
 
         .day {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             border: 1px solid #AF2630;
             padding: 10px;
-            height: 90px;
+            min-height: 100px;
             background-color: #f8f8f8;
-            border-radius: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 10px;
             cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .day:hover {
@@ -139,8 +129,8 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        .day:nth-child(7n+1) { background-color: #F4CCCC; } /* Sunday */
-        .day:nth-child(7n+6), .day:nth-child(7n) { background-color: #EAD1DC; } /* Saturday */
+        .day:nth-child(7n+1) { background-color: #F4CCCC; }
+        .day:nth-child(7n), .day:nth-child(7n-1) { background-color: #EAD1DC; }
 
         .day.empty {
             border: none;
@@ -148,18 +138,18 @@
         }
 
         .event-bar {
-            color: #FFFFFF; /* White text for better contrast */
-            background-color: #AF2630; /* Match your theme */
-            border-radius: 4px; /* Rounded edges */
-            padding: 4px 50px;
-            font-size: 0.8rem; /* Adjust font size to fit within the day */
-            text-align: center;
+            background-color: #AF2630;
+            color: white;
+            border-radius: 4px;
+            padding: 2px 5px;
+            font-size: 0.8rem;
             margin-top: 2px;
             overflow: hidden;
-            text-overflow: ellipsis; /* Handle long text gracefully */
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
 
+    
         /* Bottom Navigation Arrows */
         .navigation-buttons {
             margin-top: 20px;
@@ -280,7 +270,6 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 1100;
-            
         }
 
         .modal-content {
@@ -291,24 +280,15 @@
             max-width: 600px;
             border-radius: 10px;
             position: relative;
-            font-size: 20px; /* Change the size as needed */
-            line-height: 1.5; /* Optional: Adjusts the spacing between lines */
-            font-family: 'inter';
         }
 
         .modal-header {
             background-color: #AF2630;
             color: white;
-            padding: 1px 1px;
+            padding: 10px 20px;
             border-radius: 10px 10px 0 0;
             margin: -20px -20px 20px;
-            font-family: 'inter';
-            text-align: center; /* Centers text horizontally */
-            display: flex; /* Enables flexbox */
-            justify-content: center; /* Centers horizontally */
-            align-items: center; /* Centers vertically */
         }
-
 
         .close-btn {
             position: absolute;
@@ -327,6 +307,22 @@
 
         .event-details {
             flex: 1;
+        }
+
+        .event-image {
+            flex-shrink: 0;
+            max-width: 300px;
+            max-height: 300px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+
+        .event-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: contain;
         }
 
     </style>
@@ -490,12 +486,10 @@
         function displayEventDetails(date) {
             const events = eventsByDate[date] || [];
             modalContent.innerHTML = `
-                
+                <h3>Events on ${date}</h3>
                 ${events.length
                     ? events.map(event => `
-                        <p><strong>Event Name:</strong> ${event.name}</p>
-                        <p><strong>Event Time:</strong> ${event.time}</p>
-                        <p><strong>Event Location:</strong> ${event.amenity}</p>
+                        <p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
                     `).join('')
                     : '<p>No events for this day.</p>'}
             `;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="styles.css"/>
+    <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
@@ -124,7 +124,6 @@
       margin-left: 20px;
       padding-top: 60px;
     }
-  /*test*/
     /* Reserve Section in Columns */
     .reserve {
       display: flex;
@@ -303,7 +302,54 @@
             position: relative;
             left: -10%;
         }
-  
+        .custom-alert {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .custom-alert-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .custom-alert-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #AF2630;
+        }
+
+        .custom-alert button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .custom-alert button:hover {
+            background-color: #8c1e26;
+        }
+    
     @media (max-width: 600px) {
       .search-bar {
         width: 100%;
@@ -465,57 +511,153 @@
     
     document.getElementById('eventForm').addEventListener('submit', async function(event) {
     event.preventDefault();  // Prevent default form submission
-    
-    // Gather form data
-    const startTime = document.getElementById('eventStartTime').value;
-    const endTime = document.getElementById('eventEndTime').value;
 
-    // Calculate the duration in hours
-    const startDateTime = new Date(`1970-01-01T${startTime}:00`);
-    const endDateTime = new Date(`1970-01-01T${endTime}:00`);
-    const duration = (endDateTime - startDateTime) / (1000 * 60 * 60); // Convert milliseconds to hours
-
-    // Prepare the event data object
-    const eventData = {
-        username: localStorage.getItem('username'),
-        email: localStorage.getItem('email'),
+    const formData = {
         hostName: document.getElementById('hostName').value,
         eventName: document.getElementById('eventName').value,
         eventDate: document.getElementById('eventDate').value,
-        startTime, // Include start time
-        endTime, // Include end time
-        duration, // Duration in hours
+        startTime: document.getElementById('eventStartTime').value,
+        endTime: document.getElementById('eventEndTime').value,
         amenity: document.querySelector('input[name="amenity"]:checked').value,
         guests: document.getElementById('guests').value,
         homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
     };
 
-    sessionStorage.setItem('eventData', JSON.stringify(eventData));
+    try {
+        const response = await fetch('/addevent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        const result = await response.json();
 
-    // Send event data to the backend via fetch
-    const response = await fetch('http://localhost:3000/addevent', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(eventData)
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-        window.location.href = 'eventfin.html';
-    } else {
-        alert("Failed to add the event. Please try again.");
+        if (result.success) {
+            // Store the form data in sessionStorage
+            sessionStorage.setItem('eventData', JSON.stringify(formData));
+            
+            showCustomAlert('Event created successfully!');
+            setTimeout(() => {
+                window.location.href = 'eventfin.html';
+            }, 2000);
+        } else {
+            showCustomAlert(result.message || 'Failed to create event. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showCustomAlert('An error occurred. Please try again.');
     }
 });
 
-        
+    //rest of the existing script
+    const startTime = document.getElementById('eventStartTime').value;
+    const endTime = document.getElementById('eventEndTime').value;
+    const eventDate = document.getElementById('eventDate').value;
+    const amenity = document.querySelector('input[name="amenity"]:checked').value;
+
+    // Convert times to Date objects for validation
+    const start = new Date(`${eventDate}T${startTime}`);
+    const end = new Date(`${eventDate}T${endTime}`);
+    if (end < start) {
+        end.setDate(end.getDate() + 1);
+    }
+
+    // Set opening and closing times
+    const baseDate = new Date(eventDate);
+    const openingTime = new Date(baseDate.setHours(8, 0, 0));
+    const poolClosingTime = new Date(baseDate.setHours(23, 30, 0));
+    const regularClosingTime = new Date(baseDate.setHours(22, 0, 0));
+    const closingTime = amenity.toLowerCase() === 'pool' ? poolClosingTime : regularClosingTime;
+
+    // Client-side validation
+    if (start < openingTime) {
+        showCustomAlert("Events cannot start before 8:00 AM");
+        return;
+    }
+
+    if (end > closingTime) {
+        showCustomAlert(amenity.toLowerCase() === 'pool' ? 
+            "Pool events must end by 11:30 PM" : 
+            "Events must end by 10:00 PM");
+        return;
+    }
+
+    // Check duration (4 hours max)
+    const duration = (end - start) / (1000 * 60 * 60);
+    if (duration > 4) {
+        showCustomAlert("Events cannot exceed 4 hours in duration");
+        return;
+    }
+
+    const formData = {
+        hostName: document.getElementById('hostName').value,
+        eventName: document.getElementById('eventName').value,
+        eventDate: eventDate,
+        startTime: startTime,
+        endTime: endTime,
+        amenity: amenity,
+        guests: document.getElementById('guests').value,
+        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
+    };
+
+    document.getElementById('eventForm').addEventListener('submit', async function(event) {
+    event.preventDefault();  // Prevent default form submission
+
+    const formData = {
+        hostName: document.getElementById('hostName').value,
+        eventName: document.getElementById('eventName').value,
+        eventDate: document.getElementById('eventDate').value,
+        startTime: document.getElementById('eventStartTime').value,
+        endTime: document.getElementById('eventEndTime').value,
+        amenity: document.querySelector('input[name="amenity"]:checked').value,
+        guests: document.getElementById('guests').value,
+        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
+    };
+
+    try {
+        const response = await fetch('/addevent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            // Store the form data in sessionStorage
+            sessionStorage.setItem('eventData', JSON.stringify(formData));
+            
+            showCustomAlert('Event created successfully!');
+            setTimeout(() => {
+                window.location.href = 'eventfin.html';
+            }, 2000);
+        } else {
+            showCustomAlert(result.message || 'Failed to create event. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showCustomAlert('An error occurred. Please try again.');
+    }
+});
+function showCustomAlert(message) {
+            const alertElement = document.getElementById('customAlert');
+            const messageElement = document.getElementById('customAlertMessage');
+            messageElement.textContent = message;
+            alertElement.style.display = 'block';
+        }
+
+        function closeCustomAlert() {
+            const alertElement = document.getElementById('customAlert');
+            alertElement.style.display = 'none';
+        }
             
 </script>
-
+<div id="customAlert" class="custom-alert">
+  <div class="custom-alert-content">
+      <div class="custom-alert-header">Notice</div>
+      <div class="custom-alert-body">
+          <p id="customAlertMessage"></p>
+          <button onclick="closeCustomAlert()">OK</button>
+      </div>
+  </div>
+</div>
 </body>
 </html>
-
-
-

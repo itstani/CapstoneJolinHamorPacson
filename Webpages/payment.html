@@ -271,6 +271,12 @@
 
             // Initial call to set the total amount
             updateTotalAmount();
+
+            closeModalButton.addEventListener("click", function() {
+                // Clear the event data from sessionStorage after successful payment
+                sessionStorage.removeItem("eventData");
+                window.location.href = 'HoHome.html';
+            });
         });
     </script>
 </body>
