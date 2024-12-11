@@ -910,3 +910,108 @@ app.get('/api/notifications', async (req, res) => {
   }
 });
 
+app.get('/api/user', async (req, res) => {
+  const username = req.query.username;
+  if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+  }
+
+  try {
+      await client.connect();
+      const database = client.db('avidadb');
+      const collection = database.collection('acc');
+
+      // Query the database for the user
+      const user = await collection.findOne({ username });
+      if (user) {
+          res.json({
+              username: user.username,
+              lastName: user.lastName || '',
+              email: user.email || '',
+              address: user.address || '',
+              phone: user.phone || '',
+              landline: user.landline || ''
+          });
+      } else {
+          res.status(404).json({ error: 'User not found' });
+      }
+  } catch (error) {
+      console.error('Error fetching user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  } finally {
+      await client.close();
+  }
+});
+
+// userdata edit
+
+app.get('/getUserDetails', async (req, res) => {
+  const email = req.query.email; 
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const collection = db.collection('acc'); 
+    const user = await collection.findOne({ email }); 
+
+    if (user) {
+      res.json({
+        success: true,
+        username: user.username, 
+        lastname: user.lastname,
+        email: user.email,
+        address: user.address || '', //default if no val 
+        phone: user.phone || '', 
+        landline: user.landline || '',  
+      });
+    } else {
+      res.status(404).json({ success: false, message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ success: false, message: 'Error fetching user details' });
+  }
+});
+
+//update user profile
+
+
+app.post('/updateUserDetails', async (req, res) => {
+    const { email, username, lastname, address, phone, landline, newPassword } = req.body;
+
+    try {
+        const db = await connectToDatabase();
+        const usersCollection = db.collection('acc');
+
+        let updateData = {
+            username,
+            lastname,
+            address,
+            phone,
+            landline,
+        };
+
+        //update pass pag may naka iunput
+        if (newPassword) {
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            updateData.password = hashedPassword;
+        }
+        const result = await usersCollection.updateOne(
+            { email }, 
+            { $set: updateData } 
+        );
+
+        if (result.modifiedCount > 0) {
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, message: 'User not found or no changes made' });
+        }
+    } catch (error) {
+        console.error("Error updating user details:", error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
