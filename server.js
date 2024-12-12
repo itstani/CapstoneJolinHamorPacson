@@ -888,48 +888,70 @@
 
       app.get('/api/notifications', async (req, res) => {
         try {
-          const userEmail = req.session.user?.email || req.session.userEmail;
-
+          // Get user email from session or localStorage backup
+          const userEmail = req.session?.user?.email || req.session?.userEmail;
+          
+          console.log('Fetching notifications for user:', userEmail); // Debug log
+      
           if (!userEmail) {
-            return res.status(401).json({ error: 'User not authenticated' });
+            console.log('No user email found in session'); // Debug log
+            return res.status(401).json({ 
+              success: false, 
+              error: 'User not authenticated',
+              notifications: [],
+              unreadCount: 0
+            });
           }
-
+      
           const db = await connectToDatabase();
           const eventsCollection = db.collection('aevents');
           const concernsCollection = db.collection('Concerns');
-
+      
+          // Debug log
+          console.log('Connected to database, fetching notifications...');
+      
           // Fetch recently approved events for this user
           const recentlyApprovedEvents = await eventsCollection.find({
-            hostName: userEmail, // Assuming hostName stores the email
-            status: 'approved',
-            approvedAt: { $exists: true }
+            $or: [
+              { hostName: userEmail },
+              { userEmail: userEmail }
+            ],
+            status: 'approved'
           }).toArray();
-
+      
           // Fetch recently responded concerns for this user
           const recentlyRespondedConcerns = await concernsCollection.find({
             email: userEmail,
             status: 'responded'
           }).toArray();
-
+      
+          // Debug logs
+          console.log('Found approved events:', recentlyApprovedEvents.length);
+          console.log('Found responded concerns:', recentlyRespondedConcerns.length);
+      
           // Prepare notifications
           const notifications = [
             ...recentlyApprovedEvents.map(event => ({
               id: event._id.toString(),
               type: 'event',
               message: `Your event "${event.eventName}" has been approved!`,
-              timestamp: event.approvedAt || new Date()
+              timestamp: event.approvedAt || new Date(),
+              read: false
             })),
             ...recentlyRespondedConcerns.map(concern => ({
               id: concern._id.toString(),
               type: 'concern',
               message: `An admin has responded to your concern: "${concern.subject}"`,
-              timestamp: concern.respondedAt || new Date()
+              timestamp: concern.respondedAt || new Date(),
+              read: false
             }))
           ];
-
+      
           // Sort notifications by timestamp, most recent first
           notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
+      
+          console.log('Sending notifications:', notifications.length); // Debug log
+      
           res.json({
             success: true,
             notifications: notifications,
@@ -937,6 +959,11 @@
           });
         } catch (error) {
           console.error('Error fetching notifications:', error);
-          res.status(500).json({ error: 'Internal server error' });
+          res.status(500).json({ 
+            success: false, 
+            error: 'Internal server error',
+            notifications: [],
+            unreadCount: 0
+          });
         }
       });
