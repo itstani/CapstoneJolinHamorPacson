@@ -272,8 +272,11 @@
       </div>
 
     <script>
-       document.addEventListener("DOMContentLoaded", () => {
-        fetch("http://localhost:3000/profile")
+      document.addEventListener("DOMContentLoaded", () => {
+        fetch("http://localhost:3000/profile", {
+          method: 'GET',
+          credentials: 'include' // This is important for sending cookies
+        })
           .then(response => response.json())
           .then(data => {
             if (data.success) {
@@ -285,11 +288,16 @@
               document.getElementById("edit-username").value = data.username;
             } else {
               alert("Please log in to view your profile.");
-              window.location.href = "/";
+              window.location.href = "/login.html"; // Redirect to login page
             }
           })
-          .catch(err => console.error("Error fetching profile:", err));
+          .catch(err => {
+            console.error("Error fetching profile:", err);
+            alert("An error occurred. Please try again later.");
+          });
       });
+
+
 
       function toggleEditProfile() {
         const editContainer = document.querySelector(".edit-container");

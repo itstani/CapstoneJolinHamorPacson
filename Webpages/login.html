@@ -124,35 +124,28 @@
     </style>
     <script>
         async function handleLogin(event) {
-        event.preventDefault(); // Prevent form from reloading the page
+            event.preventDefault(); 
+            const login = document.getElementById("login").value; 
+            const password = document.getElementById("pw").value;
 
-        // Get the input values
-        const login = document.getElementById("login").value; // Username or email
-        const password = document.getElementById("pw").value;
+            const response = await fetch('/login', {method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ login, password }),
+            });
+            const userData = await response.json();
+            if (userData.success) {
+                localStorage.setItem('username', userData.username);
+                localStorage.setItem('email', userData.email);
+                window.location.href = userData.redirectUrl; 
+            } else {
+                alert('Login failed: ' + userData.message);
+            }
+            }
+        document.getElementById("loginForm").addEventListener("submit", handleLogin);
 
-        // Send the login request to the server
-        const response = await fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ login, password }),
-        });
 
-        const userData = await response.json();
-
-        // Check if login is successful
-        if (userData.success) {
-            // Store the user's data in localStorage
-            localStorage.setItem('username', userData.username);
-            localStorage.setItem('email', userData.email);
-
-            // Redirect based on whether the user is admin or not
-            window.location.href = userData.redirectUrl; // Use redirectUrl from the server
-        } else {
-            alert('Login failed: ' + userData.message);
-        }
-    }
 
         
         // Attach the event listener to the form

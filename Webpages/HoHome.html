@@ -173,14 +173,79 @@
   .popup-buttons button:hover {
     background-color: #d9d9d9;
   }
+        .notification-icon {
+            position: fixed;
+            top: 12px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .notification-icon img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+        }
+
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #AF2630;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            max-width: 80%;
+            width: 400px;
+            
+            
+        }
+
+        .notification-modal h2 {
+            margin-top: 0;
+            color: #AF2630;
+        }
+
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
 
     </style>
   </head>
   <body>
     <div class="top-bar">
-      <div id="notificationArea" class="notification-area">
-        <div id="notificationContent" class="notification-content"></div>
-      </div>
+      
     </div>
 
     <div class="side-bar">
@@ -268,7 +333,16 @@
         </form>
       </div>
     </div>
+    <div class="notification-icon" id="notificationIcon">
+      <img src="images/bell.png" alt="Notifications" />
+      <span class="notification-count" id="notificationCount">0</span>
+  </div>
 
+  <div class="notification-modal" id="notificationModal">
+      <span class="close-modal" id="closeModal">&times;</span>
+      <h2 style="color: white;">Notifications</h2>
+      <div class="notification-list" id="notificationList"></div>
+  </div>
   </body>
   <script>
     function showNotification(message) {
@@ -348,5 +422,81 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
                 showCustomAlert('An error occurred during logout. Please try again.');
             }
           });
+          const notificationIcon = document.getElementById('notificationIcon');
+        const notificationModal = document.getElementById('notificationModal');
+        const closeModal = document.getElementById('closeModal');
+        const notificationList = document.getElementById('notificationList');
+        const notificationCount = document.getElementById('notificationCount');
+
+        let notifications = [];
+
+        notificationIcon.addEventListener('click', () => {
+            notificationModal.style.display = 'block';
+            updateNotificationList();
+        });
+
+        closeModal.addEventListener('click', () => {
+            notificationModal.style.display = 'none';
+        });
+
+        function updateNotificationList() {
+            notificationList.innerHTML = '';
+
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<div class="no-notifications">No notifications</div>';
+                return;
+            }
+
+            notifications.forEach(notification => {
+                const notificationItem = document.createElement('div');
+                notificationItem.classList.add('notification-item');
+
+                const message = document.createElement('div');
+                message.textContent = notification.message;
+
+                const timestamp = document.createElement('div');
+                timestamp.classList.add('notification-timestamp');
+                timestamp.textContent = new Date(notification.timestamp).toLocaleString();
+
+                notificationItem.appendChild(message);
+                notificationItem.appendChild(timestamp);
+                notificationList.appendChild(notificationItem);
+            });
+        }
+
+        function addNotification(message) {
+            notifications.push({ message, timestamp: new Date() });
+            notificationCount.textContent = notifications.length;
+            updateNotificationList();
+        }
+
+        // Function to fetch notifications from the server
+        async function fetchNotifications() {
+            try {
+                const response = await fetch('/api/notifications');
+                const data = await response.json();
+
+                if (data.success) {
+                    notifications = data.notifications;
+                    notificationCount.textContent = data.unreadCount || '0';
+                    updateNotificationList();
+                } else {
+                    console.error('Failed to fetch notifications:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+            }
+        }
+
+        // Fetch notifications immediately and then every 30 seconds
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000);
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === notificationModal) {
+                notificationModal.style.display = 'none';
+            }
+        });
   </script>
 </html>
