@@ -540,29 +540,24 @@
       // Update the existing approve event route
       app.put('/approveEvent/:eventName', async (req, res) => {
         const { eventName } = req.params;
-
+      
         try {
           const db = await connectToDatabase();
           const eventpaymentsCollection = db.collection('eventpayments');
           const eventsCollection = db.collection('events');
           const aeventsCollection = db.collection('aevents');
-
-          // Fetch the event by eventName from events collection
+      
           const event = await eventsCollection.findOne({ eventName });
-
+      
           if (event) {
-            // Move event to aevents collection with 'approved' status
-            await aeventsCollection.insertOne({ ...event, status: 'approved' });
-
-            // Remove the event from the events collection
+            const approvedAt = new Date();
+            await aeventsCollection.insertOne({ ...event, status: 'approved', approvedAt });
             await eventsCollection.deleteOne({ eventName });
-
-            // Update the status to 'approved' in the eventpayments collection
             await eventpaymentsCollection.updateOne(
               { eventName: event.eventName },
-              { $set: { status: 'approved' } }
+              { $set: { status: 'approved', approvedAt } }
             );
-            await logActivity('eventApproval', `Event ${eventName} approved`); // Log activity
+            await logActivity('eventApproval', `Event ${eventName} approved`);
             res.json({ success: true, message: 'Event approved and moved to approved events.' });
           } else {
             res.status(404).json({ success: false, message: 'Event not found in events collection.' });
@@ -572,7 +567,6 @@
           res.status(500).json({ success: false, message: 'Server error while approving event.' });
         }
       });
-        
 
 
 
@@ -862,39 +856,39 @@
       });
 
       app.put('/updateConcernStatus/:id', async (req, res) => {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      try {
-        const db = await connectToDatabase();
-        const concernsCollection = db.collection('Concerns');
-        
-        const result = await concernsCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { status: status } }
-        );
-        
-        if (result.modifiedCount === 1) {
-          await logActivity('concernStatusUpdate', `Concern status updated to ${status}`);
-          res.json({ success: true, message: 'Concern status updated successfully' });
-        } else {
-          res.json({ success: false, message: 'Concern not found or status not changed' });
+        const { id } = req.params;
+        const { status } = req.body;
+      
+        try {
+          const db = await connectToDatabase();
+          const concernsCollection = db.collection('Concerns');
+          
+          const updatedAt = new Date();
+          const result = await concernsCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { status: status, updatedAt } }
+          );
+          
+          if (result.modifiedCount === 1) {
+            await logActivity('concernStatusUpdate', `Concern status updated to ${status}`);
+            res.json({ success: true, message: 'Concern status updated successfully' });
+          } else {
+            res.json({ success: false, message: 'Concern not found or status not changed' });
+          }
+        } catch (error) {
+          console.error('Error updating concern status:', error);
+          res.status(500).json({ success: false, message: 'Server error' });
         }
-      } catch (error) {
-        console.error('Error updating concern status:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-      }
       });
 
       app.get('/api/notifications', async (req, res) => {
         try {
-          // Get user email from session or localStorage backup
           const userEmail = req.session?.user?.email || req.session?.userEmail;
           
-          console.log('Fetching notifications for user:', userEmail); // Debug log
+          console.log('Fetching notifications for user:', userEmail);
       
           if (!userEmail) {
-            console.log('No user email found in session'); // Debug log
+            console.log('No user email found in session');
             return res.status(401).json({ 
               success: false, 
               error: 'User not authenticated',
@@ -907,7 +901,6 @@
           const eventsCollection = db.collection('aevents');
           const concernsCollection = db.collection('Concerns');
       
-          // Debug log
           console.log('Connected to database, fetching notifications...');
       
           // Fetch recently approved events for this user
@@ -916,16 +909,17 @@
               { hostName: userEmail },
               { userEmail: userEmail }
             ],
-            status: 'approved'
-          }).toArray();
+            status: 'approved',
+            approvedAt: { $exists: true }
+          }).sort({ approvedAt: -1 }).limit(10).toArray();
       
           // Fetch recently responded concerns for this user
           const recentlyRespondedConcerns = await concernsCollection.find({
             email: userEmail,
-            status: 'responded'
-          }).toArray();
+            status: { $in: ['in progress', 'responded'] },
+            updatedAt: { $exists: true }
+          }).sort({ updatedAt: -1 }).limit(10).toArray();
       
-          // Debug logs
           console.log('Found approved events:', recentlyApprovedEvents.length);
           console.log('Found responded concerns:', recentlyRespondedConcerns.length);
       
@@ -935,14 +929,14 @@
               id: event._id.toString(),
               type: 'event',
               message: `Your event "${event.eventName}" has been approved!`,
-              timestamp: event.approvedAt || new Date(),
+              timestamp: event.approvedAt,
               read: false
             })),
             ...recentlyRespondedConcerns.map(concern => ({
               id: concern._id.toString(),
               type: 'concern',
-              message: `An admin has responded to your concern: "${concern.subject}"`,
-              timestamp: concern.respondedAt || new Date(),
+              message: `Your concern "${concern.subject}" has been ${concern.status}.`,
+              timestamp: concern.updatedAt,
               read: false
             }))
           ];
@@ -950,7 +944,7 @@
           // Sort notifications by timestamp, most recent first
           notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
-          console.log('Sending notifications:', notifications.length); // Debug log
+          console.log('Sending notifications:', notifications.length);
       
           res.json({
             success: true,
