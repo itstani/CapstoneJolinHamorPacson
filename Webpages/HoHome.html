@@ -262,6 +262,27 @@
             cursor: pointer;
             font-size: 20px;
         }
+        .notification-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 10px;
+        }
+        .clear-all-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .clear-all-btn:hover {
+            background-color: #ff3333;
+        }
+        .clear-all-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
 
     </style>
   </head>
@@ -371,177 +392,250 @@
     const notificationContent = document.getElementById('notificationContent');
     notificationContent.textContent = message;
   }
-  const adminButton = document.getElementById("adminbutton");
-  const popup = document.getElementById("adminPopup");
-  const closePopup = document.getElementById("closePopup");
-  const form = document.getElementById("adminForm");
-  const subject = document.getElementById('subject').value;
-  const message = document.getElementById('message').value; 
-  
-// Show popup
-adminButton.addEventListener("click", () => {
-  popup.style.display = "flex";
-});
-
-// Hide popup
-closePopup.addEventListener("click", () => {
-  popup.style.display = "none";
-
-  adminForm.reset();
-});
-
-// Submit concern data
-form.addEventListener('submit', async (event) => {
-  event.preventDefault(); // Prevent the default form submission
-  
-  // Gather form data
-  const concernData = {
-    username: localStorage.getItem('username'),
-    email: localStorage.getItem('email'),
-    subject: document.getElementById('subject').value,
-    message: document.getElementById('message').value,
-    createdAt: new Date().toISOString(),
-  };
-
-  try {
-    // Send concern data to the backend via fetch
-    const response = await fetch('http://localhost:3000/addconcern', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(concernData)
+      const adminButton = document.getElementById("adminbutton");
+      const popup = document.getElementById("adminPopup");
+      const closePopup = document.getElementById("closePopup");
+      const form = document.getElementById("adminForm");
+      const subject = document.getElementById('subject').value;
+      const message = document.getElementById('message').value; 
+      
+    // Show popup
+    adminButton.addEventListener("click", () => {
+      popup.style.display = "flex";
     });
 
-    const result = await response.json();
+    // Hide popup
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
 
-    if (result.success) {
-      alert("Your concern has been submitted successfully!");
-      // Clear the input fields after successful submission
       adminForm.reset();
-      popup.style.display = "none"; // Optionally close the popup after submission
-    } else {
-      alert("Failed to submit the concern. Please try again.");
-    }
-  } catch (error) {
-    console.error('Error submitting concern:', error);
-    alert("There was an error submitting your concern. Please try again.");
-  }
-});
+    });
+
+    // Submit concern data
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevent the default form submission
+      
+      // Gather form data
+      const concernData = {
+        username: localStorage.getItem('username'),
+        email: localStorage.getItem('email'),
+        subject: document.getElementById('subject').value,
+        message: document.getElementById('message').value,
+        createdAt: new Date().toISOString(),
+      };
+
+      try {
+        // Send concern data to the backend via fetch
+        const response = await fetch('http://localhost:3000/addconcern', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(concernData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert("Your concern has been submitted successfully!");
+          // Clear the input fields after successful submission
+          adminForm.reset();
+          popup.style.display = "none"; // Optionally close the popup after submission
+        } else {
+          alert("Failed to submit the concern. Please try again.");
+        }
+      } catch (error) {
+        console.error('Error submitting concern:', error);
+        alert("There was an error submitting your concern. Please try again.");
+      }
+    });
 
 
-document.getElementById('logoutButton').addEventListener('click', async () => {
-            try {
-                const response = await fetch('/logout', { method: 'POST' });
-                if (response.ok) {
-                    localStorage.clear(); // Clear user data
-                    window.location.href = 'login.html'; // Redirect to the login page
-                } else {
-                    showCustomAlert('Logout failed. Please try again.');
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/logout', { method: 'POST' });
+                    if (response.ok) {
+                        localStorage.clear(); // Clear user data
+                        window.location.href = 'login.html'; // Redirect to the login page
+                    } else {
+                        showCustomAlert('Logout failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                    showCustomAlert('An error occurred during logout. Please try again.');
                 }
-            } catch (error) {
-                console.error('Error during logout:', error);
-                showCustomAlert('An error occurred during logout. Please try again.');
-            }
-          });
-          const notificationIcon = document.getElementById('notificationIcon');
-        const notificationModal = document.getElementById('notificationModal');
-        const closeModal = document.getElementById('closeModal');
-        const notificationList = document.getElementById('notificationList');
-        const notificationCount = document.getElementById('notificationCount');
-
-        let notifications = [];
-
-        notificationIcon.addEventListener('click', () => {
-            notificationModal.style.display = 'block';
-            updateNotificationList();
-        });
-
-        closeModal.addEventListener('click', () => {
-            notificationModal.style.display = 'none';
-        });
-
-
-
-        function addNotification(message) {
-            notifications.push({ message, timestamp: new Date() });
-            notificationCount.textContent = notifications.length;
-            updateNotificationList();
-        }
-
-        // Function to fetch notifications from the server
-        async function fetchNotifications() {
-        try {
-          console.log('Fetching notifications...'); // Debug log
-          const response = await fetch('/api/notifications', {
-            credentials: 'include' // Important: include credentials for session
-          });
+              });
           
-          console.log('Response received:', response.status); // Debug log
-          
-          const data = await response.json();
-          console.log('Notification data:', data); // Debug log
 
-          if (data.success) {
-            notifications = data.notifications || [];
-            notificationCount.textContent = data.unreadCount || '0';
-            updateNotificationList();
-          } else {
-            console.error('Failed to fetch notifications:', data.error);
-            notifications = [];
-            notificationCount.textContent = '0';
-            updateNotificationList();
-          }
-        } catch (error) {
-          console.error('Error fetching notifications:', error);
-          notifications = [];
-          notificationCount.textContent = '0';
-          updateNotificationList();
-        }
-      }
+              notificationIcon.addEventListener('click', () => {
+                  notificationModal.style.display = 'block';
+                  updateNotificationList();
+              });
 
-      function updateNotificationList() {
-        notificationList.innerHTML = '';
-        
-        if (!notifications || notifications.length === 0) {
-          const noNotificationsDiv = document.createElement('div');
-          noNotificationsDiv.className = 'no-notifications';
-          noNotificationsDiv.textContent = 'No notifications';
-          notificationList.appendChild(noNotificationsDiv);
-          return;
-        }
+              closeModal.addEventListener('click', () => {
+                  notificationModal.style.display = 'none';
+              });
 
-        notifications.forEach(notification => {
-          const notificationItem = document.createElement('div');
-          notificationItem.className = 'notification-item';
-          
-          const message = document.createElement('div');
-          message.className = 'notification-message';
-          message.textContent = notification.message;
-          
-          const timestamp = document.createElement('div');
-          timestamp.className = 'notification-timestamp';
-          timestamp.textContent = new Date(notification.timestamp).toLocaleString();
-          
-          notificationItem.appendChild(message);
-          notificationItem.appendChild(timestamp);
-          notificationList.appendChild(notificationItem);
-        });
-      }
 
-      // Initialize notifications
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('Initializing notifications...'); // Debug log
-        fetchNotifications();
-        // Fetch notifications every 30 seconds
-        setInterval(fetchNotifications, 30000);
-      });
 
-        // Close modal when clicking outside
-        window.addEventListener('click', (event) => {
-            if (event.target === notificationModal) {
-                notificationModal.style.display = 'none';
-            }
-        });
+              function addNotification(message) {
+                  notifications.push({ message, timestamp: new Date() });
+                  notificationCount.textContent = notifications.length;
+                  updateNotificationList();
+              }
+
+              let notifications = [];
+              const notificationIcon = document.getElementById('notificationIcon');
+              const notificationModal = document.getElementById('notificationModal');
+              const closeModal = document.getElementById('closeModal');
+              const notificationList = document.getElementById('notificationList');
+              const notificationCount = document.getElementById('notificationCount');
+              const clearAllBtn = document.getElementById('clearAllBtn');
+
+              async function fetchNotifications() {
+                  try {
+                      console.log('Fetching notifications...');
+                      const response = await fetch('/api/notifications', {
+                          credentials: 'include'
+                      });
+                      
+                      console.log('Response received:', response.status);
+                      
+                      if (!response.ok) {
+                          throw new Error(`HTTP error! status: ${response.status}`);
+                      }
+                      
+                      const data = await response.json();
+                      console.log('Notification data:', data);
+
+                      if (data.success) {
+                          notifications = data.notifications || [];
+                          notificationCount.textContent = data.unreadCount || '0';
+                          updateNotificationList();
+                          updateClearAllButton();
+                      } else {
+                          console.error('Failed to fetch notifications:', data.error);
+                          notifications = [];
+                          notificationCount.textContent = '0';
+                          updateNotificationList();
+                          updateClearAllButton();
+                      }
+                  } catch (error) {
+                      console.error('Error fetching notifications:', error);
+                      notifications = [];
+                      notificationCount.textContent = '0';
+                      updateNotificationList();
+                      updateClearAllButton();
+                  }
+              }
+
+              function updateNotificationList() {
+                  notificationList.innerHTML = '';
+                  
+                  if (notifications.length === 0) {
+                      const noNotificationsDiv = document.createElement('div');
+                      noNotificationsDiv.className = 'no-notifications';
+                      noNotificationsDiv.textContent = 'No notifications';
+                      notificationList.appendChild(noNotificationsDiv);
+                      return;
+                  }
+
+                  notifications.forEach(notification => {
+                      const notificationItem = document.createElement('div');
+                      notificationItem.className = 'notification-item';
+                      notificationItem.dataset.id = notification._id;
+                      
+                      const message = document.createElement('div');
+                      message.className = 'notification-message';
+                      message.textContent = notification.message;
+                      
+                      const timestamp = document.createElement('div');
+                      timestamp.className = 'notification-timestamp';
+                      timestamp.textContent = new Date(notification.timestamp).toLocaleString();
+                      
+                      notificationItem.appendChild(message);
+                      notificationItem.appendChild(timestamp);
+                      notificationList.appendChild(notificationItem);
+
+                      notificationItem.addEventListener('click', () => markAsRead(notification._id));
+                  });
+              }
+
+              function updateClearAllButton() {
+                  clearAllBtn.disabled = notifications.length === 0;
+              }
+
+              async function markAsRead(notificationId) {
+                  try {
+                      const response = await fetch('/api/markNotificationsAsRead', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ notificationIds: [notificationId] }),
+                          credentials: 'include'
+                      });
+
+                      if (response.ok) {
+                          const result = await response.json();
+                          if (result.success) {
+                              // Remove the notification from the list and update the count
+                              notifications = notifications.filter(n => n._id !== notificationId);
+                              notificationCount.textContent = notifications.length;
+                              updateNotificationList();
+                              updateClearAllButton();
+                          }
+                      }
+                  } catch (error) {
+                      console.error('Error marking notification as read:', error);
+                  }
+              }
+
+              async function clearAllNotifications() {
+                  try {
+                      const response = await fetch('/api/clearAllNotifications', {
+                          method: 'POST',
+                          credentials: 'include'
+                      });
+
+                      if (response.ok) {
+                          const result = await response.json();
+                          if (result.success) {
+                              notifications = [];
+                              notificationCount.textContent = '0';
+                              updateNotificationList();
+                              updateClearAllButton();
+                          }
+                      }
+                  } catch (error) {
+                      console.error('Error clearing all notifications:', error);
+                  }
+              }
+
+              notificationIcon.addEventListener('click', () => {
+                  notificationModal.style.display = 'block';
+                  updateNotificationList();
+              });
+
+              closeModal.addEventListener('click', () => {
+                  notificationModal.style.display = 'none';
+              });
+
+              clearAllBtn.addEventListener('click', clearAllNotifications);
+
+              // Initialize notifications
+              document.addEventListener('DOMContentLoaded', () => {
+                  console.log('Initializing notifications...');
+                  fetchNotifications();
+                  // Fetch notifications every 30 seconds
+                  setInterval(fetchNotifications, 30000);
+              });
+
+              // Close modal when clicking outside
+              window.addEventListener('click', (event) => {
+                  if (event.target === notificationModal) {
+                      notificationModal.style.display = 'none';
+                  }
+              });
   </script>
 </html>

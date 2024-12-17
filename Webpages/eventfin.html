@@ -73,61 +73,79 @@
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Retrieve event data from sessionStorage
-      const eventData = JSON.parse(sessionStorage.getItem("eventData"));
+      document.addEventListener('DOMContentLoaded', async function() {
+            let eventData = JSON.parse(sessionStorage.getItem("eventData"));
+            console.log('Event data from sessionStorage:', eventData); // Debug log
 
-      // Display the event details
-      const confirmationDetails = document.getElementById("confirmationDetails");
-      if (eventData) {
-          confirmationDetails.innerHTML = `
-              <p><strong>Host Name:</strong> ${eventData.hostName}</p>
-              <p><strong>Event Name:</strong> ${eventData.eventName}</p>
-              <p><strong>Event Date:</strong> ${eventData.eventDate}</p>
-              <p><strong>Event Start Time:</strong> ${eventData.startTime}</p>
-              <p><strong>Event End Time:</strong> ${eventData.endTime}</p>
-              <p><strong>Amenity:</strong> ${eventData.amenity}</p>
-              <p><strong>Number of Guests:</strong> ${eventData.guests}</p>
-              <p><strong>Homeowner Status:</strong> ${eventData.homeownerStatus}</p>
-          `;
-      } else {
-          confirmationDetails.innerHTML = "<p>Error: No event data available.</p>";
-      }
+            const confirmationDetails = document.getElementById("confirmationDetails");
+            
+            if (!eventData || !eventData.userEmail) {
+                console.log('User email not found in event data, fetching from API'); // Debug log
+                try {
+                    const response = await fetch('/api/user-info');
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('User email fetched from API:', data.email); // Debug log
+                        eventData = eventData || {};
+                        eventData.userEmail = data.email;
+                        sessionStorage.setItem("eventData", JSON.stringify(eventData));
+                    } else {
+                        console.error('Failed to fetch user email:', data.message); // Debug log
+                    }
+                } catch (error) {
+                    console.error('Error fetching user email:', error);
+                }
+            }
+            
+            if (eventData) {
+                console.log('Displaying event data:', eventData); // Debug log
+                confirmationDetails.innerHTML = `
+                    <p><strong>Host Name:</strong> ${eventData.hostName || 'N/A'}</p>
+                    <p><strong>User Email:</strong> ${eventData.userEmail || 'N/A'}</p>
+                    <p><strong>Event Name:</strong> ${eventData.eventName || 'N/A'}</p>
+                    <p><strong>Event Date:</strong> ${eventData.eventDate || 'N/A'}</p>
+                    <p><strong>Event Start Time:</strong> ${eventData.startTime || 'N/A'}</p>
+                    <p><strong>Event End Time:</strong> ${eventData.endTime || 'N/A'}</p>
+                    <p><strong>Amenity:</strong> ${eventData.amenity || 'N/A'}</p>
+                    <p><strong>Number of Guests:</strong> ${eventData.guests || 'N/A'}</p>
+                    <p><strong>Homeowner Status:</strong> ${eventData.homeownerStatus || 'N/A'}</p>
+                `;
+            } else {
+                console.error('No event data available'); // Debug log
+                confirmationDetails.innerHTML = "<p>Error: No event data available.</p>";
+            }
 
-      // Proceed to payment
-      document.getElementById("proceedButton").addEventListener("click", () => {
-          window.location.href = "payment.html";
-      });
+            document.getElementById("proceedButton").addEventListener("click", () => {
+                window.location.href = "payment.html";
+            });
 
-      // Back button functionality
-      document.getElementById("backButton").addEventListener("click", async () => {
-          if (eventData) {
-              try {
-                  const response = await fetch("/delEvent", {
-                      method: "POST",
-                      headers: {
-                          "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ eventName: eventData.eventName }),
-                  });
+            document.getElementById("backButton").addEventListener("click", async () => {
+                if (eventData) {
+                    try {
+                        const response = await fetch("/delEvent", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ eventName: eventData.eventName }),
+                        });
 
-                  const result = await response.json();
-                  if (result.success) {
-                      alert("Most recent event deleted successfully.");
-                  } else {
-                      alert(result.message);
-                  }
-              } catch (error) {
-                  console.error('Error deleting event:', error);
-                  alert('An error occurred while deleting the event.');
-              }
-          }
+                        const result = await response.json();
+                        if (result.success) {
+                            alert("Most recent event deleted successfully.");
+                        } else {
+                            alert(result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error deleting event:', error);
+                        alert('An error occurred while deleting the event.');
+                    }
+                }
 
-          // Clear the event data from sessionStorage
-          sessionStorage.removeItem("eventData");
-          window.location.href = "addevent.html";
-      });
-    });
+                sessionStorage.removeItem("eventData");
+                window.location.href = "addevent.html";
+            });
+        });
   </script>
   </body>
 </html>

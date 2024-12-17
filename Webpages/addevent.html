@@ -562,6 +562,70 @@
             const alertElement = document.getElementById('customAlert');
             alertElement.style.display = 'none';
         }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const userEmail = localStorage.getItem('email');
+            console.log('User email from localStorage:', userEmail); // Debug log
+
+            if (!userEmail) {
+                try {
+                    const response = await fetch('/api/user-info');
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('User email from API:', data.email); // Debug log
+                        document.getElementById('userEmail').value = data.email;
+                    } else {
+                        console.error('Failed to fetch user email:', data.message); // Debug log
+                    }
+                } catch (error) {
+                    console.error('Error fetching user email:', error);
+                }
+            } else {
+                document.getElementById('userEmail').value = userEmail;
+            }
+        });
+
+        document.getElementById('eventForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                hostName: document.getElementById('hostName').value,
+                userEmail: document.getElementById('userEmail').value,
+                eventName: document.getElementById('eventName').value,
+                eventDate: document.getElementById('eventDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                amenity: document.getElementById('amenity').value,
+                guests: document.getElementById('guests').value,
+                homeownerStatus: document.getElementById('homeownerStatus').value
+            };
+
+            console.log('Submitting event data:', formData); // Debug log
+
+            sessionStorage.setItem('eventData', JSON.stringify(formData));
+
+            try {
+                const response = await fetch('/addevent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Event created successfully'); // Debug log
+                    window.location.href = 'eventfin.html';
+                } else {
+                    console.error('Failed to create event:', result.message); // Debug log
+                    alert(result.message || 'Failed to create event');
+                }
+            } catch (error) {
+                console.error('Error creating event:', error);
+                alert('An error occurred while creating the event');
+            }
+        });
             
 </script>
 <div id="customAlert" class="custom-alert">

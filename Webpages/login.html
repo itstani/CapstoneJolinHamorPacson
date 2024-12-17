@@ -128,28 +128,33 @@
             const login = document.getElementById("login").value; 
             const password = document.getElementById("pw").value;
 
-            const response = await fetch('/login', {method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ login, password }),
-            });
-            const userData = await response.json();
-            if (userData.success) {
-                localStorage.setItem('username', userData.username);
-                localStorage.setItem('email', userData.email);
-                window.location.href = userData.redirectUrl; 
-            } else {
-                alert('Login failed: ' + userData.message);
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ login, password }),
+                });
+                const userData = await response.json();
+                if (userData.success) {
+                    console.log('Login successful. User data:', userData); // Debug log
+                    localStorage.setItem('username', userData.username);
+                    localStorage.setItem('email', userData.email);
+                    window.location.href = userData.redirectUrl; 
+                } else {
+                    console.error('Login failed:', userData.message); // Debug log
+                    alert('Login failed: ' + userData.message);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred during login. Please try again.');
             }
-            }
+        }
+
         document.getElementById("loginForm").addEventListener("submit", handleLogin);
-
-
-
-        
-        // Attach the event listener to the form
-        document.getElementById("loginForm").addEventListener("submit", handleLogin);
+    </script>
+    </script>
     </script>
     
 </head>

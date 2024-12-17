@@ -89,62 +89,62 @@
       const upload = multer({ storage: storage });
 
       app.post('/upload-receipt', upload.single('receipt'), async (req, res) => {
-      try {
+        try {
           if (!req.file) {
-              return res.status(400).json({ 
-                  success: false, 
-                  message: 'No file uploaded' 
-              });
+            return res.status(400).json({ 
+              success: false, 
+              message: 'No file uploaded' 
+            });
           }
-
+      
           // Read the uploaded file
           const filePath = req.file.path;
           const fileBuffer = fs.readFileSync(filePath);
-
+      
           // Convert the file to Base64
           const base64Image = fileBuffer.toString('base64');
           const mimeType = req.file.mimetype;
-
+      
           // Construct the MongoDB document
           const paymentData = {
-              eventName: req.body.eventName,
-              eventDate: req.body.eventDate,
-              amount: req.body.finalAmount,
-              startTime: req.body.startTime,
-              endTime: req.body.endTime,
-              paymentMethod: req.body.paymentMethod,
-              receiptImage: `data:${mimeType};base64,${base64Image}`,
-              timestamp: new Date()
+            userEmail: req.body.userEmail, // Include userEmail in the payment data
+            eventName: req.body.eventName,
+            eventDate: req.body.eventDate,
+            amount: req.body.finalAmount,
+            startTime: req.body.startTime,
+            endTime: req.body.endTime,
+            paymentMethod: req.body.paymentMethod,
+            receiptImage: `data:${mimeType};base64,${base64Image}`,
+            timestamp: new Date()
           };
-
+      
           // Save to MongoDB
           const db = await client.db(dbName); 
           const paymentsCollection = db.collection('eventpayments');
           await paymentsCollection.insertOne(paymentData);
-
-
+      
           // Cleanup the temporary file
           fs.unlinkSync(filePath);
-
+      
           res.status(200).json({ 
-              success: true, 
-              message: "Receipt uploaded and payment processed successfully!" 
+            success: true, 
+            message: "Receipt uploaded and payment processed successfully!" 
           });
-      } catch (err) {
+        } catch (err) {
           console.error("Error handling receipt upload:", err);
           // Cleanup the temporary file if it exists
           if (req.file && req.file.path) {
-              try {
-                  fs.unlinkSync(req.file.path);
-              } catch (unlinkErr) {
-                  console.error("Error deleting temporary file:", unlinkErr);
-              }
+            try {
+              fs.unlinkSync(req.file.path);
+            } catch (unlinkErr) {
+              console.error("Error deleting temporary file:", unlinkErr);
+            }
           }
           res.status(500).json({ 
-              success: false, 
-              message: "Error processing payment. Please try again." 
+            success: false, 
+            message: "Error processing payment. Please try again." 
           });
-      }
+        }
       });
           
       app.get("/", (req, res) => {
@@ -154,44 +154,42 @@
           
       app.post("/login", async (req, res) => {
         const { login, password } = req.body;
-
+    
         try {
-          const usersCollection = req.db.collection("acc");
-          const user = await usersCollection.findOne({
-            $or: [
-              { email: { $regex: new RegExp(`^${login}$`, 'i') } },
-              { username: { $regex: new RegExp(`^${login}$`, 'i') } }
-            ]
-          });
-
-          if (user) {
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (isPasswordValid) {
-              // Store email directly in session
-              req.session.userEmail = user.email;
-              req.session.user = {
-                id: user._id,
-                username: user.username,
-                email: user.email
-              };
-              
-              res.json({
-                success: true,
-                username: user.username,
-                email: user.email,
-                redirectUrl: user.role === 'admin' ? '../AdHome.html' : '../HoHome.html',
-              });
+            const usersCollection = req.db.collection("acc");
+            const user = await usersCollection.findOne({
+                $or: [
+                    { email: { $regex: new RegExp(`^${login}$`, 'i') } },
+                    { username: { $regex: new RegExp(`^${login}$`, 'i') } }
+                ]
+            });
+    
+            if (user) {
+                const isPasswordValid = await bcrypt.compare(password, user.password);
+                if (isPasswordValid) {
+                    req.session.user = {
+                        id: user._id,
+                        username: user.username,
+                        email: user.email
+                    };
+                    
+                    res.json({
+                        success: true,
+                        username: user.username,
+                        email: user.email,
+                        redirectUrl: user.role === 'admin' ? '../AdHome.html' : '../HoHome.html',
+                    });
+                } else {
+                    res.status(401).json({ success: false, message: 'Invalid credentials' });
+                }
             } else {
-              res.status(401).json({ success: false, message: 'Invalid credentials' });
+                res.status(401).json({ success: false, message: 'Invalid credentials' });
             }
-          } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
-          }
         } catch (error) {
-          console.error("Error during login:", error);
-          res.status(500).json({ success: false, message: 'Server error' });
+            console.error("Error during login:", error);
+            res.status(500).json({ success: false, message: 'Server error' });
         }
-      });
+    });
           
       app.get("/check-existence", async (req, res) => {
       const { field, value } = req.query;
@@ -291,51 +289,67 @@
         }
       });
 
-      app.post('/addevent', async (req, res) => {
-        const { hostName, eventName, eventDate, startTime, endTime, amenity, guests, homeownerStatus } = req.body;
-
-        try {
+      app.get('/api/user-info', (req, res) => {
+        if (!req.session || !req.session.user || !req.session.user.email) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+    
+        res.json({
+            success: true,
+            email: req.session.user.email
+        });
+    });
+    
+    // Update the existing addevent endpoint
+    app.post('/addevent', async (req, res) => {
+      if (!req.session || !req.session.user || !req.session.user.email) {
+          return res.status(401).json({
+              success: false,
+              message: 'User not authenticated'
+          });
+      }
+  
+      const { hostName, eventName, eventDate, startTime, endTime, amenity, guests, homeownerStatus } = req.body;
+      const userEmail = req.session.user.email; // Get email from session
+  
+      try {
           const db = await connectToDatabase();
           const eventsCollection = db.collection('events');
-
-          // Convert times to Date objects for comparison
-          const start = new Date(`${eventDate}T${startTime}`);
-          const end = new Date(`${eventDate}T${endTime}`);
-          
-          // If end time is before start time, assume it's the next day
-          if (end < start) {
-            end.setDate(end.getDate() + 1);
-          }
-
-          // Perform your validations here (time range, duration, etc.)
-
-          // Add event to database
+  
+          // Add event to database with user's email
           const newEvent = {
-            hostName,
-            eventName,
-            eventDate,
-            startTime,
-            endTime,
-            amenity,
-            guests,
-            homeownerStatus,
-            createdAt: new Date()
+              hostName,
+              userEmail, // Include the user's email
+              eventName,
+              eventDate,
+              startTime,
+              endTime,
+              amenity,
+              guests,
+              homeownerStatus,
+              createdAt: new Date()
           };
-
+  
           await eventsCollection.insertOne(newEvent);
           
           res.status(201).json({ 
-            success: true, 
-            message: "Event created successfully." 
+              success: true, 
+              message: "Event created successfully." 
           });
-        } catch (error) {
+      } catch (error) {
           console.error('Error creating event:', error);
           res.status(500).json({ 
-            success: false, 
-            message: "An error occurred while creating the event." 
+              success: false, 
+              message: "An error occurred while creating the event." 
           });
-        }
-      });
+      }
+  });
+    
+
+
       app.post("/delEvent", async (req, res) => {
         const { username } = req.body;
         try {
@@ -551,13 +565,22 @@
       
           if (event) {
             const approvedAt = new Date();
-            await aeventsCollection.insertOne({ ...event, status: 'approved', approvedAt });
+            const approvedEvent = await aeventsCollection.insertOne({ ...event, status: 'approved', approvedAt });
             await eventsCollection.deleteOne({ eventName });
             await eventpaymentsCollection.updateOne(
               { eventName: event.eventName },
               { $set: { status: 'approved', approvedAt } }
             );
             await logActivity('eventApproval', `Event ${eventName} approved`);
+      
+            // Create a notification for the event approval
+            await createNotification(
+              event.userEmail, // Use userEmail instead of hostName
+              'event',
+              `Your event "${event.eventName}" has been approved!`,
+              approvedEvent.insertedId
+            );
+      
             res.json({ success: true, message: 'Event approved and moved to approved events.' });
           } else {
             res.status(404).json({ success: false, message: 'Event not found in events collection.' });
@@ -567,6 +590,7 @@
           res.status(500).json({ success: false, message: 'Server error while approving event.' });
         }
       });
+      
 
 
 
@@ -871,6 +895,20 @@
           
           if (result.modifiedCount === 1) {
             await logActivity('concernStatusUpdate', `Concern status updated to ${status}`);
+      
+            // Fetch the updated concern to get the user's email
+            const updatedConcern = await concernsCollection.findOne({ _id: new ObjectId(id) });
+      
+            // Create a notification for the concern status update
+            if (updatedConcern) {
+              await createNotification(
+                updatedConcern.email,
+                'concern',
+                `Your concern "${updatedConcern.subject}" has been ${status}.`,
+                updatedConcern._id
+              );
+            }
+      
             res.json({ success: true, message: 'Concern status updated successfully' });
           } else {
             res.json({ success: false, message: 'Concern not found or status not changed' });
@@ -883,7 +921,7 @@
 
       app.get('/api/notifications', async (req, res) => {
         try {
-          const userEmail = req.session?.user?.email || req.session?.userEmail;
+          const userEmail = req.session?.user?.email;
           
           console.log('Fetching notifications for user:', userEmail);
       
@@ -898,53 +936,17 @@
           }
       
           const db = await connectToDatabase();
-          const eventsCollection = db.collection('aevents');
-          const concernsCollection = db.collection('Concerns');
+          const notificationsCollection = db.collection('notifications');
       
           console.log('Connected to database, fetching notifications...');
       
-          // Fetch recently approved events for this user
-          const recentlyApprovedEvents = await eventsCollection.find({
-            $or: [
-              { hostName: userEmail },
-              { userEmail: userEmail }
-            ],
-            status: 'approved',
-            approvedAt: { $exists: true }
-          }).sort({ approvedAt: -1 }).limit(10).toArray();
+          // Fetch notifications for this user
+          const notifications = await notificationsCollection.find({
+            userEmail: userEmail, // This should now correctly use the user's email from the session
+            read: false
+          }).sort({ timestamp: -1 }).limit(10).toArray();
       
-          // Fetch recently responded concerns for this user
-          const recentlyRespondedConcerns = await concernsCollection.find({
-            email: userEmail,
-            status: { $in: ['in progress', 'responded'] },
-            updatedAt: { $exists: true }
-          }).sort({ updatedAt: -1 }).limit(10).toArray();
-      
-          console.log('Found approved events:', recentlyApprovedEvents.length);
-          console.log('Found responded concerns:', recentlyRespondedConcerns.length);
-      
-          // Prepare notifications
-          const notifications = [
-            ...recentlyApprovedEvents.map(event => ({
-              id: event._id.toString(),
-              type: 'event',
-              message: `Your event "${event.eventName}" has been approved!`,
-              timestamp: event.approvedAt,
-              read: false
-            })),
-            ...recentlyRespondedConcerns.map(concern => ({
-              id: concern._id.toString(),
-              type: 'concern',
-              message: `Your concern "${concern.subject}" has been ${concern.status}.`,
-              timestamp: concern.updatedAt,
-              read: false
-            }))
-          ];
-      
-          // Sort notifications by timestamp, most recent first
-          notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
-          console.log('Sending notifications:', notifications.length);
+          console.log('Found notifications:', notifications.length);
       
           res.json({
             success: true,
@@ -958,6 +960,91 @@
             error: 'Internal server error',
             notifications: [],
             unreadCount: 0
+          });
+        }
+      });
+      
+      
+
+      app.post('/api/markNotificationsAsRead', async (req, res) => {
+        try {
+          const userEmail = req.session?.user?.email;
+          const { notificationIds } = req.body;
+      
+          if (!userEmail) {
+            return res.status(401).json({ 
+              success: false, 
+              error: 'User not authenticated'
+            });
+          }
+      
+          const db = await connectToDatabase();
+          const notificationsCollection = db.collection('notifications');
+      
+          const result = await notificationsCollection.updateMany(
+            { 
+              _id: { $in: notificationIds.map(id => new ObjectId(id)) },
+              userEmail: userEmail
+            },
+            { $set: { read: true } }
+          );
+      
+          res.json({
+            success: true,
+            message: 'Notifications marked as read',
+            modifiedCount: result.modifiedCount
+          });
+        } catch (error) {
+          console.error('Error marking notifications as read:', error);
+          res.status(500).json({ 
+            success: false, 
+            error: 'Internal server error'
+          });
+        }
+      });
+
+      async function createNotification(userEmail, type, message, relatedId) {
+        const db = await connectToDatabase();
+        const notificationsCollection = db.collection('notifications');
+        
+        const notification = {
+          userEmail,
+          type,
+          message,
+          relatedId,
+          timestamp: new Date(),
+          read: false
+        };
+      
+        await notificationsCollection.insertOne(notification);
+      }
+
+      app.post('/api/clearAllNotifications', async (req, res) => {
+        try {
+          const userEmail = req.session?.user?.email;
+      
+          if (!userEmail) {
+            return res.status(401).json({ 
+              success: false, 
+              error: 'User not authenticated'
+            });
+          }
+      
+          const db = await connectToDatabase();
+          const notificationsCollection = db.collection('notifications');
+      
+          const result = await notificationsCollection.deleteMany({ userEmail: userEmail });
+      
+          res.json({
+            success: true,
+            message: 'All notifications cleared',
+            deletedCount: result.deletedCount
+          });
+        } catch (error) {
+          console.error('Error clearing notifications:', error);
+          res.status(500).json({ 
+            success: false, 
+            error: 'Internal server error'
           });
         }
       });
