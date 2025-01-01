@@ -20,7 +20,7 @@
         text-align: center;
         flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
       }
-
+ 
       .reservetext1 {
         font-size: 40px;
         font-family: "Inter";
@@ -30,13 +30,13 @@
         text-align: center;
         width: 100%; /* Ensure the text takes up full width */
       }
-
+ 
       .reserve-item {
         display: flex;
         flex-direction: column;
         align-items: center;
       }
-
+ 
       .reserve button {
         border: 2px solid #3e0408;
         background: transparent;
@@ -45,23 +45,23 @@
         cursor: pointer;
         transition: all 0.3s ease;
       }
-
+ 
       .reserve button:hover {
         background-color: #3e0408;
         color: #ffffff;
         transform: scale(1.1);
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
       }
-
+ 
       .reserve button img {
         width: 300px;
         height: 300px;
       }
-
+ 
       .reserve button:hover img {
         filter: brightness(1.2);
       }
-
+ 
       .reservetext,
       .raisetext {
         font-size: 20px;
@@ -76,30 +76,30 @@
       margin-bottom: 20px; /* Adjust this as needed */
       width: 100%;
       text-align: center;
-      
-      
+ 
+ 
     }
-
+ 
       /* Responsive adjustments for smaller screens */
       @media (max-width: 600px) {
         .search-bar {
           width: 100%;
         }
-
+ 
         .top-bar {
           padding: 0 10px;
         }
-
+ 
         .reserve {
           flex-direction: column; /* Stack buttons vertically on small screens */
           gap: 20px;
         }
-
+ 
         .reservetext1 {
           font-size: 30px; /* Adjust the size for smaller screens */
         }
       }
-
+ 
       .popup {
     display: none; /* Hidden by default */
     position: fixed;
@@ -112,7 +112,7 @@
     justify-content: center;
     align-items: center;
   }
-
+ 
   .popup-content {
     background-color: #af2630;
     color: #ffffff;
@@ -124,20 +124,20 @@
     box-sizing: border-box;
     font-family: sans-serif;
   }
-
+ 
   .popup-content h2 {
     margin: 0 0 10px;
     font-size: 24px;
     text-align: center;
   }
-
+ 
   .popup-content label {
     display: block;
     margin: 10px 0 5px;
     font-size: 20px;
     font-weight: bold;
   }
-
+ 
   .popup-content input[type="text"],
 .popup-content textarea {
   width: 100%; 
@@ -148,16 +148,16 @@
   box-sizing: border-box;
   font-size: 20px;
 }
-
+ 
   .popup-content textarea {
     resize: none;
   }
-
+ 
   .popup-buttons {
     display: flex;
     justify-content: space-between;
   }
-
+ 
   .popup-buttons button {
     background-color: #fff;
     color: #af2630;
@@ -169,7 +169,7 @@
     font-size: 20px;
     transition: all 0.3s ease;
   }
-
+ 
   .popup-buttons button:hover {
     background-color: #d9d9d9;
   }
@@ -180,12 +180,12 @@
             cursor: pointer;
             z-index: 1000;
         }
-
+ 
         .notification-icon img {
             width: 30px;
             height: 30px;
         }
-
+ 
         .notification-count {
             position: absolute;
             top: -5px;
@@ -196,7 +196,7 @@
             padding: 2px 6px;
             font-size: 12px;
         }
-
+ 
         .notification-modal {
             display: none;
             position: fixed;
@@ -210,20 +210,20 @@
             z-index: 1001;
             max-width: 80%;
             width: 400px;
-            
-            
+ 
+ 
         }
-
+ 
         .notification-modal h2 {
             margin-top: 0;
             color: #AF2630;
         }
-
+ 
         .notification-list {
             max-height: 300px;
             overflow-y: auto;
         }
-
+ 
         .notification-item {
         padding: 15px;
         border-bottom: 1px solid #eee;
@@ -232,20 +232,20 @@
         margin-bottom: 8px;
         border-radius: 4px;
       }
-
+ 
       .notification-timestamp {
         font-size: 12px;
         color: #666;
         margin-top: 5px;
       }
-
+ 
       .no-notifications {
         text-align: center;
         padding: 20px;
         color: white;
         font-size: 16px;
       }
-
+ 
       .notification-list {
         max-height: 300px;
         overflow-y: auto;
@@ -254,7 +254,7 @@
         .notification-item:last-child {
             border-bottom: none;
         }
-
+ 
         .close-modal {
             position: absolute;
             top: 10px;
@@ -283,14 +283,14 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
-
+ 
     </style>
   </head>
   <body>
     <div class="top-bar">
-      
+ 
     </div>
-
+ 
     <div class="side-bar">
       <div class="Home">
         <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
@@ -298,14 +298,14 @@
         </button>
         <p>Home</p>
       </div>
-
+ 
       <div class="Calendar">
         <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
           <img src="images/Calendar.png" alt="calendar">
         </button>
         <p>Calendar</p>
       </div>
-
+ 
       <div class="Profile">
         <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
           <img src="images/profileicon.png" alt="Profile" />
@@ -316,9 +316,9 @@
         <button type="button" id="logoutButton">Logout</button>
         <p>Logout</p>
       </div>
-      
+ 
     </div>
-
+ 
     <div class="Welcome">
       <h1>Welcome home!</h1>
       <img
@@ -327,10 +327,10 @@
         class="avidalogo"
       />
     </div>
-
+ 
     <div class="reserve">
       <p class="reservetext1">What would you like to do?</p>
-
+ 
       <div class="reserve-item">
         <button
           type="button"
@@ -344,7 +344,7 @@
         </button>
         <p class="reservetext">Reserve for an Outing or an event?</p>
       </div>
-
+ 
       <div class="reserve-item">
         <button
           type="button"
@@ -358,17 +358,17 @@
         <p class="raisetext">Raise your concern to an admin</p>
       </div>
     </div>
-
+ 
     <div id="adminPopup" class="popup">
       <div class="popup-content">
         <h2>Raise a Concern</h2>
         <form id="adminForm">
           <label for="subject">Subject</label>
           <input type="text" id="subject" name="subject" placeholder="Enter subject" required />
-    
+ 
           <label for="message">Message</label>
           <textarea id="message" name="message" placeholder="Enter your message" rows="5" required></textarea>
-    
+ 
           <div class="popup-buttons">
             <button type="button" id="closePopup">Cancel</button>
             <button type="submit">Send</button>
@@ -379,12 +379,15 @@
     <div class="notification-icon" id="notificationIcon">
       <img src="images/bell.png" alt="Notifications" />
       <span class="notification-count" id="notificationCount">0</span>
-  </div>
-
+    </div>
+ 
   <div class="notification-modal" id="notificationModal">
       <span class="close-modal" id="closeModal">&times;</span>
       <h2 style="color: white;">Notifications</h2>
       <div class="notification-list" id="notificationList"></div>
+      <div class="clear-all" id="clearAllBtn">
+        <button>Clear all</button>>
+      </div>
   </div>
   </body>
   <script>
@@ -398,23 +401,23 @@
       const form = document.getElementById("adminForm");
       const subject = document.getElementById('subject').value;
       const message = document.getElementById('message').value; 
-      
+ 
     // Show popup
     adminButton.addEventListener("click", () => {
       popup.style.display = "flex";
     });
-
+ 
     // Hide popup
     closePopup.addEventListener("click", () => {
       popup.style.display = "none";
-
+ 
       adminForm.reset();
     });
-
+ 
     // Submit concern data
     form.addEventListener('submit', async (event) => {
       event.preventDefault(); // Prevent the default form submission
-      
+ 
       // Gather form data
       const concernData = {
         username: localStorage.getItem('username'),
@@ -423,7 +426,7 @@
         message: document.getElementById('message').value,
         createdAt: new Date().toISOString(),
       };
-
+ 
       try {
         // Send concern data to the backend via fetch
         const response = await fetch('http://localhost:3000/addconcern', {
@@ -433,9 +436,9 @@
           },
           body: JSON.stringify(concernData)
         });
-
+ 
         const result = await response.json();
-
+ 
         if (result.success) {
           alert("Your concern has been submitted successfully!");
           // Clear the input fields after successful submission
@@ -449,8 +452,8 @@
         alert("There was an error submitting your concern. Please try again.");
       }
     });
-
-
+ 
+ 
     document.getElementById('logoutButton').addEventListener('click', async () => {
                 try {
                     const response = await fetch('/logout', { method: 'POST' });
@@ -465,25 +468,20 @@
                     showCustomAlert('An error occurred during logout. Please try again.');
                 }
               });
-          
-
-              notificationIcon.addEventListener('click', () => {
-                  notificationModal.style.display = 'block';
-                  updateNotificationList();
-              });
-
-              closeModal.addEventListener('click', () => {
-                  notificationModal.style.display = 'none';
-              });
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
               function addNotification(message) {
                   notifications.push({ message, timestamp: new Date() });
                   notificationCount.textContent = notifications.length;
                   updateNotificationList();
               }
-
+ 
               let notifications = [];
               const notificationIcon = document.getElementById('notificationIcon');
               const notificationModal = document.getElementById('notificationModal');
@@ -491,23 +489,32 @@
               const notificationList = document.getElementById('notificationList');
               const notificationCount = document.getElementById('notificationCount');
               const clearAllBtn = document.getElementById('clearAllBtn');
-
+ 
+              notificationIcon.addEventListener('click', () => {
+                  notificationModal.style.display = 'block';
+                  updateNotificationList();
+              });
+ 
+              closeModal.addEventListener('click', () => {
+                  notificationModal.style.display = 'none';
+              });
+ 
               async function fetchNotifications() {
                   try {
                       console.log('Fetching notifications...');
                       const response = await fetch('/api/notifications', {
                           credentials: 'include'
                       });
-                      
+ 
                       console.log('Response received:', response.status);
-                      
+ 
                       if (!response.ok) {
                           throw new Error(`HTTP error! status: ${response.status}`);
                       }
-                      
+ 
                       const data = await response.json();
                       console.log('Notification data:', data);
-
+ 
                       if (data.success) {
                           notifications = data.notifications || [];
                           notificationCount.textContent = data.unreadCount || '0';
@@ -528,10 +535,10 @@
                       updateClearAllButton();
                   }
               }
-
+ 
               function updateNotificationList() {
                   notificationList.innerHTML = '';
-                  
+ 
                   if (notifications.length === 0) {
                       const noNotificationsDiv = document.createElement('div');
                       noNotificationsDiv.className = 'no-notifications';
@@ -539,32 +546,32 @@
                       notificationList.appendChild(noNotificationsDiv);
                       return;
                   }
-
+ 
                   notifications.forEach(notification => {
                       const notificationItem = document.createElement('div');
                       notificationItem.className = 'notification-item';
                       notificationItem.dataset.id = notification._id;
-                      
+ 
                       const message = document.createElement('div');
                       message.className = 'notification-message';
                       message.textContent = notification.message;
-                      
+ 
                       const timestamp = document.createElement('div');
                       timestamp.className = 'notification-timestamp';
                       timestamp.textContent = new Date(notification.timestamp).toLocaleString();
-                      
+ 
                       notificationItem.appendChild(message);
                       notificationItem.appendChild(timestamp);
                       notificationList.appendChild(notificationItem);
-
+ 
                       notificationItem.addEventListener('click', () => markAsRead(notification._id));
                   });
               }
-
+ 
               function updateClearAllButton() {
                   clearAllBtn.disabled = notifications.length === 0;
               }
-
+ 
               async function markAsRead(notificationId) {
                   try {
                       const response = await fetch('/api/markNotificationsAsRead', {
@@ -575,7 +582,7 @@
                           body: JSON.stringify({ notificationIds: [notificationId] }),
                           credentials: 'include'
                       });
-
+ 
                       if (response.ok) {
                           const result = await response.json();
                           if (result.success) {
@@ -590,14 +597,14 @@
                       console.error('Error marking notification as read:', error);
                   }
               }
-
+ 
               async function clearAllNotifications() {
                   try {
                       const response = await fetch('/api/clearAllNotifications', {
                           method: 'POST',
                           credentials: 'include'
                       });
-
+ 
                       if (response.ok) {
                           const result = await response.json();
                           if (result.success) {
@@ -611,18 +618,18 @@
                       console.error('Error clearing all notifications:', error);
                   }
               }
-
+ 
               notificationIcon.addEventListener('click', () => {
                   notificationModal.style.display = 'block';
                   updateNotificationList();
               });
-
+ 
               closeModal.addEventListener('click', () => {
                   notificationModal.style.display = 'none';
               });
-
+ 
               clearAllBtn.addEventListener('click', clearAllNotifications);
-
+ 
               // Initialize notifications
               document.addEventListener('DOMContentLoaded', () => {
                   console.log('Initializing notifications...');
@@ -630,7 +637,7 @@
                   // Fetch notifications every 30 seconds
                   setInterval(fetchNotifications, 30000);
               });
-
+ 
               // Close modal when clicking outside
               window.addEventListener('click', (event) => {
                   if (event.target === notificationModal) {
