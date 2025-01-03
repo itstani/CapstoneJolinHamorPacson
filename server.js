@@ -209,36 +209,65 @@
       });
         
       app.post("/register", async (req, res) => {
-      const { username, email, password } = req.body;
-      if (!username || !email || !password) {
-        return res.json({ message: "Missing required fields", success: false });
-      }
-      try {
-        const db = await connectToDatabase();
-        const usersCollection = db.collection("acc");
-        
-        const existingUser = await usersCollection.findOne({ $or: [{ username }, { email }] });
-        if (existingUser) {
-          return res.json({
-            message: "Username or email already exists. Please choose different ones.",
-            success: false,
-          });
+        const { username, email, password } = req.body;
+        if (!username || !email || !password) {
+          return res.json({ message: "Missing required fields", success: false });
         }
-        
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = {
-          username,
-          email,
-          password: hashedPassword,
-        };
-        
-        await usersCollection.insertOne(newUser);
-        
-        res.json({ message: "Registration successful", success: true });
-      } catch (error) {
-        console.error("Error during registration:", error);
-        res.json({ message: "An error occurred", success: false });
-      }
+        try {
+          const db = await connectToDatabase();
+          const usersCollection = db.collection("acc");
+          
+          const existingUser = await usersCollection.findOne({ $or: [{ username }, { email }] });
+          if (existingUser) {
+            return res.json({
+              message: "Username or email already exists. Please choose different ones.",
+              success: false,
+            });
+          }
+          
+          const hashedPassword = await bcrypt.hash(password, 10);
+          const newUser = {
+            username,
+            email,
+            password: hashedPassword,
+          };
+          
+          await usersCollection.insertOne(newUser);
+          
+          res.json({ message: "Registration successful", success: true });
+        } catch (error) {
+          console.error("Error during registration:", error);
+          res.json({ message: "An error occurred", success: false });
+        }
+      });
+      
+      app.post("/homeowner-details", async (req, res) => {
+        const { firstName, lastName, address, email, phoneNumber, landLine } = req.body;
+        if (!firstName || !lastName || !address || !email || !phoneNumber) {
+          return res.json({ message: "Missing required fields", success: false });
+        }
+        try {
+          const db = await connectToDatabase();
+          const homeownersCollection = db.collection("homeowners");
+          
+          const newHomeowner = {
+            firstName,
+            lastName,
+            Address: address,
+            email,
+            phoneNumber,
+            landLine,
+            paymentStatus: "To be verified",
+            homeownerStatus: "To be verified"
+          };
+          
+          await homeownersCollection.insertOne(newHomeowner);
+          
+          res.json({ message: "Homeowner details added successfully", success: true });
+        } catch (error) {
+          console.error("Error adding homeowner details:", error);
+          res.json({ message: "An error occurred", success: false });
+        }
       });
 
       app.post("/updateProfile", async (req, res) => {

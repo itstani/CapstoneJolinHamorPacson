@@ -285,10 +285,6 @@
                     const successWindow = window.open('', '_blank', 'width=200,height=100');
                     successWindow.document.write('<h2>Login/Register Successful!</h2>');
 
-                    setTimeout(function() {
-                        window.location.href = 'rhdetails.html';
-                        successWindow.close();
-                    }, 2000);
                 } else {
                     alert(result.message);
                 }

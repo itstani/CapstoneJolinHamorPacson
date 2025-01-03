@@ -120,10 +120,49 @@
             padding-left: 5px;
             text-align: center;
         }
+        .custom-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Ensure it's above the modal */
+        }
+
+        .custom-alert-content {
+            text-align: center;
+        }
+
+        .custom-alert-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #AF2630;
+        }
+
+        .custom-alert-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-alert button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
     </style>
     <script>
-        async function handleLogin(event) {
+         async function handleLogin(event) {
             event.preventDefault(); 
             const login = document.getElementById("login").value; 
             const password = document.getElementById("pw").value;
@@ -138,24 +177,35 @@
                 });
                 const userData = await response.json();
                 if (userData.success) {
-                    console.log('Login successful. User data:', userData); // Debug log
+                    console.log('Login successful. User data:', userData);
                     localStorage.setItem('username', userData.username);
                     localStorage.setItem('email', userData.email);
                     window.location.href = userData.redirectUrl; 
                 } else {
-                    console.error('Login failed:', userData.message); // Debug log
-                    alert('Login failed: ' + userData.message);
+                    console.error('Login failed:', userData.message);
+                    showCustomAlert('Login failed: ' + userData.message);
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                alert('An error occurred during login. Please try again.');
+                showCustomAlert('An error occurred during login. Please try again.');
             }
         }
 
         document.getElementById("loginForm").addEventListener("submit", handleLogin);
+
+        function showCustomAlert(message) {
+            const alertElement = document.getElementById('customAlert');
+            const messageElement = document.getElementById('customAlertMessage');
+            messageElement.textContent = message;
+            alertElement.style.display = 'block';
+        }
+
+        function closeCustomAlert() {
+            const alertElement = document.getElementById('customAlert');
+            alertElement.style.display = 'none';
+        }
     </script>
-    </script>
-    </script>
+    
     
 </head>
 <body>
@@ -193,6 +243,15 @@
         </div>
             
         </form>
+    </div>
+    <div id="customAlert" class="custom-alert">
+        <div class="custom-alert-content">
+            <div class="custom-alert-header">Notice</div>
+            <div class="custom-alert-body">
+                <p id="customAlertMessage"></p>
+                <button onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
     </div>
 
 </body>
