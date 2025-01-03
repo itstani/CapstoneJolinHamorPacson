@@ -122,6 +122,46 @@
             text-decoration: underline;
             text-align: center;
         }
+
+        .custom-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Ensure it's above the modal */
+        }
+
+        .custom-alert-content {
+            text-align: center;
+        }
+
+        .custom-alert-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #AF2630;
+        }
+
+        .custom-alert-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-alert button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
         
     </style>
 </head>
@@ -283,16 +323,26 @@
 
                 if (result.success) {
                     const successWindow = window.open('', '_blank', 'width=200,height=100');
-                    successWindow.document.write('<h2>Login/Register Successful!</h2>');
+                    successWindow.document.write('<h2>Register Successful!</h2>');
 
                 } else {
-                    alert(result.message);
+                    showCustomAlert(result.message);
                 }
             });
                 
                 
         
         </script>
+    </div>
+
+    <div id="customAlert" class="custom-alert">
+        <div class="custom-alert-content">
+            <div class="custom-alert-header">Notice</div>
+            <div class="custom-alert-body">
+                <p id="customAlertMessage"></p>
+                <button onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>

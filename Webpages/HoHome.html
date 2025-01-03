@@ -501,19 +501,19 @@
  
               async function fetchNotifications() {
                   try {
-                      console.log('Fetching notifications...');
+                     
                       const response = await fetch('/api/notifications', {
                           credentials: 'include'
                       });
  
-                      console.log('Response received:', response.status);
+                  
  
                       if (!response.ok) {
                           throw new Error(`HTTP error! status: ${response.status}`);
                       }
  
                       const data = await response.json();
-                      console.log('Notification data:', data);
+                     
  
                       if (data.success) {
                           notifications = data.notifications || [];
@@ -632,7 +632,7 @@
  
               // Initialize notifications
               document.addEventListener('DOMContentLoaded', () => {
-                  console.log('Initializing notifications...');
+                
                   fetchNotifications();
                   // Fetch notifications every 30 seconds
                   setInterval(fetchNotifications, 30000);
