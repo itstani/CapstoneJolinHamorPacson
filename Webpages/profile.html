@@ -86,55 +86,116 @@
             transform: scale(1.1);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+        /* Container Style */
+.container {
+    width: 700px;
+    margin: 0 auto;
+    position: relative;  
+    padding: 20px;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-sizing: border-box;
+    overflow: hidden;
+}
 
-      /* Container */
-      .container {
-      display: flex;
-      justify-content: space-between;
-      margin: 20px auto;
-      max-width: 1200px;
-      gap: 20px;
-    }
+/* Edit Button Style */
+.edit-button {
+    margin: 15px 5px;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 20px;
+    background-color: #af2630;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.edit-button:hover{
+  background-color: #ccc;
+}
 
-      h2 {
-        color: #af2630;
-        font-size: 24px;
-        margin-bottom: 15px;
-      }
+#save-button {
+    position: absolute;  
+    top: 15px; 
+    right: 15px; 
+    padding: 12px 25px;
+    border: none;
+    border-radius: 20px;
+    background-color: #af2630;  
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: none; 
+}
 
-      .profile-card {
-        background-color: white;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-        width: 100%;
-        text-align: center;
-      }
+#save-button:hover {
+    background-color: #ccc;
+}
 
-      .edit-container {
-        display: none; /* Initially hidden */
-        background-color: white;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-        width: 100%;
-        text-align: center;
-      }
 
-      .profile-item {
-        margin: 15px 0;
-        padding: 10px;
-        background-color: #f8f8f8;
-        border-radius: 8px;
-        font-size: 18px;
-        display: flex;
-        justify-content: space-between;
-      }
+.row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
 
-      .profile-item span {
-        font-weight: bold;
-        color: #333;
-      }
+
+.form-group {
+    margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+
+input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+input[disabled] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+
+.button-group {
+    text-align: center;
+}
+
+input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 12px;  
+    font-size: 16px;  
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;  
+    overflow: hidden; 
+}
+
+.error-message {
+    color: red;
+    font-size: 14px;
+    margin-top: 5px;
+    font-weight: bold;
+    display: none;
+}
 
       /* Buttons */
       .button {
@@ -142,6 +203,8 @@
         padding: 10px 20px;
         border: none;
         border-radius: 20px;
+        background-color: #af2630;
+            color: white;
         font-size: 18px;
         font-weight: bold;
         cursor: pointer;
@@ -218,7 +281,7 @@
     </style>
   </head>
   <body>
-    <div class="top-bar">User Profile</div>
+    <div class="top-bar"></div>
     
     <div class="side-bar">
       <div class="Home">
@@ -238,109 +301,199 @@
 
       <button class="button logout-button" onclick="logout()">Logout</button>
     </div>
+<!-- Edit profile BODY------------------------------------------------------------- -->
+<div class="container">
+  <button class="edit-button" onclick="toggleEdit()">Edit</button>
 
-      <div class="container">
-        <!-- Profile Card Section -->
-        <div class="profile-card">
-          <h2>Profile</h2>
-          <p><strong>Username:</strong> <span id="username"></span></p>
-          <p><strong>Email:</strong> <span id="email"></span></p>
-          <p><strong>Name:</strong> <span id="full-name"></span></p>
-          <p><strong>Status:</strong> <span id="status"></span></p>
-          <button class="button edit-profile-button" onclick="toggleEditProfile()">Edit Profile</button>
-        </div>
-  
-        <!-- Edit Profile Section -->
-        <div class="edit-container">
-          <h2>Edit Your Profile</h2>
-          <form id="editProfileForm">
-            <div class="profile-item">
-              <span>Username:</span>
-              <input type="text" id="edit-username" class="editable" />
-            </div>
-            <div class="profile-item">
-              <span>Password:</span>
-              <input type="password" id="edit-password" class="editable" />
-            </div>
-            <button type="submit" class="button save-button">Save Changes</button>
-            <button type="button" class="button cancel-button" onclick="toggleEditProfile()">Cancel</button>
-          </form>
-        </div>
-    
-    
-      
+  <div class="row">
+      <div class="form-group">
+          <label for="first-name">First Name:</label>
+          <input type="text" id="first-name" name="first-name" disabled>
       </div>
+      <div class="form-group">
+          <label for="last-name">Last Name:</label>
+          <input type="text" id="last-name" name="last-name" disabled>
+      </div>
+  </div>
+
+  <div class="form-group" style="display: none;">
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" disabled>
+  </div>
+
+  <div class="form-group">
+      <label for="address">Address:</label>
+      <input type="text" id="address" name="address" disabled>
+  </div>
+
+  <div class="form-group">
+      <label for="phone">Phone Number:</label>
+      <input type="text" id="phone" name="phone" disabled>
+  </div>
+
+  <div class="form-group">
+      <label for="landline">Landline:</label>
+      <input type="text" id="landline" name="landline" disabled>
+  </div>
+
+  <div class="form-group">
+    <label for="nPass">New Password:</label>
+    <input type="password" id="nPass" name="nPass" disabled>
+    <div id="password-error" class="error-message"></div>  
+</div>
+
+<div class="form-group">
+    <label for="cPass">Confirm Password:</label>
+    <input type="password" id="cPass" name="cPass" disabled>
+    <div id="confirm-password-error" class="error-message"></div> 
+</div>
+
+
+  <div class="button-group">
+      <button class="edit-button" id="save-button" >Save</button>
+  </div>
+</div>
+
+
+<!-- Edit profile BODY------------------------------------------------------------- -->
+
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        fetch("http://localhost:3000/profile", {
-          method: 'GET',
-          credentials: 'include' // This is important for sending cookies
-        })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              document.getElementById("username").textContent = data.username;
-              document.getElementById("email").textContent = data.email;
-              document.getElementById("full-name").textContent = `${data.firstname} ${data.lastname}`;
-              document.getElementById("status").textContent = data.status;
+ //Load user info
+ window.onload = async function() {
+    // Get the email from localStorage
+    const email = localStorage.getItem('email');
 
-              document.getElementById("edit-username").value = data.username;
-            } else {
-              alert("Please log in to view your profile.");
-              window.location.href = "/login.html"; // Redirect to login page
-            }
-          })
-          .catch(err => {
-            console.error("Error fetching profile:", err);
-            alert("An error occurred. Please try again later.");
-          });
-      });
+    if (email) {
+        //fetch user deets
+        const response = await fetch(`/getUserDetails?email=${email}`);
+        const userDetails = await response.json();
+        
+        console.log('User Details:', userDetails);  
 
+        if (userDetails.success) {
+            
+            document.getElementById("first-name").value = userDetails.username || ''; 
+            document.getElementById("last-name").value = userDetails.lastname || ''; 
+            document.getElementById("email").value = userDetails.email || '';  
+            document.getElementById("address").value = userDetails.address || '';  
+            document.getElementById("phone").value = userDetails.phone || ''; 
+            document.getElementById("landline").value = userDetails.landline || ''; 
+        } else {
+            alert("Failed to load user details.");
+        }
+    } else {
+        alert("User not logged in.");
+    }
+};
 
+//save user info   
+document.getElementById("save-button").addEventListener("click", async function() {
+    const email = localStorage.getItem('email');
+    if (email) {
+        const username = document.getElementById("first-name").value;
+        const lastname = document.getElementById("last-name").value;
+        const address = document.getElementById("address").value;
+        const phone = document.getElementById("phone").value;
+        const landline = document.getElementById("landline").value;
+        const newPassword = document.getElementById("nPass").value;
+        const confirmPassword = document.getElementById("cPass").value;
 
-      function toggleEditProfile() {
-        const editContainer = document.querySelector(".edit-container");
-        editContainer.style.display =
-          editContainer.style.display === "none" || !editContainer.style.display
-            ? "block"
-            : "none";
-      }
+       //vvalidation
+        if (newPassword && !validatePassword(newPassword)) {
+            alert("Password does not meet requirements.");
+            return;
+        }
 
-      document.getElementById("editProfileForm").addEventListener("submit", (e) => {
-        e.preventDefault();
+        //vavlidation
+        if (newPassword !== confirmPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
 
-        const updatedData = {
-          newUsername: document.getElementById("edit-username").value.trim(),
-          password: document.getElementById("edit-password").value.trim()
-        };
+        const response = await fetch('/updateUserDetails', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                username: username,
+                lastname: lastname,
+                address: address,
+                phone: phone,
+                landline: landline,
+                newPassword: newPassword || null  //passs with value send
+            })
+        });
 
-        fetch("http://localhost:3000/updateProfile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedData),
-        })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              alert("Profile updated successfully.");
-              window.location.reload();
-            } else {
-              alert("Failed to update profile. " + data.message);
-            }
-          })
-          .catch(err => console.error("Error updating profile:", err));
-      });
+        const result = await response.json();
+        if (result.success) {
+            alert('User details updated successfully');
+            toggleEdit(); 
+        } else {
+            alert('Failed to update user details');
+        }
+    } else {
+        alert("User not logged in.");
+    }
+});
 
-      function logout() {
-        fetch("http://localhost:3000/logout", { method: "POST" })
-          .then(() => {
-            window.location.href = "/";
-          })
-          .catch((err) => {
-            console.error("Logout error:", err);
-          });
-      }
+let isEditMode = false;
+
+//password avlidation
+function validatePassword(password) {
+    return password.length >= 8 && /[!@#$%^&*(),.?":{}|<>]/.test(password) && /\d/.test(password);
+}
+
+const nPassInput = document.getElementById("nPass");
+const cPassInput = document.getElementById("cPass");
+const pwError = document.getElementById("password-error");
+const confirmPwError = document.getElementById("confirm-password-error");
+
+nPassInput.addEventListener('input', () => {
+    if (!validatePassword(nPassInput.value)) {
+        setErrorMessage(pwError, 'Password must be at least 8 characters with a special character and a number');
+    } else {
+        clearErrorMessage(pwError);
+    }
+});
+
+cPassInput.addEventListener('input', () => {
+    if (nPassInput.value !== cPassInput.value) {
+        setErrorMessage(confirmPwError, 'Passwords do not match');
+    } else {
+        clearErrorMessage(confirmPwError);
+    }
+});
+
+function setErrorMessage(element, message) {
+    element.textContent = message;
+    element.style.display = "block";
+}
+
+function clearErrorMessage(element) {
+    element.textContent = "";
+    element.style.display = "none";
+}
+
+//edit mode
+function toggleEdit() {
+    const fields = document.querySelectorAll('input');
+    const saveButton = document.getElementById("save-button");
+
+    fields.forEach(field => {
+        field.disabled = !field.disabled;
+    });
+
+    if (isEditMode) {
+        saveButton.style.display = "none";  
+    } else {
+        saveButton.style.display = "inline-block";  
+    }
+    isEditMode = !isEditMode;
+}
+
 
       function logout() {
         fetch("http://localhost:3000/logout", { method: "POST" })
