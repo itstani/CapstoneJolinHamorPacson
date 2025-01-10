@@ -380,11 +380,7 @@
 </head>
 <body>
   <div class="top-bar">
-    <div class="search-bar">
-      <input type="text" placeholder="Search...">
-      <button type="button" id="searchbutton" name="searchbutton" aria-label="Search">
-        <img src="images/Searchicon.png">
-      </button>
+    
     </div>
   </div> 
 
@@ -420,7 +416,7 @@
     <input type="hidden" id="email" name="email">
 
     <label for="hostName">Host Name:</label>
-  <input type="text" id="hostName" name="hostName" required><br>
+    <input type="text" id="hostName" name="hostName" required><br>
   
     <label for="eventName">Event Name:</label>
     <input type="text" id="eventName" name="eventName" required><br>
@@ -433,8 +429,18 @@
 
 
   
-    <label for="eventDate">Date of Event:</label>
-    <input type="date" id="eventDate" name="eventDate" required><br>
+    <label for="date">Date:</label>
+      <input type="date" id="date" name="date"><br><br>
+  
+      <input type="hidden" id="hostName" name="hostName">
+      <input type="hidden" id="eventName" name="eventName">
+      <input type="hidden" id="eventDate" name="eventDate">
+      <input type="hidden" id="eventStartTime" name="eventStartTime">
+      <input type="hidden" id="eventEndTime" name="eventEndTime">
+      <input type="hidden" id="guests" name="guests">
+      <input type="hidden" id="homeownerStatus" name="homeownerStatus">
+
+
   
       <div class="amenities">
         <div>
@@ -456,6 +462,16 @@
                 <img src="images/court.png" alt="Court">
             </label>
         </div>
+      </div>
+
+       <!-- New Event Type Dropdown -->
+       <div id="eventTypeContainer">
+        <label for="eventType">Event Type:</label>
+        <select id="eventType" name="eventType">
+          <option value="birthday">Birthday</option>
+          <option value="zumba">Zumba</option>
+          <option value="meeting">Meeting</option>
+        </select>
       </div>
   
       <div class="guests">
@@ -484,6 +500,8 @@
   </div>
 
   <script>
+    
+
     const amenities = document.querySelectorAll('input[name="amenity"]');
     const previewImage = document.getElementById('amenityPreview');
 
@@ -495,19 +513,39 @@
                 switch (this.value) {
                     case 'Pool':
                         selectedImage = 'images/poolimg.png';
+                        eventTypeContainer.style.display = 'none';
                         break;
                     case 'Clubhouse':
                         selectedImage = 'images/clubhouseimg.jpg';
+                        eventTypeContainer.style.display = 'block';
                         break;
                     case 'Court':
                         selectedImage = 'images/courtimg.jpg';
+                        eventTypeContainer.style.display = 'none';
                         break;
                 }
                 previewImage.src = selectedImage;
             }
         });
     });
+    const clubhouseRadio = document.getElementById('amenityClubhouse');
+    const eventTypeContainer = document.getElementById('eventTypeContainer');
 
+    clubhouseRadio.addEventListener('change', function() {
+      if (this.checked) {
+        eventTypeContainer.style.display = 'block';
+      } else {
+        eventTypeContainer.style.display = 'none';
+      }
+    });
+
+    // Hide event type dropdown when other amenities are selected
+    document.getElementById('amenityPool').addEventListener('change', function() {
+      eventTypeContainer.style.display = 'none';
+    });
+    document.getElementById('amenityCourt').addEventListener('change', function() {
+      eventTypeContainer.style.display = 'none';
+    });
     
     document.getElementById('eventForm').addEventListener('submit', async function(event) {
       event.preventDefault();
@@ -519,6 +557,7 @@
         startTime: document.getElementById('eventStartTime').value,
         endTime: document.getElementById('eventEndTime').value,
         amenity: document.querySelector('input[name="amenity"]:checked').value,
+        eventType: document.getElementById('eventType').value, 
         guests: document.getElementById('guests').value,
         homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
       };
