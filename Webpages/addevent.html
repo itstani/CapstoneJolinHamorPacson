@@ -9,374 +9,314 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <style>
-    .top-bar {
-      background-color: #AF2630;
-      position: fixed;
-      color: #6b6a6a; 
-      top: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: 50px; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 20px;
-      box-sizing: border-box;
+      
+       * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
 
-    .search-bar {
-      background-color: #C1696F;
-      position: relative;
-      width: 20%;
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f5f5f5;
     }
 
-    .search-bar input[type="text"] {
-      width: 100%;
-      padding: 10px 40px 10px 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-
-    .search-bar button[type="button"] {
-      position: absolute;
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .search-bar button[type="button"] img {
-      width: 20px;
-      height: 20px;
-    }
-
-    .search-bar button[type="button"]:hover img {
-      filter: brightness(0.8);
-    }
-
+    /* Sidebar and Navigation */
     .side-bar {
-      background-color: #D9D9D9;
-      position: fixed;
-      color: #AF2630;
-      top: 50px;
-      left: 0;
-      width: 90px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0 20px;
-      box-sizing: border-box;
+        background-color: #D9D9D9;
+        position: fixed;
+        top: 50px;
+        left: 0;
+        width: 90px;
+        height: 100%;
+        padding: 20px 0;
+        z-index: 100;
     }
 
-    .Home, .homeownerstatus, .analytics, .Calendar {
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 15px;
-      font-weight: bold;
-      font-family: 'Inter';
+    .Home, .Calendar {
+        margin-bottom: 30px;
+        text-align: center;
     }
 
-    .Home img, .homeownerstatus img, .analytics img, .Calendar img {
-      width: 60px;
-      height: 60px;
+    .Home img, .Calendar img {
+        width: 60px;
+        height: 60px;
     }
 
-    .Home button, .homeownerstatus button, .analytics button, .Calendar button {
-      background-color: #D9D9D9;
-      margin: 0 auto;
-      border: none;
-      transition: background-color 0.3s;
+    .Home p, .Calendar p {
+        margin-top: 8px;
+        color: #AF2630;
+        font-size: 14px;
+        font-weight: 600;
     }
 
-    .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
-      background-color: #ccc;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    .Home button, .Calendar button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s;
     }
 
+    .Home button:hover, .Calendar button:hover {
+        transform: scale(1.05);
+    }
+
+    /* Main Content */
     .Welcome {
-      font-size: 30px;
-      font-family: 'Inter';
-      color: #AF2630;
-      font-weight: bold;
-      padding-left: 5%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+        margin-left: 90px;
+        padding: 20px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .Welcome h1 {
-      margin: 0;
-      padding-left: 40px;
+        color: #AF2630;
+        font-size: 32px;
+        font-weight: bold;
     }
 
     .avidalogo {
-      width: 400px;
-      height: 130px;
-      margin-left: 20px;
-      padding-top: 60px;
+        width: 300px;
+        height: auto;
     }
-    /* Reserve Section in Columns */
-    .reserve {
-      display: flex;
-      justify-content: center; /* Centers content horizontally */
-      gap: 20%; /* Space between the buttons */
-      text-align: center;
-      flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
+
+    /* Form Container */
+    .form-image-container {
+        margin-left: 90px;
+        padding: 20px 40px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
     }
-    .container {
-    margin-top: 20px;
+
+    form {
+        background-color: #AF2630;
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+    }
+
+    form h2 {
+        font-size: 24px;
+        margin-bottom: 25px;
+    }
+
+    /* Form Fields */
+    form label, form input {
+    display: block;
+    margin-bottom: 10px;
+    width: 100%;
+    }
+
+    input[type="text"],
+    input[type="date"] {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 16px;
+        color: #333;
+    }
+
+    /* Time Input Styling */
+    .time-input-group {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .time-input-container {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    }
+
+    .time-input {
+        width: 40px; /* Increased width for better number spacing */
+        text-align: center;
+        border: none;
+        font-size: 16px;
+        color: #333;
+        padding: .1px;
+        margin: 0 2px; /* Added margin for spacing */
+    }
+
+    .time-separator {
+        margin: 0 4px; /* Increased margin for better spacing */
+        color: #333;
+        line-height: 1;
+    }
+    .time-ampm {
+        border: none;
+        background: none;
+        color: #333;
+        font-size: 16px;
+        padding: 4px 8px;
+        cursor: pointer;
+    }
+
+    .time-dash {
+        color: white;
+        font-weight: bold;
+        font-size: 20px;
+    }
+
+    /* Amenity Selection */
+    .amenities {
+    margin: 25px 0;
+    display: flex;
+    gap: 10px; /* Reduced gap between amenity options */
+    align-items: center;
+}
+
+.amenities input[type="radio"] {
+    display: none; /* Hide radio buttons */
+}
+
+.amenities div {
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Aligns the content to the left */
-    padding-left: 5%; /* Add padding from the left side */
+    align-items: center;
+}
+
+.amenities label img {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+}
+    .amenities input[type="radio"]:checked + label img {
+       transform: scale(1.1); /* Enlarge the button when selected */
+       border: 3px solid white; /* Add border on hover */
+       box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
+      }
+    .amenities label:hover img {
+        transform: scale(1.1); /* Enlarge the button */
+        border: 3px solid #f86a73; /* Add border on hover */
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
+      }
+      
+    /* Homeowner Status */
+    .homeowner {
+        display: flex;
+        gap: 15px;
+        margin: 20px 0;
     }
 
-        .column {
-            margin-bottom: 20px; /* Space between rows */
-        }
+    .homeowner input[type="radio"] {
+        display: none;
+    }
 
-        .col-12 {
-            width: 100%; 
-            text-align: left; /* Center the content horizontally */
-            padding-left: 10%;
-        }
+    .homeowner label {
+        padding: 12px 30px;
+        background-color: white;
+        color: #AF2630;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .homeowner input[type="radio"]:checked + label {
+        background-color: #c44c57;
+        color: white;
+    }
+
+    /* Create Button */
+    .create-button {
+        width: 100%;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+    }
+
+    .create-button:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    /* Preview Image */
+    .amenity-preview {
+        width: 100%;
+        height: 600px;
+        object-fit: cover;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Event Type Containers */
+    #eventTypeContainerCB,
+    #eventTypeContainerP {
+        display: none;
+        margin-top: 20px;
+    }
+
+    #eventTypeContainerCB select,
+    #eventTypeContainerP select {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        color: #333;
+        margin-top: 8px;
+    }
+    
+    
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
         .form-image-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start; /* Align form and image at the top */
-        gap: 30px; /* Space between the form and image */
-        padding-left: 7%; /* Add some padding from the left */
-      }
-
-        form {
-          background-color: #AF2630;
-          padding: 20px;
-          border-radius: 10px;
-          max-width: 500px; /* Keeps the form width limited */
-          width: 50%; /* Set width to make room for the image */
-          color: white;
+            grid-template-columns: 1fr;
         }
 
-      form h2 {
-          margin-bottom: 20px;
-      }
+        .amenity-preview {
+            height: 400px;
+        }
+    }
 
-      form label, form input {
-          display: block;
-          margin-bottom: 10px;
-          width: 100%;
-      }
-
-      input[type="text"], input[type="date"] {
-          padding: 10px;
-          border: none;
-          border-radius: 5px;
-          width: calc(100% - 20px);
-          border-color: white;
-          font-family: 'inter';
-          color: #C1696F;
-      }
-              /* Amenity Buttons Hover Effect */
-          .amenities div {
-              display: inline-block;
-              align-items: center;
-          }
-
-          .amenities img{
-            border-color: white;
-          }
-
-          
-          
-          .amenities input[type="radio"] {
-            display: none; /* Hide default radio button */
+    @media (max-width: 768px) {
+        .Welcome {
+            flex-direction: column;
+            text-align: center;
+            gap: 20px;
         }
 
-        .amenities label img {
-            width: 100px;
-            height: 100px;
-            border-radius: 10px;
-            border: 3px solid #AF2630; /* Adds a solid border */
-            transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+        .time-input-group {
+            flex-direction: column;
+            align-items: stretch;
         }
 
-          .amenities label img {
-              width: 100px;
-              height: 100px;
-              border-radius: 10px;
-              transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+        .time-input-container {
+            justify-content: center;
+        }
 
-          }
-
-          .amenities input[type="radio"]:checked + label img {
-              transform: scale(1.1); /* Enlarge the button when selected */
-              border: 3px solid white; /* Add border on hover */
-              box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
-          }
-
-          .amenities label:hover img {
-              transform: scale(1.1); /* Enlarge the button */
-              border: 3px solid #f86a73; /* Add border on hover */
-              box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
-              
-          }
+        .amenities div {
+            margin-bottom: 15px;
+        }
 
         .homeowner {
-            display: flex;
-            align-items: center; /* Aligns items vertically */
-            gap: 10px; /* Adds space between the radio buttons */
-        }
-
-        .homeowner input[type="radio"] {
-            display: none; /* Hide default radio button */
+            flex-direction: column;
         }
 
         .homeowner label {
-            font-size: 16px;
-            padding: 10px 20px;
-            border: 5px solid #c44c57;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
-            background-color: white;
-            color: #C1696F;
-        }
-
-        .homeowner input[type="radio"]:checked + label {
-            background-color: #c44c57;
-            color: white;
-        }
-
-        /* Hover effect for radio buttons */
-        .homeowner label:hover {
-            background-color: #c44c57;
-            color: white;
-        }
-
-        .guests, .homeowner {
-            margin-bottom: 20px;
-        }
-
-        .guests input {
-            width: calc(100% - 20px);
-        }
-
-        .create-button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #c44c57;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .create-button:hover {
-            background-color: #b93e4b;
-        }
-        .preview-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Two columns */ /* test */
-    justify-items: start; /* Aligns the image to the left */
-}
-        .amenity-preview {
-            width: 40%;
-            height: auto;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 3px solid #AF2630; 
-            padding-right:0; 
-            margin: 15px 0; 
-            box-sizing: border-box; 
-            position: relative;
-            left: -10%;
-        }
-        .custom-alert {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-
-        .custom-alert-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-            border-radius: 5px;
             text-align: center;
         }
-
-        .custom-alert-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #AF2630;
-        }
-
-        .custom-alert button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .custom-alert button:hover {
-            background-color: #8c1e26;
-        }
-    
-    @media (max-width: 600px) {
-      .search-bar {
-        width: 100%;
-      }
-
-      .top-bar {
-        padding: 0 10px;
-      }
-
-      .reserve {
-        flex-direction: column; 
-        gap: 20px;
-      }
-
-      .reservetext1 {
-        font-size: 30px; 
-      }
-      .amenity-preview {
-            width: 100%;
-            height: auto; 
-        }
-        .form-image-container {
-        flex-direction: column; 
-        gap: 20px;
-      }
     }
-    </style>
+  </style>
 </head>
 <body>
   <div class="top-bar">
@@ -415,24 +355,39 @@
       <input type="hidden" id="username" name="username">
     <input type="hidden" id="email" name="email">
 
-    <label for="hostName">Host Name:</label>
-    <input type="text" id="hostName" name="hostName" required><br>
+    <label for="HomeownerName">Homeowner Name:</label>
+    <input type="text" id="HomeownerName" name="HomeownerName" required><br>
   
     <label for="eventName">Event Name:</label>
     <input type="text" id="eventName" name="eventName" required><br>
 
-    <label for="eventTime">Event Start Time:</label>
-    <input type="time" id="eventStartTime" name="eventStartTime" required><br>
-
-    <label for="eventEndTime">Event End Time:</label>
-    <input type="time" id="eventEndTime" name="eventEndTime" required><br>
-
+    <div class="time-input-group">
+      <div class="time-input-container">
+          <input type="number" class="time-input" id="eventStartHour" min="1" max="12" placeholder="1">
+          <span class="time-separator">:</span>
+          <input type="number" class="time-input" id="eventStartMinute" min="0" max="59" placeholder="00">
+          <select class="time-ampm" id="eventStartAmPm">
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+          </select>
+      </div>
+      <span class="time-dash">—</span>
+      <div class="time-input-container">
+          <input type="number" class="time-input" id="eventEndHour" min="1" max="12" placeholder="12" >
+          <span class="time-separator">:</span>
+          <input type="number" class="time-input" id="eventEndMinute" min="0" max="59" placeholder="00">
+          <select class="time-ampm" id="eventEndAmPm" >
+              <option value="PM">PM</option>  
+              <option value="AM">AM</option>
+          </select>
+      </div>
+  </div>
 
   
     <label for="date">Date:</label>
       <input type="date" id="date" name="date"><br><br>
   
-      <input type="hidden" id="hostName" name="hostName">
+      <input type="hidden" id="HomeownerName" name="HomeownerName">
       <input type="hidden" id="eventName" name="eventName">
       <input type="hidden" id="eventDate" name="eventDate">
       <input type="hidden" id="eventStartTime" name="eventStartTime">
@@ -440,11 +395,12 @@
       <input type="hidden" id="guests" name="guests">
       <input type="hidden" id="homeownerStatus" name="homeownerStatus">
 
-
+      <label>Choose an amenity</label>
   
       <div class="amenities">
+        
         <div>
-          <label>Choose an amenity</label>
+          
             <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
             <label for="amenityPool">
                 <img src="images/pool.png" alt="Pool">
@@ -465,14 +421,25 @@
       </div>
 
        <!-- New Event Type Dropdown -->
-       <div id="eventTypeContainer">
+       <div id="eventTypeContainerCB">
         <label for="eventType">Event Type:</label>
         <select id="eventType" name="eventType">
+          <option value="Select">Select</option>
           <option value="birthday">Birthday</option>
           <option value="zumba">Zumba</option>
           <option value="meeting">Meeting</option>
         </select>
       </div>
+
+      <div id="eventTypeContainerP">
+        <label for="eventType">Will you exclusively use the pool?:</label>
+        <select id="eventType" name="eventType">
+          <option value="select">yes or no</option>
+          <option value="yes">yes</option>
+          <option value="no">no</option>
+        </select>
+      </div>
+      
   
       <div class="guests">
           <label for="numberofguests">Number of guests:</label>
@@ -500,8 +467,32 @@
   </div>
 
   <script>
-    
+    const clubhouseRadio = document.getElementById('amenityClubhouse');
+    const poolRadio = document.getElementById('amenityClubhouse');
+    const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
+    const eventTypeContainerP = document.getElementById('eventTypeContainerP');
 
+    clubhouseRadio.addEventListener('change', function() {
+      if (this.checked) {
+        eventTypeContainerCB.style.display = 'block';
+        eventTypeContainerP.style.display = 'block';
+      } else {
+        eventTypeContainerCB.style.display = 'none';
+        eventTypeContainerP.style.display = 'none';
+      }
+    });
+
+    // Hide event type dropdown when other amenities are selected
+    document.getElementById('amenityPool').addEventListener('change', function() {
+      eventTypeContainerCB.style.display = 'none';
+    });
+    document.getElementById('amenityCourt').addEventListener('change', function() {
+      eventTypeContainerCB.style.display = 'none';
+      eventTypeContainerP.style.display = 'none';
+    });
+    document.getElementById('amenityClubhouse').addEventListener('change', function() {
+      eventTypeContainerP.style.display = 'none';
+    });
     const amenities = document.querySelectorAll('input[name="amenity"]');
     const previewImage = document.getElementById('amenityPreview');
 
@@ -513,54 +504,81 @@
                 switch (this.value) {
                     case 'Pool':
                         selectedImage = 'images/poolimg.png';
-                        eventTypeContainer.style.display = 'none';
+                        eventTypeContainerCB.style.display = 'none';
+                        eventTypeContainerP.style.display = 'block';
                         break;
                     case 'Clubhouse':
                         selectedImage = 'images/clubhouseimg.jpg';
-                        eventTypeContainer.style.display = 'block';
+                        eventTypeContainerCB.style.display = 'block';
                         break;
                     case 'Court':
                         selectedImage = 'images/courtimg.jpg';
-                        eventTypeContainer.style.display = 'none';
+                        eventTypeContainerCB.style.display = 'none';
                         break;
                 }
                 previewImage.src = selectedImage;
             }
         });
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
     const clubhouseRadio = document.getElementById('amenityClubhouse');
-    const eventTypeContainer = document.getElementById('eventTypeContainer');
+    const poolRadio = document.getElementById('amenityPool');
+    const courtRadio = document.getElementById('amenityCourt');
+    const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
+    const eventTypeContainerP = document.getElementById('eventTypeContainerP');
+    const previewImage = document.getElementById('amenityPreview');
 
-    clubhouseRadio.addEventListener('change', function() {
-      if (this.checked) {
-        eventTypeContainer.style.display = 'block';
-      } else {
-        eventTypeContainer.style.display = 'none';
-      }
+    function updateDropdowns() {
+        if (clubhouseRadio.checked) {
+            eventTypeContainerCB.style.display = 'block';
+            eventTypeContainerP.style.display = 'none';
+        } else if (poolRadio.checked) {
+            eventTypeContainerCB.style.display = 'none';
+            eventTypeContainerP.style.display = 'block';
+        } else {
+            eventTypeContainerCB.style.display = 'none';
+            eventTypeContainerP.style.display = 'none';
+        }
+    }
+
+    function updatePreviewImage() {
+        if (poolRadio.checked) {
+            previewImage.src = 'images/poolimg.png';
+        } else if (clubhouseRadio.checked) {
+            previewImage.src = 'images/clubhouseimg.jpg';
+        } else if (courtRadio.checked) {
+            previewImage.src = 'images/courtimg.jpg';
+        }
+    }
+
+    [clubhouseRadio, poolRadio, courtRadio].forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateDropdowns();
+            updatePreviewImage();
+        });
     });
 
-    // Hide event type dropdown when other amenities are selected
-    document.getElementById('amenityPool').addEventListener('change', function() {
-      eventTypeContainer.style.display = 'none';
-    });
-    document.getElementById('amenityCourt').addEventListener('change', function() {
-      eventTypeContainer.style.display = 'none';
-    });
+    // Initial update
+    updateDropdowns();
+    updatePreviewImage();
+    
+  });
     
     document.getElementById('eventForm').addEventListener('submit', async function(event) {
       event.preventDefault();
 
       const formData = {
-        hostName: document.getElementById('hostName').value,
+        HomeownerName: document.getElementById('HomeownerName').value,
         eventName: document.getElementById('eventName').value,
-        eventDate: document.getElementById('eventDate').value,
-        startTime: document.getElementById('eventStartTime').value,
-        endTime: document.getElementById('eventEndTime').value,
+        eventDate: document.getElementById('date').value,
+        startTime: document.getElementById('eventStartTime').value + ' ' + document.getElementById('eventStartAmPm').value,
+        endTime: document.getElementById('eventEndTime').value + ' ' + document.getElementById('eventEndAmPm').value,
         amenity: document.querySelector('input[name="amenity"]:checked').value,
         eventType: document.getElementById('eventType').value, 
         guests: document.getElementById('guests').value,
         homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked').value
-      };
+    };
 
       try {
         const response = await fetch('/addevent', {
@@ -628,7 +646,7 @@
             e.preventDefault();
 
             const formData = {
-                hostName: document.getElementById('hostName').value,
+              HomeownerName: document.getElementById('HomeownerName').value,
                 userEmail: document.getElementById('userEmail').value,
                 eventName: document.getElementById('eventName').value,
                 eventDate: document.getElementById('eventDate').value,
