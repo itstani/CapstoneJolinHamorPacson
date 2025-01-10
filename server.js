@@ -341,7 +341,7 @@
           });
       }
   
-      const { hostName, eventName, eventDate, startTime, endTime, amenity, guests, homeownerStatus } = req.body;
+      const { HomeownerName, eventName, eventDate, startTime, endTime, amenity, eventType, guests, homeownerStatus } = req.body;
       const userEmail = req.session.user.email; // Get email from session
   
       try {
@@ -350,13 +350,14 @@
   
           // Add event to database with user's email
           const newEvent = {
-              hostName,
+              HomeownerName,
               userEmail, // Include the user's email
               eventName,
               eventDate,
               startTime,
               endTime,
               amenity,
+              eventType,
               guests,
               homeownerStatus,
               createdAt: new Date()
