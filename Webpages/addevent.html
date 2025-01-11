@@ -108,7 +108,7 @@
     margin-bottom: 10px;
     width: 100%;
     }
-
+/* Form Fields------------------------------------------------------------ */
     input[type="text"],
     input[type="date"] {
         width: 100%;
@@ -119,6 +119,143 @@
         font-size: 16px;
         color: #333;
     }
+
+    .guests-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.guests-input-group {
+    display: flex;
+    align-items: center; /* Ensures input and button are vertically aligned */
+    width: 100%;
+}
+
+#guests {
+    width: 50%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #333;
+    margin-right: 10px; /* Space between input and button */
+}
+
+.guests-button {
+    padding: 12px 30px;
+    width: 50%;
+    background-color: white;
+    color: #AF2630;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    vertical-align: middle; 
+    margin-top: -2px;
+    margin-bottom: 10px;
+}
+
+
+
+.guests-button:hover {
+    background-color: #c44c57;
+    color: white;
+}
+/* Popup container - hidden by default */
+.popup-container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Transparent background */
+    justify-content: center;
+    align-items: center;
+}
+
+/* Popup content styling */
+.popup-content {
+    background-color: white;
+    padding: 30px; 
+    border-radius: 8px;
+    border: 2px solid #AF2630;  
+    width: 90%;  
+    max-width: 800px;  
+    height: 100%;  
+    max-height: 600px; 
+    text-align: center;
+    overflow: hidden;
+    position: relative;
+    display: flex;        
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Red top bar styling */
+.popup-header {
+    background-color: #AF2630;  
+    color: white;
+    padding: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 8px 8px 0 0; 
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+}
+
+/* Styling for input fields container */
+.guest-inputs {
+    padding: 10px;
+   
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;  
+    max-height: 400px;  
+    overflow-y: auto;  
+    margin-top: 75px;  
+    margin-bottom: 1px;  
+}
+
+
+
+.guest-name {
+    padding: 15px;  
+    font-size: 16px; 
+    border-radius: 5px;
+    border: 2px solid #333 !important;  
+    color: #333;  
+    width: 100%;
+}
+
+
+.close-btn {
+    padding: 15px 30px;  
+    background-color: #AF2630;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;  
+    align-self: center; 
+    
+    
+}
+
+.close-btn:hover {
+    background-color: #c44c57;
+}
+
+
 
     /* Time Input Styling */
     .time-input-group {
@@ -489,12 +626,28 @@
         </select>
       </div>
       
-  
-      <div class="guests">
-          <label for="numberofguests">Number of guests:</label>
-          <input type="text" id="guests" name="guests">
-      </div>
-  
+    <!-- guests --------------------------------------------------------->
+    <div class="guests-container">
+        <label for="numberofguests">Number of guests:</label>
+        <div class="guests-input-group">
+            <input type="text" id="guests" name="guests"  required>
+            <button type="button" class="guests-button" onclick="openPopup()">Guest List</button>
+        </div>
+    </div>
+<!-- popip---------------------------------------------- -->
+<div id="guest-popup" class="popup-container">
+    <div class="popup-content">
+        <div class="popup-header">Guest List</div>
+        <div id="guest-inputs" class="guest-inputs">
+          
+        </div>
+
+       
+        <button type="button" class="close-btn" onclick="closePopup()">Confirm</button>
+    </div>
+</div>
+
+
       <div class="homeonwerstatuslabel">
         <label for="homeownerStatus">Homeowner status:</label>
       </div>
@@ -625,8 +778,22 @@
     
   });
     
+
   document.getElementById('eventForm').addEventListener('submit', async function(event) {
     event.preventDefault();
+
+
+     // Collect guest names from the popup input fields
+     const guestNames = [];
+    const guestInputs = document.querySelectorAll('.guest-name');
+    guestInputs.forEach(input => {
+        if (input.value.trim() !== '') {
+            guestNames.push(input.value.trim());
+        }
+    });
+
+    // Get the number of guests from the number input field
+    const numberOfGuests = document.getElementById('guests').value;
 
     const formData = {
         HomeownerName: document.getElementById('HomeownerName').value,
@@ -640,7 +807,10 @@
                 document.getElementById('eventEndAmPm').value,
         amenity: document.querySelector('input[name="amenity"]:checked').value,
         eventType: document.getElementById('eventType')?.value || '',
-        guests: document.getElementById('guests').value,
+        guests: {
+            number: numberOfGuests,
+            names: guestNames 
+        },
         homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
     };
 
@@ -752,6 +922,33 @@ function closeSuccessModal() {
     window.location.href = 'HoHome.html'; // Redirect to homepage
     document.getElementById('eventForm').reset();
 }
+
+// popup--------------------------------------------------------------
+// fixxed to 30 fields
+function openPopup() {
+    const guestInputsDiv = document.getElementById('guest-inputs');
+    
+   
+    if (guestInputsDiv.children.length === 0) {
+        for (let i = 0; i < 30; i++) {
+            const inputField = document.createElement('input');
+            inputField.type = 'text';
+            inputField.className = 'guest-name';
+            inputField.placeholder = `Guest ${i + 1}`;
+            guestInputsDiv.appendChild(inputField);
+        }
+    }
+
+    //open
+    document.getElementById('guest-popup').style.display = 'flex';
+}
+
+//close
+function closePopup() {
+    document.getElementById('guest-popup').style.display = 'none';
+}
+
+
 </script>
 <div id="customAlert" class="custom-alert">
   <div class="custom-alert-content">
