@@ -358,7 +358,10 @@
               endTime,
               amenity,
               eventType,
-              guests,
+              guests: {
+                number: guests.number, // Store number of guests
+                names: guests.names // Store guest names as an array
+              },
               homeownerStatus,
               createdAt: new Date()
           };
