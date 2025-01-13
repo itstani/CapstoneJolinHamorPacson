@@ -1,288 +1,297 @@
 <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Dashboard</title>
-          <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
-          <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-          <style>
-          .top-bar {
-            background-color: #AF2630;
-            position: fixed;
-            color: #6b6a6a; 
-            top: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            height: 50px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 20px;
-            box-sizing: border-box;
-            z-index: 1000;
-        }
-
-        .side-bar {
-            background-color: #D9D9D9;
-            position: fixed;
-            color: #AF2630; 
-            top: 50px;
-            left: 0;
-            width: 110px;
-            height: 100vh; /* Full height of the viewport */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 5px;
-            box-sizing: border-box;
-        }
-
-        .Home img, .homeownerstatus img, .analytics img, .Calendar img {
-            width: 60px;
-            height: 60px;
-        }
-
-        .mainarea {
-            margin-left: 20px; /* Adjusted to align with the sidebar */
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .Home, .homeownerstatus, .analytics, .Calendar {
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 15px;
-            font-weight: bold;
-            font-family: 'Inter';
-            padding-top: 5px;
-        }
-
-        .Home button, .homeownerstatus button, .analytics button, .Calendar button {
-            background-color: #D9D9D9;
-            margin: 0 auto;
-            border: none;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border-radius: 10px;
-        }
-
-        .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
-            background-color: #ccc;
-            cursor: pointer;
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        #logoutButton {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: auto; /* Pushes the logout button to the bottom */
-            margin-bottom: 90px; /* Adds space at the bottom */
-            font-weight: bold;
-        }
-
-        #logoutButton:hover {
-            background-color: #C44A53;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            transform: translateY(-3px);
-        }
-
-        .Welcome {
-            font-size: 30px;
-            font-family: 'Inter';
-            color: #AF2630;
-            font-weight: bold;
-            padding-left: 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .Welcome h1 {
-            margin: 0;
-        }
-
-        .Welcome img {
-            width: 700px;
-            height: 250px;
-            margin-left: 20px;
-        }
-
-        .recentactivity, .upcomingevents, .currentlyreservedamenity, .recentconcerns {
-            font-family: bold;
-            color: #AF2630;
-            font-size: 25px;
-            margin-left: 5%;
-            position: relative;
-        }
-        .section-title {
-            font-family: 'bold';
-            color: #AF2630;
-            font-size: 25px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 50px; 
-            padding-left: 100px;
-            padding-right: 100px;
-            background-color: white;
-        }
-        .container2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 50px; 
-            padding-left: 100px;
-            padding-right: 100px;
-            padding-top: 40px;
-        }
-
-        .box {
-          background-color: #f9f9f9; /* Ensure consistent background color */
-          border-radius: 8px;
-          padding: 10px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Consistent shadow */
-          display: flex;
-          flex-direction: column;
-          height: 100%;
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .top-bar {
+        background-color: #af2630;
+        position: fixed;
+        color: #6b6a6a;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 20px;
+        box-sizing: border-box;
+        z-index: 1000;
       }
 
+      .side-bar {
+        background-color: #d9d9d9;
+        position: fixed;
+        color: #af2630;
+        top: 50px;
+        left: 0;
+        width: 110px;
+        height: 100vh; /* Full height of the viewport */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 5px;
+        box-sizing: border-box;
+      }
 
-        .section-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #AF2630;
-            margin-bottom: 10px;
-          }
+      .Home img,
+      .homeownerstatus img,
+      .analytics img,
+      .Calendar img {
+        width: 60px;
+        height: 60px;
+      }
 
-          .content-box {
-            flex: 1;
-            overflow-y: auto;
-            height: 350px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
+      .mainarea {
+        margin-left: 20px; /* Adjusted to align with the sidebar */
+        padding: 20px;
+        box-sizing: border-box;
+      }
 
+      .Home,
+      .homeownerstatus,
+      .analytics,
+      .Calendar {
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        font-family: "Inter";
+        padding-top: 5px;
+      }
 
-        
- /*----------------------------------------------Recent Concerns style-----------------------*/
-        
+      .Home button,
+      .homeownerstatus button,
+      .analytics button,
+      .Calendar button {
+        background-color: #d9d9d9;
+        margin: 0 auto;
+        border: none;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+      }
 
-        #pagination-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 10px 0;
-        }
+      .Home button:hover,
+      .homeownerstatus button:hover,
+      .analytics button:hover,
+      .Calendar button:hover {
+        background-color: #ccc;
+        cursor: pointer;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
 
-        #pagination-controls button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            margin: 0 5px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+      #logoutButton {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: auto; /* Pushes the logout button to the bottom */
+        margin-bottom: 90px; /* Adds space at the bottom */
+        font-weight: bold;
+      }
 
-        #pagination-controls button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+      #logoutButton:hover {
+        background-color: #c44a53;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        transform: translateY(-3px);
+      }
 
-        #current-page-display {
-            margin: 0 10px;
-            font-size: 16px;
-        }
-        header{
-          text-align: center;
-        }
+      .Welcome {
+        font-size: 30px;
+        font-family: "Inter";
+        color: #af2630;
+        font-weight: bold;
+        padding-left: 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-        .activity-item {
-          background-color: #fff;
-          margin: 10px;
-          padding: 15px;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+      .Welcome h1 {
+        margin: 0;
+      }
+
+      .Welcome img {
+        width: 700px;
+        height: 250px;
+        margin-left: 20px;
+      }
+
+      .recentactivity,
+      .upcomingevents,
+      .currentlyreservedamenity,
+      .recentconcerns {
+        font-family: bold;
+        color: #af2630;
+        font-size: 25px;
+        margin-left: 5%;
+        position: relative;
+      }
+      .section-title {
+        font-family: "bold";
+        color: #af2630;
+        font-size: 25px;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 50px;
+        padding-left: 100px;
+        padding-right: 100px;
+        background-color: white;
+      }
+      .container2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 50px;
+        padding-left: 100px;
+        padding-right: 100px;
+        padding-top: 40px;
+      }
+
+      .box {
+        background-color: #f9f9f9; /* Ensure consistent background color */
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Consistent shadow */
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #af2630;
+        margin-bottom: 10px;
+      }
+
+      .content-box {
+        flex: 1;
+        overflow-y: auto;
+        height: 350px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+      }
+
+      /*----------------------------------------------Recent Concerns style-----------------------*/
+
+      #pagination-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 10px 0;
+      }
+
+      #pagination-controls button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        margin: 0 5px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #pagination-controls button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      #current-page-display {
+        margin: 0 10px;
+        font-size: 16px;
+      }
+      header {
+        text-align: center;
+      }
+
+      .activity-item {
+        background-color: #fff;
+        margin: 10px;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .activity-item:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
       }
 
       .activity-item p {
-          margin: 0;
-          font-size: 16px;
-          color: #333;
-          font-weight: bold;
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+        font-weight: bold;
       }
 
       .activity-item small {
-          color: #999;
-          font-size: 14px;
-          display: block;
-          margin-top: 5px;
+        color: #999;
+        font-size: 14px;
+        display: block;
+        margin-top: 5px;
       }
 
       #recent-activity-box {
-          padding: 10px;
-          overflow-y: auto;
-          height: 300px; /* Adjust height as needed */
-          background-color: #f9f9f9;
-          border-radius: 10px;
+        padding: 10px;
+        overflow-y: auto;
+        height: 300px; /* Adjust height as needed */
+        background-color: #f9f9f9;
+        border-radius: 10px;
       }
 
-      
+      .event-item {
+        background-color: #fff;
+        margin: 10px;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
 
-        .event-item {
-          background-color: #fff;
-          margin: 10px;
-          padding: 15px;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+      .event-item h3 {
+        margin: 0 0 10px 0;
+        color: #af2630;
+      }
 
-        .event-item h3 {
-            margin: 0 0 10px 0;
-            color: #AF2630;
-        }
-
-        .event-item p {
-          margin: 0;
-          font-size: 16px;
-          color: #333;
-        }
-        .event-item:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+      .event-item p {
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+      }
+      .event-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
       }
       .event-item small {
-          color: #999;
-          font-size: 14px;
-          display: block;
-          margin-top: 5px;
+        color: #999;
+        font-size: 14px;
+        display: block;
+        margin-top: 5px;
       }
 
-
-
-        
       @media (max-width: 600px) {
         .side-bar {
           width: 80px; /* Reduce width */
@@ -297,23 +306,23 @@
         }
       }
       /* New styles for currently reserved amenity */
-    #currently-reserved-amenity {
+      #currently-reserved-amenity {
         grid-column: 1 / -1;
         text-align: center;
-    }
+      }
 
-    #amenity-container {
+      #amenity-container {
         position: relative;
         display: inline-block;
-    }
+      }
 
-    #amenity-image {
+      #amenity-image {
         max-width: 100%;
         height: auto;
         border-radius: 8px;
-    }
+      }
 
-    .amenity-nav {
+      .amenity-nav {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
@@ -325,565 +334,775 @@
         font-size: 24px;
         cursor: pointer;
         display: none;
-    }
+      }
 
-    #prev-amenity {
+      #prev-amenity {
         left: 10px;
-    }
+      }
 
-    #next-amenity {
+      #next-amenity {
         right: 10px;
-    }
+      }
 
-    #amenity-name {
+      #amenity-name {
         margin-top: 10px;
         font-weight: bold;
-        color: #AF2630;
-    }
-    .pagination-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: auto;
-            gap: 10px;
-            padding: 10px 0;
-        }
+        color: #af2630;
+      }
+      .pagination-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: auto;
+        gap: 10px;
+        padding: 10px 0;
+      }
 
-        .pagination-controls button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            margin: 0 5px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+      .pagination-controls button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        margin: 0 5px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
 
-        .pagination-controls button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+      .pagination-controls button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
 
-        .pagination-controls span {
-            margin: 0 10px;
-            font-size: 14px;
-        }
-        .modal {
-          display: none;
-          position: fixed;
-          z-index: 1000;
-          left: 0;
-          top: 0;
-          width: 100%;
-          height: 100%;
-          overflow: auto;
-          background-color: rgba(0,0,0,0.4);
-        }
-        
-        .modal-content {
-          background-color: #fefefe;
-          margin: 15% auto;
-          padding: 20px;
-          border: 1px solid #888;
-          width: 80%;
-          max-width: 500px;
-        }
-        
-        .modal-content button {
-          margin-top: 10px;
-          margin-right: 10px;
-          padding: 5px 10px;
-          background-color: #AF2630;
-          color: white;
-          border: none;
-          cursor: pointer;
-        }
-        
-        .modal-content button:hover {
-          background-color: #8c1e26;
-        }
-        .custom-alert {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1001; /* Ensure it's above the modal */
-        }
+      .pagination-controls span {
+        margin: 0 10px;
+        font-size: 14px;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
 
-        .custom-alert-content {
-            text-align: center;
-        }
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+      }
 
-        .custom-alert-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #AF2630;
-        }
+      .modal-content button {
+        margin-top: 10px;
+        margin-right: 10px;
+        padding: 5px 10px;
+        background-color: #af2630;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
 
-        .custom-alert-body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
+      .modal-content button:hover {
+        background-color: #8c1e26;
+      }
+      .custom-alert {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1001; /* Ensure it's above the modal */
+      }
 
-        .custom-alert button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+      .custom-alert-content {
+        text-align: center;
+      }
 
-          </style>
-      </head>
-      <body>
-        <div class="top-bar">
-        
-        </div> 
-        <div class="side-bar">
-          <div class="Home">
-            <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
-            <img src="images/house.png">
-          </button>
-            <p>Home</p>
-          </div>
-          <div class="homeownerstatus">
-            <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
-            <img src="images/Documents.png">
-          </button>
-            <p>Homeowner status</p>
-          </div>
-          <div class="analytics">
-            <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics" onclick="window.location.href='analytics.html'">
-            <img src="images/Data.png">
-          </button>
-            <p>analytics</p>
-          </div>
-          <div class="Calendar">
-            <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
-            <img src="images/Calendar.png">
-          </button>
-            <p>Calendar</p>
-          </div>
-          <button id="logoutButton" class="logoutButton">Logout</button>
-        </div>
+      .custom-alert-header {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #af2630;
+      }
+
+      .custom-alert-body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .custom-alert button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .popup {
+        display: none; /* Hidden by default */
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #fff;
+        padding: 50px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1001; /* Ensure it's above other elements */
+        border-radius: 8px; /* Added rounded corners */
+        max-width: 1000px;
+        width: 100%;
+      }
+
+      .popup-content {
+        font-family: "Inter", sans-serif;
+      }
+
+      .popup h3 {
+        text-align: center;
+        font-size: 35px;
+        color: #af2630; /* Heading color consistent with the rest of the page */
+        margin-bottom: 25px;
+      }
+
+      .popup input[type="text"],
+      .popup textarea,
+      .popup input[type="file"] {
+        padding: 12px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        width: 100%;
+      }
+
+      .popup .popup-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .popup .popup-buttons button {
+        background-color: #af2630;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .popup .popup-buttons button:hover {
+        background-color: #c44a53;
+      }
+
+      .popup .popup-buttons #closePopup {
+        background-color: #8c1e26;
+      }
+
+      .popup .popup-buttons #closePopup:hover {
+        background-color: #7a1b24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar"></div>
+    <div class="side-bar">
+      <div class="Home">
+        <button
+          type="button"
+          id="homebutton"
+          name="homebutton"
+          aria-label="home"
+          onclick="window.location.href='AdHome.html'"
+        >
+          <img src="images/house.png" />
+        </button>
+        <p>Home</p>
+      </div>
+      <div class="homeownerstatus">
+        <button
+          type="button"
+          id="Documentsbutton"
+          name="Documentsbutton"
+          aria-label="Documents"
+          onclick="window.location.href='hotable.html'"
+        >
+          <img src="images/Documents.png" />
+        </button>
+        <p>Homeowner status</p>
+      </div>
+      <div class="analytics">
+        <button
+          type="button"
+          id="analyticsbutton"
+          name="analyticsbutton"
+          aria-label="analytics"
+          onclick="window.location.href='analytics.html'"
+        >
+          <img src="images/Data.png" />
+        </button>
+        <p>analytics</p>
+      </div>
+      <div class="Calendar">
+        <button
+          type="button"
+          id="Calendarbutton"
+          name="Calendarbutton"
+          aria-label="Calendar"
+          onclick="window.location.href='admincalender.html'"
+        >
+          <img src="images/Calendar.png" />
+        </button>
+        <p>Calendar</p>
+      </div>
+      <button id="logoutButton" class="logoutButton">Logout</button>
+    </div>
 
     <div class="mainarea">
-        <div class="Welcome">
-          <h1>Welcome,</h1>
-          <p id="username"></p>
-          <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
+      <div class="Welcome">
+        <h1>Welcome,</h1>
+        <p id="username"></p>
+        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" />
+      </div>
+
+      <div class="container">
+        <div class="box">
+          <div>
+            <h2 class="section-title">Recent Concerns</h2>
+          </div>
+          <div class="content-box" id="recent-concerns-box">
+            <!-- Concerns items will be dynamically loaded here -->
+          </div>
+          <div class="pagination-controls" id="concerns-pagination">
+            <button id="prev-concerns">◀</button>
+            <span id="concerns-page-display">Page 1</span>
+            <button id="next-concerns">▶</button>
+          </div>
         </div>
 
-        <div class="container">
-            <div class="box">
-              <div>
-                  <h2 class="section-title">Recent Concerns</h2>
-              </div>
-              <div class="content-box" id="recent-concerns-box">
-                  <!-- Concerns items will be dynamically loaded here -->
-              </div>
-              <div class="pagination-controls" id="concerns-pagination">
-                <button id="prev-concerns">◀</button>
-                <span id="concerns-page-display">Page 1</span>
-                <button id="next-concerns">▶</button>
-              </div>
+        <div class="box">
+          <div>
+            <h2 class="section-title">Recent Activity</h2>
           </div>
-        
-          <div class="box">
-              <div>
-                  <h2 class="section-title">Recent Activity</h2>
-              </div>
-              <div class="content-box" id="recent-activity-box">
-                  <!-- Activity items will be dynamically loaded here -->
-              </div>
-              <div class="pagination-controls" id="activity-pagination">
-                <button id="prev-activity">◀</button>
-                <span id="activity-page-display">Page 1</span>
-                <button id="next-activity">▶</button>
-              </div>
-            </div>
+          <div class="content-box" id="recent-activity-box">
+            <!-- Activity items will be dynamically loaded here -->
+          </div>
+          <div class="pagination-controls" id="activity-pagination">
+            <button id="prev-activity">◀</button>
+            <span id="activity-page-display">Page 1</span>
+            <button id="next-activity">▶</button>
+          </div>
         </div>
+      </div>
       <div class="container2">
         <div class="box">
           <div>
-              <h2 class="section-title">Upcoming Events</h2>
+            <h2 class="section-title">Upcoming Events</h2>
           </div>
           <div class="content-box" id="upcoming-events-box">
-              <!-- Upcoming events will be dynamically loaded here -->
+            <!-- Upcoming events will be dynamically loaded here -->
           </div>
           <div class="pagination-controls" id="events-pagination">
-                <button id="prev-events">◀</button>
-                <span id="events-page-display">Page 1</span>
-                <button id="next-events">▶</button>
-              </div>
+            <button id="prev-events">◀</button>
+            <span id="events-page-display">Page 1</span>
+            <button id="next-events">▶</button>
+          </div>
         </div>
         <div class="box">
           <div id="currently-reserved-amenity" class="box">
             <h2 class="section-title">Currently Reserved Amenity</h2>
             <div id="amenity-container">
-                <img id="amenity-image" src="" alt="Reserved Amenity">
-                <button id="prev-amenity" class="amenity-nav">&lt;</button>
-                <button id="next-amenity" class="amenity-nav">&gt;</button>
+              <img id="amenity-image" src="" alt="Reserved Amenity" />
+              <button id="prev-amenity" class="amenity-nav">&lt;</button>
+              <button id="next-amenity" class="amenity-nav">&gt;</button>
             </div>
             <p id="amenity-name"></p>
           </div>
         </div>
       </div>
-        
+    </div>
+    <!-- Admin Reply Popup -->
+    <div id="adminPopup" class="popup" style="display: none">
+      <div class="popup-content">
+        <h3>Reply to Concern</h3>
+        <form id="adminForm">
+          <label for="subject">Subject:</label>
+          <input type="text" id="subject" name="subject" required />
 
-      </div> 
+          <label for="message">Message:</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
 
-        <script>
-          let concernsPage = 1;
-          let activityPage = 1;
-          let eventsPage = 1;
+          <label for="fileInput">Attach File (optional):</label>
+          <input type="file" id="fileInput" name="fileInput" />
 
-          async function loadConcerns(page = 1) {
-            try {
-                const response = await fetch(`/getConcerns?page=${page}`);
-                const data = await response.json();
-                
-                const concernsBox = document.getElementById('recent-concerns-box');
-                concernsBox.innerHTML = '';
+          <div class="popup-buttons">
+            <button type="button" id="closePopup">Cancel</button>
+            <button type="submit">Send Reply</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-                data.concerns.forEach(concern => {
-                    const concernItem = document.createElement('div');
-                    concernItem.className = 'activity-item';
-                    concernItem.innerHTML = `
-                        <p>Email: <span style="color: #AF2630; text-decoration: underline;">${concern.email}</span></p>
-                        <p>Subject: <span style="color: #AF2630; text-decoration: underline;">${concern.subject}</span></p>
-                        <small>${new Date(concern.createdAt).toLocaleString()}</small>
+    <script>
+      let concernsPage = 1;
+      let activityPage = 1;
+      let eventsPage = 1;
+
+      async function loadConcerns(page = 1) {
+        try {
+          const response = await fetch(`/getConcerns?page=${page}`);
+          const data = await response.json();
+
+          const concernsBox = document.getElementById("recent-concerns-box");
+          concernsBox.innerHTML = "";
+
+          data.concerns.forEach((concern) => {
+            const concernItem = document.createElement("div");
+            concernItem.className = "activity-item";
+            concernItem.innerHTML = `
+                        <p>Email: <span style="color: #AF2630; text-decoration: underline;">${
+                          concern.email
+                        }</span></p>
+                        <p>Subject: <span style="color: #AF2630; text-decoration: underline;">${
+                          concern.subject
+                        }</span></p>
+                        <small>${new Date(
+                          concern.createdAt
+                        ).toLocaleString()}</small>
                     `;
-                    concernItem.onclick = () => showConcernModal(concern);
-                    concernsBox.appendChild(concernItem);
-                });
+            concernItem.onclick = () => showConcernModal(concern);
+            concernsBox.appendChild(concernItem);
+          });
 
-                // Add pagination controls for concerns
-                
-                updatePagination('concerns', data.currentPage, data.totalPages);
+          // Add pagination controls for concerns
 
-            } catch (error) {
-                console.error('Error loading concerns:', error);
-            }
+          updatePagination("concerns", data.currentPage, data.totalPages);
+        } catch (error) {
+          console.error("Error loading concerns:", error);
         }
+      }
 
-          function showConcernModal(concern) {
-            const modal = document.getElementById('concernModal');
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = `
-              <h2>Concern Details</h2>
-              <p><strong>Email:</strong> ${concern.email}</p>
-              <p><strong>Subject:</strong> ${concern.subject}</p>
-              <p><strong>Message:</strong> ${concern.message}</p>
-              <p><strong>Date:</strong> ${new Date(concern.createdAt).toLocaleString()}</p>
-              <p><strong>Status:</strong> 
-                <select id="concernStatus">
-                  <option value="new" ${concern.status === 'new' ? 'selected' : ''}>New</option>
-                  <option value="in-progress" ${concern.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
-                  <option value="resolved" ${concern.status === 'resolved' ? 'selected' : ''}>Resolved</option>
-                </select>
-              </p>
-              <button id="updateStatus">Update Status</button>
+      function showConcernModal(concern) {
+        const modal = document.getElementById("concernModal");
+        const modalContent = document.getElementById("modalContent");
 
-              <button id="closeModal">Close</button>
-            `;
-            modal.style.display = 'block';
-          
-            document.getElementById('closeModal').onclick = () => {
-              modal.style.display = 'none';
-            };
-          
-          
-          
-            document.getElementById('updateStatus').onclick = async () => {
-              const newStatus = document.getElementById('concernStatus').value;
+        modalContent.innerHTML = `
+          <h2>Concern Details</h2>
+          <p><strong>Email:</strong> ${concern.email}</p>
+          <p><strong>Subject:</strong> ${concern.subject}</p>
+          <p><strong>Message:</strong> ${concern.message}</p>
+          <p><strong>Date:</strong> ${new Date(
+            concern.createdAt
+          ).toLocaleString()}</p>
+          <p><strong>Status:</strong> 
+            <select id="concernStatus">
+              <option value="new" ${
+                concern.status === "new" ? "selected" : ""
+              }>New</option>
+              <option value="in-progress" ${
+                concern.status === "in-progress" ? "selected" : ""
+              }>In Progress</option>
+              <option value="resolved" ${
+                concern.status === "resolved" ? "selected" : ""
+              }>Resolved</option>
+            </select>
+          </p>
+          <button id="updateStatus">Update Status</button>
+          <button id="replyButton">Reply</button>
+          <button id="closeModal">Close</button>
+      `;
+        modal.style.display = "block";
+
+        // Close modal
+        document.getElementById("closeModal").onclick = () => {
+          modal.style.display = "none";
+        };
+
+        // Update Status
+        document.getElementById("updateStatus").onclick = async () => {
+          const newStatus = document.getElementById("concernStatus").value;
+          try {
+            const response = await fetch(
+              `/updateConcernStatus/${concern._id}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ status: newStatus }),
+              }
+            );
+            const result = await response.json();
+            if (result.success) {
+              showCustomAlert("Concern status updated successfully");
+              modal.style.display = "none";
+              loadConcerns(concernsPage);
+            } else {
+              showCustomAlert("Failed to update concern status");
+            }
+          } catch (error) {
+            console.error("Error updating concern status:", error);
+            showCustomAlert("Error updating concern status");
+          }
+        };
+
+        // Ensure this function is called when the "Reply" button is clicked
+        document
+          .getElementById("replyButton")
+          .addEventListener("click", function () {
+            // Find the popup element
+            const popup = document.getElementById("adminPopup");
+
+            if (!popup) {
+              console.error("Popup element not found!");
+              return;
+            }
+
+            // Display the popup
+            popup.style.display = "block";
+
+            // Pre-fill the subject with a response to the concern's subject
+            document.getElementById("subject").value = `Re: ${concern.subject}`;
+
+            // Close the popup when the 'Cancel' button is clicked
+            document
+              .getElementById("closePopup")
+              .addEventListener("click", function () {
+                popup.style.display = "none";
+              });
+
+            // Handle the form submission
+            document.getElementById("adminForm").onsubmit = async function (e) {
+              e.preventDefault();
+              const subject = document.getElementById("subject").value;
+              const message = document.getElementById("message").value;
+              const fileInput = document.getElementById("fileInput").files[0];
+
               try {
-                const response = await fetch(`/updateConcernStatus/${concern._id}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ status: newStatus }),
+                const formData = new FormData();
+                formData.append("subject", subject);
+                formData.append("message", message);
+                if (fileInput) {
+                  formData.append("attachment", fileInput);
+                }
+
+                const response = await fetch("/sendReply", {
+                  method: "POST",
+                  body: formData,
                 });
+
                 const result = await response.json();
                 if (result.success) {
-                  showCustomAlert('Concern status updated successfully');
-                  modal.style.display = 'none';
-                  loadConcerns(concernsPage); // Reload concerns
+                  showCustomAlert("Reply sent successfully!");
+                  popup.style.display = "none";
+                  // Optional: You can refresh the concern modal or load concerns again
+                  loadConcerns(concernsPage);
                 } else {
-                  showCustomAlert('Failed to update concern status');
+                  showCustomAlert("Failed to send the reply.");
                 }
               } catch (error) {
-                console.error('Error updating concern status:', error);
-                showCustomAlert('Error updating concern status');
+                console.error("Error sending reply:", error);
+                showCustomAlert("Error sending reply");
               }
             };
+          });
+
+        // Function to close the modal popup when the close button is clicked
+        document.getElementById("closePopup").onclick = function () {
+          document.getElementById("adminPopup").style.display = "none";
+        };
+      }
+
+      async function resolveConcern(concernId) {
+        try {
+          const response = await fetch(`/resolveConcern/${concernId}`, {
+            method: "POST",
+          });
+          const result = await response.json();
+          if (result.success) {
+            showCustomAlert("Concern resolved successfully");
+            document.getElementById("concernModal").style.display = "none";
+            loadConcerns(concernsPage); // Reload concerns
+          } else {
+            showCustomAlert("Failed to resolve concern");
           }
-          
-          async function resolveConcern(concernId) {
-            try {
-                const response = await fetch(`/resolveConcern/${concernId}`, { method: 'POST' });
-                const result = await response.json();
-                if (result.success) {
-                    showCustomAlert('Concern resolved successfully');
-                    document.getElementById('concernModal').style.display = 'none';
-                    loadConcerns(concernsPage); // Reload concerns
-                } else {
-                    showCustomAlert('Failed to resolve concern');
-                }
-            } catch (error) {
-                console.error('Error resolving concern:', error);
-                showCustomAlert('Error resolving concern');
-            }
-          }
-          let currentPage = 1;
-          let totalPages = 1;
-          
+        } catch (error) {
+          console.error("Error resolving concern:", error);
+          showCustomAlert("Error resolving concern");
+        }
+      }
+      let currentPage = 1;
+      let totalPages = 1;
 
-          async function loadRecentActivity(page = 1) {
-            if (page < 1 || page > totalPages) return;
+      async function loadRecentActivity(page = 1) {
+        if (page < 1 || page > totalPages) return;
 
-            try {
-              const response = await fetch(`/getRecentActivity?page=${page}`);
-              const data = await response.json();
+        try {
+          const response = await fetch(`/getRecentActivity?page=${page}`);
+          const data = await response.json();
 
-              totalPages = data.totalPages;
-              currentPage = data.currentPage;
+          totalPages = data.totalPages;
+          currentPage = data.currentPage;
 
-              const recentActivityBox = document.getElementById('recent-activity-box');
-              
-              recentActivityBox.innerHTML = data.activities.map(activity => {
-                // Map action to descriptive text
-                let actionDescription;
-                switch (activity.action) {
-                  case 'profileUpdate':
-                    actionDescription = 'Homeowner Profile Updated';
-                    break;
-                  case 'homeownerUpdate':
-                    actionDescription = 'Homeowner Updated';
-                    break;
-                  case 'eventApproval': 
-                    actionDescription = 'Event Approved';
-                    break;
-                  case 'eventDisapproval': 
-                    actionDescription = 'Event Disapproved';
-                    break;
-                  // Add more cases as needed
-                  default:
-                    actionDescription = activity.action; // Use the raw action as fallback
-                }
+          const recentActivityBox = document.getElementById(
+            "recent-activity-box"
+          );
 
-                return `
+          recentActivityBox.innerHTML = data.activities
+            .map((activity) => {
+              // Map action to descriptive text
+              let actionDescription;
+              switch (activity.action) {
+                case "profileUpdate":
+                  actionDescription = "Homeowner Profile Updated";
+                  break;
+                case "homeownerUpdate":
+                  actionDescription = "Homeowner Updated";
+                  break;
+                case "eventApproval":
+                  actionDescription = "Event Approved";
+                  break;
+                case "eventDisapproval":
+                  actionDescription = "Event Disapproved";
+                  break;
+                case "replySent":
+                  actionDescription = "Reply Sent"; // For replies
+                  break;
+                // Add more cases as needed
+                default:
+                  actionDescription = activity.action; // Use the raw action as fallback
+              }
+
+              return `
                   <div class="activity-item">
-                    <p>${actionDescription}: <span style="color: #AF2630; text-decoration: underline;">${activity.details}</span></p>
-                    <small>${new Date(activity.timestamp).toLocaleString()}</small>
+                    <p>${actionDescription}: <span style="color: #AF2630; text-decoration: underline;">${
+                activity.details
+              }</span></p>
+                    <small>${new Date(
+                      activity.timestamp
+                    ).toLocaleString()}</small>
                   </div>
                 `;
-              }).join('');
+            })
+            .join("");
 
+          updatePagination("activity", data.currentPage, data.totalPages);
+        } catch (error) {
+          console.error("Error loading recent activity:", error);
+        }
+      }
 
-              updatePagination('activity', data.currentPage, data.totalPages);
-            } catch (error) {
-              console.error('Error loading recent activity:', error);
-            }
-          }
+      async function loadUpcomingEvents(page = 1) {
+        try {
+          const response = await fetch(`/getUpcomingEvents?page=${page}`);
+          const data = await response.json();
 
-                async function loadUpcomingEvents(page = 1) {
-                  try {
-                      const response = await fetch(`/getUpcomingEvents?page=${page}`);
-                      const data = await response.json();
+          const eventsBox = document.getElementById("upcoming-events-box");
+          eventsBox.innerHTML = "";
 
-                      const eventsBox = document.getElementById('upcoming-events-box');
-                      eventsBox.innerHTML = '';
-
-                      data.events.forEach(event => {
-                          const eventItem = document.createElement('div');
-                          eventItem.className = 'event-item';
-                          eventItem.innerHTML = `
+          data.events.forEach((event) => {
+            const eventItem = document.createElement("div");
+            eventItem.className = "event-item";
+            eventItem.innerHTML = `
                               <h3>${event.eventName}</h3>
-                              <p>Date: ${new Date(event.eventDate).toLocaleDateString()}</p>
+                              <p>Date: ${new Date(
+                                event.eventDate
+                              ).toLocaleDateString()}</p>
                               <p>Time: ${event.startTime} - ${event.endTime}</p>
                               <p>Amenity: ${event.amenity}</p>
                           `;
-                          eventsBox.appendChild(eventItem);
-                      });
+            eventsBox.appendChild(eventItem);
+          });
 
-                      updatePagination('events', data.currentPage, data.totalPages);
+          updatePagination("events", data.currentPage, data.totalPages);
 
-                      if (data.events.length === 0) {
-                          eventsBox.innerHTML = '<p>No upcoming events found.</p>';
-                      }
-                  } catch (error) {
-                      console.error('Error loading upcoming events:', error);
-                  }
-              }
-              let currentAmenityIndex = 0;
-              let reservedAmenities = [];
+          if (data.events.length === 0) {
+            eventsBox.innerHTML = "<p>No upcoming events found.</p>";
+          }
+        } catch (error) {
+          console.error("Error loading upcoming events:", error);
+        }
+      }
+      let currentAmenityIndex = 0;
+      let reservedAmenities = [];
 
-              async function loadCurrentlyReservedAmenities() {
-                  try {
-                      const response = await fetch('/getCurrentlyReservedAmenities');
-                      if (!response.ok) {
-                          throw new Error(`HTTP error! status: ${response.status}`);
-                      }
-                      const data = await response.json();
-                      console.log('Received amenities data:', data); // Debug log
+      async function loadCurrentlyReservedAmenities() {
+        try {
+          const response = await fetch("/getCurrentlyReservedAmenities");
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          console.log("Received amenities data:", data); // Debug log
 
-                      if (Array.isArray(data) && data.length > 0) {
-                          reservedAmenities = data;
-                          displayCurrentAmenity();
-                          updateAmenityNavigation();
-                      } else {
-                          const container = document.getElementById('currently-reserved-amenity');
-                          container.innerHTML = `
+          if (Array.isArray(data) && data.length > 0) {
+            reservedAmenities = data;
+            displayCurrentAmenity();
+            updateAmenityNavigation();
+          } else {
+            const container = document.getElementById(
+              "currently-reserved-amenity"
+            );
+            container.innerHTML = `
                             <h2 class="section-title">Currently Reserved Amenity</h2>
                             <p>No amenities are currently reserved for today.</p>
                           `;
-                      }
-                  } catch (error) {
-                      console.error('Error loading currently reserved amenities:', error);
-                      const container = document.getElementById('currently-reserved-amenity');
-                      container.innerHTML = `
+          }
+        } catch (error) {
+          console.error("Error loading currently reserved amenities:", error);
+          const container = document.getElementById(
+            "currently-reserved-amenity"
+          );
+          container.innerHTML = `
                         <h2 class="section-title">Currently Reserved Amenity</h2>
                         <p>Error loading reserved amenities. Please try again later.</p>
                       `;
-                  }
-              }
+        }
+      }
 
-              function displayCurrentAmenity() {
-                const amenity = reservedAmenities[currentAmenityIndex];
-                const imageElement = document.getElementById('amenity-image');
-                const nameElement = document.getElementById('amenity-name');
+      function displayCurrentAmenity() {
+        const amenity = reservedAmenities[currentAmenityIndex];
+        const imageElement = document.getElementById("amenity-image");
+        const nameElement = document.getElementById("amenity-name");
 
-                if (amenity) {
-                  imageElement.onerror = function() {
-                    console.error('Failed to load image:', this.src);
-                    this.src = 'images/placeholder.jpg';
-                  };
-                  
-                  imageElement.src = amenity.imagePath;
-                  imageElement.alt = `${amenity.name} Image`;
-                  nameElement.textContent = amenity.name;
-                  
-                  console.log('Displaying amenity:', amenity);
-                } else {
-                  console.error('No amenity to display');
-                  imageElement.src = 'images/placeholder.jpg';
-                  imageElement.alt = 'No amenity available';
-                  nameElement.textContent = 'No amenity currently reserved';
-                }
-              }
-
-              function updateAmenityNavigation() {
-                  const prevButton = document.getElementById('prev-amenity');
-                  const nextButton = document.getElementById('next-amenity');
-
-                  if (reservedAmenities.length > 1) {
-                      prevButton.style.display = 'block';
-                      nextButton.style.display = 'block';
-
-                      prevButton.onclick = () => {
-                          currentAmenityIndex = (currentAmenityIndex - 1 + reservedAmenities.length) % reservedAmenities.length;
-                          displayCurrentAmenity();
-                      };
-
-                      nextButton.onclick = () => {
-                          currentAmenityIndex = (currentAmenityIndex + 1) % reservedAmenities.length;
-                          displayCurrentAmenity();
-                      };
-                  } else {
-                      prevButton.style.display = 'none';
-                      nextButton.style.display = 'none';
-                  }
-              }
-
-              function updatePagination(section, currentPage, totalPages) {
-                const prevButton = document.getElementById(`prev-${section}`);
-                const nextButton = document.getElementById(`next-${section}`);
-                const pageDisplay = document.getElementById(`${section}-page-display`);
-        
-                prevButton.disabled = currentPage === 1;
-                nextButton.disabled = currentPage === totalPages;
-                pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
-        
-                prevButton.onclick = () => loadSection(section, currentPage - 1);
-                nextButton.onclick = () => loadSection(section, currentPage + 1);
-              }
-        
-              function loadSection(section, page) {
-                switch (section) {
-                  case 'concerns':
-                    concernsPage = page;
-                    loadConcerns(page);
-                    break;
-                  case 'activity':
-                    activityPage = page;
-                    loadRecentActivity(page);
-                    break;
-                  case 'events':
-                    eventsPage = page;
-                    loadUpcomingEvents(page);
-                    break;
-                }
-              }
-
-          window.onload = () => {
-            loadConcerns(concernsPage);
-            loadRecentActivity(activityPage);
-            loadUpcomingEvents(eventsPage);
-            loadCurrentlyReservedAmenities();
+        if (amenity) {
+          imageElement.onerror = function () {
+            console.error("Failed to load image:", this.src);
+            this.src = "images/placeholder.jpg";
           };
 
-          document.getElementById('logoutButton').addEventListener('click', async () => {
-            try {
-                const response = await fetch('/logout', { method: 'POST' });
-                if (response.ok) {
-                    localStorage.clear(); // Clear user data
-                    window.location.href = 'login.html'; // Redirect to the login page
-                } else {
-                    showCustomAlert('Logout failed. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error during logout:', error);
-                showCustomAlert('An error occurred during logout. Please try again.');
+          imageElement.src = amenity.imagePath;
+          imageElement.alt = `${amenity.name} Image`;
+          nameElement.textContent = amenity.name;
+
+          console.log("Displaying amenity:", amenity);
+        } else {
+          console.error("No amenity to display");
+          imageElement.src = "images/placeholder.jpg";
+          imageElement.alt = "No amenity available";
+          nameElement.textContent = "No amenity currently reserved";
+        }
+      }
+
+      function updateAmenityNavigation() {
+        const prevButton = document.getElementById("prev-amenity");
+        const nextButton = document.getElementById("next-amenity");
+
+        if (reservedAmenities.length > 1) {
+          prevButton.style.display = "block";
+          nextButton.style.display = "block";
+
+          prevButton.onclick = () => {
+            currentAmenityIndex =
+              (currentAmenityIndex - 1 + reservedAmenities.length) %
+              reservedAmenities.length;
+            displayCurrentAmenity();
+          };
+
+          nextButton.onclick = () => {
+            currentAmenityIndex =
+              (currentAmenityIndex + 1) % reservedAmenities.length;
+            displayCurrentAmenity();
+          };
+        } else {
+          prevButton.style.display = "none";
+          nextButton.style.display = "none";
+        }
+      }
+
+      function updatePagination(section, currentPage, totalPages) {
+        const prevButton = document.getElementById(`prev-${section}`);
+        const nextButton = document.getElementById(`next-${section}`);
+        const pageDisplay = document.getElementById(`${section}-page-display`);
+
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage === totalPages;
+        pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        prevButton.onclick = () => loadSection(section, currentPage - 1);
+        nextButton.onclick = () => loadSection(section, currentPage + 1);
+      }
+
+      function loadSection(section, page) {
+        switch (section) {
+          case "concerns":
+            concernsPage = page;
+            loadConcerns(page);
+            break;
+          case "activity":
+            activityPage = page;
+            loadRecentActivity(page);
+            break;
+          case "events":
+            eventsPage = page;
+            loadUpcomingEvents(page);
+            break;
+        }
+      }
+
+      window.onload = () => {
+        loadConcerns(concernsPage);
+        loadRecentActivity(activityPage);
+        loadUpcomingEvents(eventsPage);
+        loadCurrentlyReservedAmenities();
+      };
+
+      document
+        .getElementById("logoutButton")
+        .addEventListener("click", async () => {
+          try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
+            } else {
+              showCustomAlert("Logout failed. Please try again.");
             }
-          });
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert(
+              "An error occurred during logout. Please try again."
+            );
+          }
+        });
 
-          function showCustomAlert(message) {
-            const alertElement = document.getElementById('customAlert');
-            const messageElement = document.getElementById('customAlertMessage');
-            messageElement.textContent = message;
-            alertElement.style.display = 'block';
-        }
+      function showCustomAlert(message) {
+        const alertElement = document.getElementById("customAlert");
+        const messageElement = document.getElementById("customAlertMessage");
+        messageElement.textContent = message;
+        alertElement.style.display = "block";
+      }
 
-        function closeCustomAlert() {
-            const alertElement = document.getElementById('customAlert');
-            alertElement.style.display = 'none';
-        }
-        </script>
-        <div id="concernModal" class="modal">
-          <div id="modalContent" class="modal-content">
-            <!-- Modal content will be dynamically inserted here -->
-          </div>
+      function closeCustomAlert() {
+        const alertElement = document.getElementById("customAlert");
+        alertElement.style.display = "none";
+      }
+    </script>
+    <div id="concernModal" class="modal">
+      <div id="modalContent" class="modal-content">
+        <!-- Modal content will be dynamically inserted here -->
+      </div>
+    </div>
+    <div id="customAlert" class="custom-alert">
+      <div class="custom-alert-content">
+        <div class="custom-alert-header">Notice</div>
+        <div class="custom-alert-body">
+          <p id="customAlertMessage"></p>
+          <button onclick="closeCustomAlert()">OK</button>
         </div>
-        <div id="customAlert" class="custom-alert">
-            <div class="custom-alert-content">
-                <div class="custom-alert-header">Notice</div>
-                <div class="custom-alert-body">
-                    <p id="customAlertMessage"></p>
-                    <button onclick="closeCustomAlert()">OK</button>
-                </div>
-            </div>
-        </div>
-      </body>
-      </html>
-
+      </div>
+    </div>
+  </body>
+</html>

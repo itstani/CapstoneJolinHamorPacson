@@ -1153,3 +1153,33 @@ app.post('/updateUserDetails', async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+
+// CONCERN REPLY-----------------------------------------------
+// Handle form submission
+app.post("/sendReply", upload.single("attachment"), async (req, res) => {
+  const { subject, message } = req.body;
+  const attachment = req.file ? req.file.filename : null;
+
+  // Validate inputs
+  if (!subject || !message) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Subject and message are required" });
+  }
+
+  // Simulate saving to the database (replace with actual DB logic)
+  console.log("Reply data:", { subject, message, attachment });
+
+  // Log the reply activity
+  try {
+    await logActivity("replySent", `Reply to concern: ${subject}`);
+
+    // Send a success response
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error saving activity:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to record activity" });
+  }
+});
