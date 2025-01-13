@@ -9,6 +9,7 @@
       const fs = require('fs');
       const { ObjectId } = require('mongodb');
       const { MongoClient, ServerApiVersion } = require("mongodb");
+      const schedule = require('node-schedule');
 
 
       const app = express();
@@ -483,17 +484,182 @@
 
           
           
-      app.get('/approved-events', async (req, res, next) => {
-        try {
-            const db = await connectToDatabase();
-            const eventsCollection = db.collection('aevents');
-            const events = await eventsCollection.find({ status: 'approved' }).toArray();
-            res.json({ success: true, events });
-        } catch (error) {
-            next(error);
+          app.get('/approved-events', async (req, res) => {
+            try {
+                const db = await connectToDatabase();
+                const aeventsCollection = db.collection('aevents');
+                const eventpaymentsCollection = db.collection('eventpayments');
+        
+                const approvedEvents = await aeventsCollection.find().toArray();
+                const eventPayments = await eventpaymentsCollection.find().toArray();
+        
+                // Create a map of paid events for faster lookup
+                const paidEventsMap = new Map(
+                    eventPayments.map(payment => [payment.eventName, true])
+                );
+        
+                // Add payment status to each event
+                const eventsWithPaymentStatus = approvedEvents.map(event => ({
+                    ...event,
+                    isPaid: paidEventsMap.has(event.eventName)
+                }));
+        
+                res.json({ success: true, events: eventsWithPaymentStatus });
+            } catch (error) {
+                console.error('Error fetching approved events:', error);
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Error fetching approved events' 
+                });
+            }
+        });
+        
+        // Add new function to check and delete unpaid events
+        async function checkAndDeleteUnpaidEvents() {
+            try {
+                const db = await connectToDatabase();
+                const aeventsCollection = db.collection('aevents');
+                const eventpaymentsCollection = db.collection('eventpayments');
+                const notificationsCollection = db.collection('notifications');
+        
+                // Get all approved events
+                const approvedEvents = await aeventsCollection.find().toArray();
+                const eventPayments = await eventpaymentsCollection.find().toArray();
+                const paidEventsMap = new Map(
+                    eventPayments.map(payment => [payment.eventName, true])
+                );
+        
+                // Check each event
+                for (const event of approvedEvents) {
+                    if (!paidEventsMap.has(event.eventName)) {
+                        const eventDate = new Date(event.approvedAt);
+                        const threeDaysAgo = new Date();
+                        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        
+                        // If event is older than 3 days and unpaid
+                        if (eventDate < threeDaysAgo) {
+                            // Delete the event
+                            await aeventsCollection.deleteOne({ _id: event._id });
+        
+                            // Create notification for the user
+                            await createNotification(
+                                event.userEmail,
+                                'event_deleted',
+                                `Your event "${event.eventName}" has been automatically cancelled due to pending payment for more than 3 days.`,
+                                event._id
+                            );
+        
+                            // Log the activity
+                            await logActivity(
+                                'eventAutoCancelled',
+                                `Event ${event.eventName} was automatically cancelled due to pending payment`
+                            );
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error in checkAndDeleteUnpaidEvents:', error);
+            }
         }
+        
+        // Schedule the check to run daily at midnight
+        schedule.scheduleJob('0 0 * * *', checkAndDeleteUnpaidEvents);
+
+        app.post('/update-payment-status', async (req, res) => {
+          try {
+              const { eventName, isPaid } = req.body;
+              const db = await connectToDatabase();
+              const eventpaymentsCollection = db.collection('eventpayments');
+              const aeventsCollection = db.collection('aevents');
+      
+              // Find the event first
+              const event = await aeventsCollection.findOne({ eventName });
+      
+              if (!event) {
+                  return res.status(404).json({
+                      success: false,
+                      message: 'Event not found'
+                  });
+              }
+      
+              if (isPaid) {
+                  // Add to eventpayments collection
+                  await eventpaymentsCollection.insertOne({
+                      eventName,
+                      paidAt: new Date(),
+                      eventId: event._id,
+                      userEmail: event.userEmail
+                  });
+      
+                  // Create notification for payment confirmation
+                  await createNotification(
+                      event.userEmail,
+                      'payment_confirmed',
+                      `Payment confirmed for your event "${eventName}"`,
+                      event._id
+                  );
+              } else {
+                  // Remove from eventpayments collection
+                  await eventpaymentsCollection.deleteOne({ eventName });
+              }
+      
+              await logActivity(
+                  isPaid ? 'paymentConfirmed' : 'paymentRemoved',
+                  `Payment status updated for event ${eventName}`
+              );
+      
+              res.json({
+                  success: true,
+                  message: 'Payment status updated successfully'
+              });
+          } catch (error) {
+              console.error('Error updating payment status:', error);
+              res.status(500).json({
+                  success: false,
+                  message: 'Error updating payment status'
+              });
+          }
       });
         
+        // Add this after your existing createNotification function
+        async function createNotification(userEmail, type, message, relatedId) {
+            try {
+                const db = await connectToDatabase();
+                const notificationsCollection = db.collection('notifications');
+                
+                await notificationsCollection.insertOne({
+                    userEmail,
+                    type,
+                    message,
+                    relatedId,
+                    timestamp: new Date(),
+                    read: false
+                });
+            } catch (error) {
+                console.error('Error creating notification:', error);
+            }
+        }
+        
+          app.post('/update-payment-status', async (req, res) => {
+            try {
+              const { eventName, isPaid } = req.body;
+              const db = await connectToDatabase();
+              const eventpaymentsCollection = db.collection('eventpayments');
+          
+              if (isPaid) {
+                // If marked as paid, add to eventpayments collection
+                await eventpaymentsCollection.insertOne({ eventName, paidAt: new Date() });
+              } else {
+                // If marked as unpaid, remove from eventpayments collection
+                await eventpaymentsCollection.deleteOne({ eventName });
+              }
+          
+              res.json({ success: true, message: 'Payment status updated successfully' });
+            } catch (error) {
+              console.error('Error updating payment status:', error);
+              res.status(500).json({ success: false, message: 'Error updating payment status' });
+            }
+          });
           
 
       app.post('/logout', (req, res) => {
@@ -572,8 +738,8 @@
       app.get('/pending-events', async (req, res) => {
         try {
           const db = await connectToDatabase();
-          const eventpaymentsCollection = db.collection('eventpayments');
-          const pendingEvents = await eventpaymentsCollection.find({ status: { $ne: 'approved' } }).toArray();
+          const eventsCollection = db.collection('events');
+          const pendingEvents = await eventsCollection.find({ status: 'pending' }).toArray();
           res.json({ success: true, events: pendingEvents });
         } catch (error) {
           console.error('Error fetching pending events:', error);
@@ -587,7 +753,6 @@
       
         try {
           const db = await connectToDatabase();
-          const eventpaymentsCollection = db.collection('eventpayments');
           const eventsCollection = db.collection('events');
           const aeventsCollection = db.collection('aevents');
       
@@ -597,23 +762,18 @@
             const approvedAt = new Date();
             const approvedEvent = await aeventsCollection.insertOne({ ...event, status: 'approved', approvedAt });
             await eventsCollection.deleteOne({ eventName });
-            await eventpaymentsCollection.updateOne(
-              { eventName: event.eventName },
-              { $set: { status: 'approved', approvedAt } }
-            );
-            await logActivity('eventApproval', `Event ${eventName} approved`);
       
             // Create a notification for the event approval
             await createNotification(
-              event.userEmail, // Use userEmail instead of hostName
+              event.userEmail,
               'event',
-              `Your event "${event.eventName}" has been approved!`,
+              `Your event "${event.eventName}" has been approved. Please proceed with the payment.`,
               approvedEvent.insertedId
             );
       
-            res.json({ success: true, message: 'Event approved and moved to approved events.' });
+            res.json({ success: true, message: 'Event approved. User notified for payment.' });
           } else {
-            res.status(404).json({ success: false, message: 'Event not found in events collection.' });
+            res.status(404).json({ success: false, message: 'Event not found.' });
           }
         } catch (error) {
           console.error('Error approving event:', error);
@@ -700,6 +860,23 @@
                 });
             }
         } catch (error) {
+            console.error('Error fetching receipt image or event details:', error);
+            res.status(500).json({ success: false, message: 'Server error' });
+        }
+      });
+
+      app.get('/eventshow', async (req, res) => {
+        const { eventName, eventDate } = req.query;
+
+        try {
+            const eventsCollection = req.db.collection('events');
+
+            // Fetch from `events` collection
+            const eventDetails = await eventsCollection.findOne({ eventName, eventDate });
+
+          
+            }
+         catch (error) {
             console.error('Error fetching receipt image or event details:', error);
             res.status(500).json({ success: false, message: 'Server error' });
         }
@@ -948,6 +1125,26 @@
           res.status(500).json({ success: false, message: 'Server error' });
         }
       });
+
+      app.get('/api/event/:eventId', async (req, res) => {
+        const { eventId } = req.params;
+    
+        try {
+            const db = await connectToDatabase();
+            const aeventsCollection = db.collection('aevents');
+    
+            const event = await aeventsCollection.findOne({ _id: new ObjectId(eventId) });
+    
+            if (event) {
+                res.json({ success: true, event });
+            } else {
+                res.status(404).json({ success: false, message: 'Event not found' });
+            }
+        } catch (error) {
+            console.error('Error fetching event details:', error);
+            res.status(500).json({ success: false, message: 'Server error while fetching event details' });
+        }
+    });
 
       app.get('/api/notifications', async (req, res) => {
         try {

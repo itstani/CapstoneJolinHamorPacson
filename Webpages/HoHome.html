@@ -267,50 +267,13 @@
         }
  
         .notification-item {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-        background-color: white;
-        color: #333;
-        margin-bottom: 8px;
-        border-radius: 4px;
-      }
- 
-      .notification-timestamp {
-        font-size: 12px;
-        color: #666;
-        margin-top: 5px;
-      }
- 
-      .no-notifications {
-        text-align: center;
-        padding: 20px;
-        color: white;
-        font-size: 16px;
-      }
- 
-      .notification-list {
-        max-height: 300px;
-        overflow-y: auto;
-        padding: 10px;
-      }
-        .notification-item:last-child {
-            border-bottom: none;
-        }
- 
-        .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-            font-size: 20px;
-        }
-        .notification-actions {
+            /* ... (keep existing styles) ... */
             display: flex;
-            justify-content: flex-end;
-            padding: 10px;
+            justify-content: space-between;
+            align-items: center;
         }
-        .clear-all-btn {
-            background-color: #ff4d4d;
+        .proceed-to-payment-btn {
+            background-color: #28a745;
             color: white;
             border: none;
             padding: 5px 10px;
@@ -318,14 +281,183 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        .clear-all-btn:hover {
-            background-color: #ff3333;
+        .proceed-to-payment-btn:hover {
+            background-color: #218838;
         }
-        .clear-all-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #AF2630;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            max-width: 80%;
+            width: 400px;
+            color: white;
         }
- 
+
+        .notification-modal h2 {
+            margin: 0 0 20px 0;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .notification-item {
+            /* ... (keep existing styles) ... */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .proceed-to-payment-btn {
+            background-color: #FFB6C1; /* Light pink */
+            color: #333; /* Darker text for better contrast */
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .proceed-to-payment-btn:hover {
+            background-color: #FFC0CB; /* Slightly different pink on hover */
+        }
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #AF2630;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            max-width: 80%;
+            width: 600px; /* Increased from 400px */
+            color: white;
+        }
+
+        .notification-modal h2 {
+            margin: 0 0 20px 0;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .notification-item {
+            background-color: #af2630;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center; /* Changed from flex-start */
+            gap: 12px;
+        }
+
+        .notification-checkbox {
+            margin: 0; /* Remove top margin */
+        }
+
+        .notification-content {
+            flex-grow: 1;
+            background-color: white;
+            border: white;
+            border-radius: 5px;
+        }
+
+        .notification-message {
+            color: #af2630;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .notification-timestamp {
+            color: #AF2630;
+            font-size: 12px;
+        }
+
+        .proceed-to-payment-btn {
+            background-color: #FFB6C1; /* Light pink */
+            color: black; /* Darker text for better contrast */
+            font-weight: bold;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.2;
+        }
+
+        .proceed-to-payment-btn:hover {
+            background-color: #FFC0CB; /* Slightly different pink on hover */
+        }
+
+        .notification-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .clear-btn {
+            background-color: white;
+            color: #333;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .clear-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .no-notifications {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .close-modal:hover {
+            opacity: 0.8;
+        }
+        
     </style>
   </head>
   <body>
@@ -434,18 +566,20 @@
           </div>
       </div>
   </div>
-    <div class="notification-icon" id="notificationIcon">
-      <img src="images/bell.png" alt="Notifications" />
-      <span class="notification-count" id="notificationCount">0</span>
-    </div>
- 
+  <div class="notification-icon" id="notificationIcon">
+    <img src="images/bell.png" alt="Notifications" />
+    <span class="notification-count" id="notificationCount">0</span>
+  </div>
+
   <div class="notification-modal" id="notificationModal">
-      <span class="close-modal" id="closeModal">&times;</span>
-      <h2 style="color: white;">Notifications</h2>
-      <div class="notification-list" id="notificationList"></div>
-      <div class="clear-all" id="clearAllBtn">
-        <button>Clear all</button>>
-      </div>
+    <span class="close-modal" id="closeModal">&times;</span>
+    <h2 style="color: white;">Notifications</h2>
+    <div class="notification-list" id="notificationList"></div>
+    <div class="notification-actions">
+      <button id="clearSelectedBtn" class="clear-btn">Clear Selected</button>
+      <button id="clearAllBtn" class="clear-btn">Clear All</button>
+    </div>
+  </div>
   </div>
   </body>
   <script>
@@ -560,34 +694,20 @@
 });
 
 
-//---------------------------------file select
-
-
-
-    document.getElementById("logout-button").addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST" });
-      window.location.href = "/login.html"; 
-  });
-
- 
-    document.getElementById('logoutButton').addEventListener('click', async () => {
-                try {
-                    const response = await fetch('/logout', { method: 'POST' });
-                    if (response.ok) {
-                        localStorage.clear(); // Clear user data
-                        window.location.href = 'login.html'; // Redirect to the login page
-                    } else {
-                        showCustomAlert('Logout failed. Please try again.');
-                    }
-                } catch (error) {
-                    console.error('Error during logout:', error);
-                    showCustomAlert('An error occurred during logout. Please try again.');
+document.getElementById('logoutButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    localStorage.clear(); // Clear user data
+                    window.location.href = 'login.html'; // Redirect to the login page
+                } else {
+                    showCustomAlert('Logout failed. Please try again.');
                 }
-              });
- 
- 
- 
- 
+            } catch (error) {
+                console.error('Error during logout:', error);
+                showCustomAlert('An error occurred during logout. Please try again.');
+            }
+          });
  
  
  
@@ -599,166 +719,202 @@
               }
  
               let notifications = [];
-              const notificationIcon = document.getElementById('notificationIcon');
-              const notificationModal = document.getElementById('notificationModal');
-              const closeModal = document.getElementById('closeModal');
-              const notificationList = document.getElementById('notificationList');
-              const notificationCount = document.getElementById('notificationCount');
-              const clearAllBtn = document.getElementById('clearAllBtn');
- 
-              notificationIcon.addEventListener('click', () => {
-                  notificationModal.style.display = 'block';
-                  updateNotificationList();
-              });
- 
-              closeModal.addEventListener('click', () => {
-                  notificationModal.style.display = 'none';
-              });
- 
-              async function fetchNotifications() {
-                  try {
-                     
-                      const response = await fetch('/api/notifications', {
-                          credentials: 'include'
-                      });
- 
-                  
- 
-                      if (!response.ok) {
-                          throw new Error(`HTTP error! status: ${response.status}`);
-                      }
- 
-                      const data = await response.json();
-                     
- 
-                      if (data.success) {
-                          notifications = data.notifications || [];
-                          notificationCount.textContent = data.unreadCount || '0';
-                          updateNotificationList();
-                          updateClearAllButton();
-                      } else {
-                          console.error('Failed to fetch notifications:', data.error);
-                          notifications = [];
-                          notificationCount.textContent = '0';
-                          updateNotificationList();
-                          updateClearAllButton();
-                      }
-                  } catch (error) {
-                      console.error('Error fetching notifications:', error);
-                      notifications = [];
-                      notificationCount.textContent = '0';
-                      updateNotificationList();
-                      updateClearAllButton();
-                  }
-              }
- 
-              function updateNotificationList() {
-                  notificationList.innerHTML = '';
- 
-                  if (notifications.length === 0) {
-                      const noNotificationsDiv = document.createElement('div');
-                      noNotificationsDiv.className = 'no-notifications';
-                      noNotificationsDiv.textContent = 'No notifications';
-                      notificationList.appendChild(noNotificationsDiv);
-                      return;
-                  }
- 
-                  notifications.forEach(notification => {
-                      const notificationItem = document.createElement('div');
-                      notificationItem.className = 'notification-item';
-                      notificationItem.dataset.id = notification._id;
- 
-                      const message = document.createElement('div');
-                      message.className = 'notification-message';
-                      message.textContent = notification.message;
- 
-                      const timestamp = document.createElement('div');
-                      timestamp.className = 'notification-timestamp';
-                      timestamp.textContent = new Date(notification.timestamp).toLocaleString();
- 
-                      notificationItem.appendChild(message);
-                      notificationItem.appendChild(timestamp);
-                      notificationList.appendChild(notificationItem);
- 
-                      notificationItem.addEventListener('click', () => markAsRead(notification._id));
-                  });
-              }
- 
-              function updateClearAllButton() {
-                  clearAllBtn.disabled = notifications.length === 0;
-              }
- 
-              async function markAsRead(notificationId) {
-                  try {
-                      const response = await fetch('/api/markNotificationsAsRead', {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({ notificationIds: [notificationId] }),
-                          credentials: 'include'
-                      });
- 
-                      if (response.ok) {
-                          const result = await response.json();
-                          if (result.success) {
-                              // Remove the notification from the list and update the count
-                              notifications = notifications.filter(n => n._id !== notificationId);
-                              notificationCount.textContent = notifications.length;
-                              updateNotificationList();
-                              updateClearAllButton();
-                          }
-                      }
-                  } catch (error) {
-                      console.error('Error marking notification as read:', error);
-                  }
-              }
- 
-              async function clearAllNotifications() {
-                  try {
-                      const response = await fetch('/api/clearAllNotifications', {
-                          method: 'POST',
-                          credentials: 'include'
-                      });
- 
-                      if (response.ok) {
-                          const result = await response.json();
-                          if (result.success) {
-                              notifications = [];
-                              notificationCount.textContent = '0';
-                              updateNotificationList();
-                              updateClearAllButton();
-                          }
-                      }
-                  } catch (error) {
-                      console.error('Error clearing all notifications:', error);
-                  }
-              }
- 
-              notificationIcon.addEventListener('click', () => {
-                  notificationModal.style.display = 'block';
-                  updateNotificationList();
-              });
- 
-              closeModal.addEventListener('click', () => {
-                  notificationModal.style.display = 'none';
-              });
- 
-              clearAllBtn.addEventListener('click', clearAllNotifications);
- 
-              // Initialize notifications
-              document.addEventListener('DOMContentLoaded', () => {
-                
-                  fetchNotifications();
-                  // Fetch notifications every 30 seconds
-                  setInterval(fetchNotifications, 30000);
-              });
- 
-              // Close modal when clicking outside
-              window.addEventListener('click', (event) => {
-                  if (event.target === notificationModal) {
-                      notificationModal.style.display = 'none';
-                  }
-              });
+      const notificationIcon = document.getElementById('notificationIcon');
+      const notificationModal = document.getElementById('notificationModal');
+      const closeModal = document.getElementById('closeModal');
+      const notificationList = document.getElementById('notificationList');
+      const notificationCount = document.getElementById('notificationCount');
+      const clearSelectedBtn = document.getElementById('clearSelectedBtn');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+
+      notificationIcon.addEventListener('click', () => {
+        notificationModal.style.display = 'block';
+        updateNotificationList();
+      });
+
+      closeModal.addEventListener('click', () => {
+        notificationModal.style.display = 'none';
+      });
+
+      async function fetchNotifications() {
+        try {
+          const response = await fetch('/api/notifications', {
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.success) {
+            notifications = data.notifications || [];
+            notificationCount.textContent = data.unreadCount || '0';
+            updateNotificationList();
+            updateClearButtons();
+          } else {
+            console.error('Failed to fetch notifications:', data.error);
+            notifications = [];
+            notificationCount.textContent = '0';
+            updateNotificationList();
+            updateClearButtons();
+          }
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+          notifications = [];
+          notificationCount.textContent = '0';
+          updateNotificationList();
+          updateClearButtons();
+        }
+      }
+
+      function updateNotificationList() {
+        notificationList.innerHTML = '';
+
+        if (notifications.length === 0) {
+          const noNotificationsDiv = document.createElement('div');
+          noNotificationsDiv.className = 'no-notifications';
+          noNotificationsDiv.textContent = 'No notifications';
+          notificationList.appendChild(noNotificationsDiv);
+          return;
+        }
+
+        notifications.forEach(notification => {
+          const notificationItem = document.createElement('div');
+          notificationItem.className = 'notification-item';
+          notificationItem.dataset.id = notification._id;
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'notification-checkbox';
+          checkbox.dataset.id = notification._id;
+
+          const contentWrapper = document.createElement('div');
+          contentWrapper.className = 'notification-content';
+
+          const message = document.createElement('div');
+          message.className = 'notification-message';
+          message.textContent = notification.message;
+
+          const timestamp = document.createElement('div');
+          timestamp.className = 'notification-timestamp';
+          timestamp.textContent = new Date(notification.timestamp).toLocaleString();
+
+          contentWrapper.appendChild(message);
+          contentWrapper.appendChild(timestamp);
+
+          const proceedButton = document.createElement('button');
+          proceedButton.className = 'proceed-to-payment-btn';
+          proceedButton.textContent = 'Proceed to Payment';
+          proceedButton.addEventListener('click', () => proceedToPayment(notification));
+
+          notificationItem.appendChild(checkbox);
+          notificationItem.appendChild(contentWrapper);
+          notificationItem.appendChild(proceedButton);
+          notificationList.appendChild(notificationItem);
+        });
+      }
+
+      function updateClearButtons() {
+        clearSelectedBtn.disabled = notifications.length === 0;
+        clearAllBtn.disabled = notifications.length === 0;
+      }
+
+      async function clearSelectedNotifications() {
+        const selectedIds = Array.from(document.querySelectorAll('.notification-checkbox:checked'))
+          .map(checkbox => checkbox.dataset.id);
+
+        if (selectedIds.length === 0) {
+          alert('No notifications selected');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/markNotificationsAsRead', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ notificationIds: selectedIds }),
+            credentials: 'include'
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              notifications = notifications.filter(n => !selectedIds.includes(n._id));
+              notificationCount.textContent = notifications.length;
+              updateNotificationList();
+              updateClearButtons();
+            }
+          }
+        } catch (error) {
+          console.error('Error clearing selected notifications:', error);
+        }
+      }
+
+      async function clearAllNotifications() {
+        try {
+          const response = await fetch('/api/clearAllNotifications', {
+            method: 'POST',
+            credentials: 'include'
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              notifications = [];
+              notificationCount.textContent = '0';
+              updateNotificationList();
+              updateClearButtons();
+            }
+          }
+        } catch (error) {
+          console.error('Error clearing all notifications:', error);
+        }
+      }
+
+      clearSelectedBtn.addEventListener('click', clearSelectedNotifications);
+      clearAllBtn.addEventListener('click', clearAllNotifications);
+
+      function proceedToPayment(notification) {
+        // Assuming the notification contains the eventId
+        const eventId = notification.relatedId;
+
+        // Fetch the event details
+        fetch(`/api/event/${eventId}`)
+          .then(response => response.json())
+          .then(eventData => {
+            if (eventData.success) {
+              // Store the event data in sessionStorage
+              sessionStorage.setItem('eventData', JSON.stringify(eventData.event));
+              // Redirect to the eventfin.html page
+              window.location.href = 'eventfin.html';
+            } else {
+              console.error('Failed to fetch event details:', eventData.message);
+              alert('Failed to fetch event details. Please try again.');
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching event details:', error);
+            alert('An error occurred. Please try again.');
+          });
+      }
+
+
+      // Initialize notifications
+      document.addEventListener('DOMContentLoaded', () => {
+        fetchNotifications();
+        // Fetch notifications every 30 seconds
+        setInterval(fetchNotifications, 30000);
+      });
+
+      // Close modal when clicking outside
+      window.addEventListener('click', (event) => {
+        if (event.target === notificationModal) {
+          notificationModal.style.display = 'none';
+        }
+      });
   </script>
 </html>

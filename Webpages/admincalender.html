@@ -171,16 +171,23 @@
         }
 
         .event-bar {
-            background-color: #AF2630;
-            color: white;
-            border-radius: 4px;
-            padding: 2px 5px;
-            font-size: 0.8rem;
-            margin-top: 2px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        background-color: #AF2630; /* Default red color for paid events */
+        color: white;
+        border-radius: 4px;
+        padding: 2px 5px;
+        font-size: 0.8rem;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: background-color 0.3s ease;
+    }
+
+    .event-bar.unpaid-event {
+        background-color: #FFB6C1; /* Light pink for unpaid events */
+        color: #AF2630; /* Darker text for better contrast */
+    }
+ 
 
         /* Navigation Buttons */
         .navigation-buttons {
@@ -417,28 +424,6 @@
             daysOfWeekContainer.innerHTML = daysOfWeek.map(day => `<div>${day}</div>`).join('');
         }
 
-        async function fetchApprovedEvents() {
-            try {
-                const response = await fetch('http://localhost:3000/approved-events');
-                const data = await response.json();
-                if (data.success) {
-                    eventsByDate = data.events.reduce((acc, event) => {
-                        const formattedDate = event.eventDate;
-                        acc[formattedDate] = acc[formattedDate] || [];
-                        acc[formattedDate].push({
-                            name: event.eventName,
-                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
-                            amenity: event.amenity
-                        });
-                        return acc;
-                    }, {});
-                } else {
-                    console.error("Failed to fetch events:", data.message);
-                }
-            } catch (error) {
-                console.error("Error fetching events:", error);
-            }
-        }
 
         function formatTime(time) {
             const [hour, minute] = time.split(':');
@@ -448,32 +433,39 @@
         }
 
         function renderCalendar() {
-            const date = new Date(currentYear, currentMonth, 1);
-            monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+        const date = new Date(currentYear, currentMonth, 1);
+        monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-            daysGrid.innerHTML = '';
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const startDay = date.getDay();
+        daysGrid.innerHTML = '';
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const startDay = date.getDay();
 
-            for (let i = 0; i < startDay; i++) {
-                daysGrid.innerHTML += '<div class="day empty"></div>';
-            }
-
-            for (let i = 1; i <= daysInMonth; i++) {
-                const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                const events = eventsByDate[currentDate] || [];
-                const eventHTML = events.map(event => `<div class="event-bar">${event.time}</div>`).join('');
-
-                daysGrid.innerHTML += `
-                    <div class="day" data-date="${currentDate}">
-                        ${i}
-                        ${eventHTML}
-                    </div>
-                `;
-            }
-
-            addDayClickEvents();
+        // Add empty days for the start of the month
+        for (let i = 0; i < startDay; i++) {
+            daysGrid.innerHTML += '<div class="day empty"></div>';
         }
+
+        // Add days with events
+        for (let i = 1; i <= daysInMonth; i++) {
+            const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const events = eventsByDate[currentDate] || [];
+            const eventHTML = events.map(event => `
+                <div class="event-bar ${!event.isPaid ? 'unpaid-event' : ''}" 
+                     title="${event.name} - ${event.time}">
+                    ${event.time}
+                </div>
+            `).join('');
+
+            daysGrid.innerHTML += `
+                <div class="day" data-date="${currentDate}">
+                    ${i}
+                    ${eventHTML}
+                </div>
+            `;
+        }
+
+        addDayClickEvents();
+    }
 
         function addDayClickEvents() {
             document.querySelectorAll('.day:not(.empty)').forEach(day => {
@@ -485,17 +477,23 @@
         }
 
         function displayEventDetails(date) {
-            const events = eventsByDate[date] || [];
-            modalContent.innerHTML = `
-                <h3>Events on ${date}</h3>
-                ${events.length
-                    ? events.map(event => `
-                        <p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
-                    `).join('')
-                    : '<p>No events for this day.</p>'}
-            `;
-            modal.style.display = 'block';
-        }
+        const events = eventsByDate[date] || [];
+        modalContent.innerHTML = `
+            <h3>Events on ${date}</h3>
+            ${events.length
+                ? events.map(event => `
+                    <p>
+                        <strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong>
+                        <br>
+                        <span style="color: ${event.isPaid ? '#AF2630' : '#FFB6C1'}">
+                            Status: ${event.isPaid ? 'Paid' : 'Payment Pending'}
+                        </span>
+                    </p>
+                `).join('')
+                : '<p>No events for this day.</p>'}
+        `;
+        modal.style.display = 'block';
+    }
 
         function closeModal() {
             modal.style.display = 'none';
@@ -527,50 +525,69 @@
                 ${listContent}
             `;
         }
-
         async function displayPendingEventDetails(index) {
             const event = currentEvents[index];
-            try {
-                const receiptImageResponse = await fetch(
-                    `http://localhost:3000/receipt-image?eventName=${encodeURIComponent(event.eventName)}&eventDate=${encodeURIComponent(event.eventDate)}`
-                );
-                const receiptImageData = await receiptImageResponse.json();
-
-                if (receiptImageData.success) {
-                    const { receiptImage, paymentDetails, eventDetails } = receiptImageData;
-                    modalContent.innerHTML = `
-                        <div class="modal-flex">
-                            <div class="event-details">
-                                <h2>${paymentDetails.eventName || 'Not specified'}</h2>
-                                <p><strong>Date:</strong> ${paymentDetails.eventDate || 'Not specified'}</p>
-                                <p><strong>Time:</strong> ${eventDetails?.combinedTime || 'Not specified'}</p>
-                                <p><strong>Amenity:</strong> ${eventDetails?.amenity || 'Not specified'}</p>
-                                <p><strong>Host:</strong> ${eventDetails?.hostName || 'Not specified'}</p>
-                                <p><strong>Email:</strong> ${eventDetails?.email || 'Not specified'}</p>
-                                <p><strong>Amount:</strong> ₱${paymentDetails.amount || '0.00'}</p>
-                                <p><strong>Payment Method:</strong> ${paymentDetails.paymentMethod || 'Not specified'}</p>
-                            </div>
-                            
-                            ${receiptImage ? `<div class="event-image"><img src="${receiptImage}" alt="Receipt"></div>` : '<p>No receipt image available</p>'}
-                        
-                        </div>
-                         <div class="modal-actions">
-                            <button class="approve-btn" onclick="approveEvent('${event.eventName}')">Approve</button>
-                            <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">Deny</button>
-                        </div>
-                        <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
-                    
-                    `;
-                    modal.style.display = 'block';
-                } else {
-                    alert("Failed to load event details.");
-                }
-            } catch (error) {
-                console.error("Error fetching receipt image or displaying event details:", error);
-                alert("Failed to load event details. Please try again.");
-            }
+            modalContent.innerHTML = `
+                <div class="modal-flex">
+                    <div class="event-details">
+                        <h2>${event.eventName}</h2>
+                        <p><strong>Date:</strong> ${event.eventDate}</p>
+                        <p><strong>Time:</strong> ${event.startTime} - ${event.endTime}</p>
+                        <p><strong>Amenity:</strong> ${event.amenity}</p>
+                        <p><strong>Host:</strong> ${event.HomeownerName}</p>
+                        <p><strong>Email:</strong> ${event.userEmail}</p>
+                        <p><strong>Guests:</strong> ${event.guests}</p>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="approve-btn" onclick="approveEvent('${event.eventName}')">Approve</button>
+                    <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">Deny</button>
+                </div>
+                <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
+            `;
+            modal.style.display = 'block';
         }
 
+
+
+        async function fetchApprovedEvents() {
+        try {
+            const response = await fetch('http://localhost:3000/approved-events');
+            const data = await response.json();
+            if (data.success) {
+                eventsByDate = data.events.reduce((acc, event) => {
+                    const formattedDate = event.eventDate;
+                    acc[formattedDate] = acc[formattedDate] || [];
+                    acc[formattedDate].push({
+                        name: event.eventName,
+                        time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                        amenity: event.amenity,
+                        isPaid: event.isPaid // This comes from the server's payment status check
+                    });
+                    return acc;
+                }, {});
+                renderCalendar(); // Refresh the calendar display
+            } else {
+                console.error("Failed to fetch events:", data.message);
+            }
+        } catch (error) {
+            console.error("Error fetching events:", error);
+        }
+    }
+
+
+        
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderDaysOfWeek();
+            await fetchApprovedEvents();
+            renderCalendar();
+            await fetchPendingEvents();
+        });
+
+
+       
 
         function showDisapprovalReason(eventName) {
             const reasonTextarea = document.getElementById('disapprovalReason');
@@ -664,6 +681,16 @@
             renderCalendar();
             await fetchPendingEvents();
         });
+
+        async function initializeCalendar() {
+    renderDaysOfWeek();
+    await fetchApprovedEvents();
+    renderCalendar();
+    await fetchPendingEvents();
+
+}
+
+document.addEventListener('DOMContentLoaded', initializeCalendar);
     </script>
 </body>
 </html>
