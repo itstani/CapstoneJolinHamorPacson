@@ -3,8 +3,10 @@ function getDateRange(filter) {
   switch (filter) {
     case 'week':
       return new Date(now.setDate(now.getDate() - 7));
-    case '2months':
-      return new Date(now.setMonth(now.getMonth() - 2));
+    case '1 month':
+      return new Date(now.setMonth(now.getMonth() - 1));
+      case '6 months':
+        return new Date(now.setMonth(now.getMonth() - 6));
     case 'year':
       return new Date(now.setFullYear(now.getFullYear() - 1));
     default:
