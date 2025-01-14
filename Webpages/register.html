@@ -162,6 +162,14 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 10px;
+        }
         
     </style>
 </head>
@@ -192,6 +200,11 @@
                 <div class="column">
                     <input type="password" class="rounded-input" placeholder="Confirm Password" name="cpassword" id="cpw">
                     <span id="cpwError"></span>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="isHomeowner" name="isHomeowner">
+                    <label for="isHomeowner">I am a homeowner</label>
                 </div>
                 
                 <div class="registerbutton">
@@ -274,6 +287,7 @@
                 const email = emailInput.value;
                 const password = pwInput.value;
                 const confirmPassword = cpwInput.value;
+                const isHomeowner = document.getElementById('isHomeowner').checked;
 
                 // Clear all error messages
                 clearErrorMessage(unError);
@@ -316,15 +330,19 @@
                         username: username,
                         email: email,
                         password: password,
+                        isHomeowner: isHomeowner
                     }),
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    const successWindow = window.open('', '_blank', 'width=200,height=100');
-                    successWindow.document.write('<h2>Register Successful!</h2>');
-
+                    if (isHomeowner) {
+                        window.location.href = 'rhdetails.html?email=' + encodeURIComponent(email);
+                    } else {
+                        const successWindow = window.open('', '_blank', 'width=200,height=100');
+                        successWindow.document.write('<h2>Register Successful!</h2>');
+                    }
                 } else {
                     showCustomAlert(result.message);
                 }
@@ -332,6 +350,14 @@
                 
                 
         
+        function showCustomAlert(message) {
+            document.getElementById('customAlertMessage').textContent = message;
+            document.getElementById('customAlert').style.display = 'block';
+        }
+
+        function closeCustomAlert() {
+            document.getElementById('customAlert').style.display = 'none';
+        }
         </script>
     </div>
 
@@ -346,3 +372,4 @@
     </div>
 </body>
 </html>
+

@@ -1,4 +1,18 @@
-      require("dotenv").config();
+function getDateRange(filter) {
+  const now = new Date();
+  switch (filter) {
+    case 'week':
+      return new Date(now.setDate(now.getDate() - 7));
+    case '2months':
+      return new Date(now.setMonth(now.getMonth() - 2));
+    case 'year':
+      return new Date(now.setFullYear(now.getFullYear() - 1));
+    default:
+      return new Date(0); // Beginning of time
+  }
+}
+
+require("dotenv").config();
       const express = require("express");
       const bodyParser = require("body-parser");
       const multer = require('multer');
@@ -210,7 +224,7 @@
       });
         
       app.post("/register", async (req, res) => {
-        const { username, email, password } = req.body;
+        const { username, email, password, isHomeowner } = req.body;
         if (!username || !email || !password) {
           return res.json({ message: "Missing required fields", success: false });
         }
@@ -231,6 +245,7 @@
             username,
             email,
             password: hashedPassword,
+            isHomeowner
           };
           
           await usersCollection.insertOne(newUser);
@@ -243,8 +258,8 @@
       });
       
       app.post("/homeowner-details", async (req, res) => {
-        const { firstName, lastName, address, email, phoneNumber, landLine } = req.body;
-        if (!firstName || !lastName || !address || !email || !phoneNumber) {
+        const { email, firstName, lastName, address, phoneNumber, landline } = req.body;
+        if (!email || !firstName || !lastName || !address || !phoneNumber) {
           return res.json({ message: "Missing required fields", success: false });
         }
         try {
@@ -252,12 +267,12 @@
           const homeownersCollection = db.collection("homeowners");
           
           const newHomeowner = {
+            email,
             firstName,
             lastName,
-            Address: address,
-            email,
+            address,
             phoneNumber,
-            landLine,
+            landline,
             paymentStatus: "To be verified",
             homeownerStatus: "To be verified"
           };
@@ -435,52 +450,42 @@
           res.json({ success: false, message: "Payment failed. Please try again." });
         }
       });
-      app.listen(port, (err) => {
-        if (err) {
-          console.error("Failed to start server:", err.message);
-          process.exit(1);
+      app.get('/profile', async (req, res) => {
+
+        if (!req.session.user) {
+          return res.json({ success: false, message: "Not logged in" });
         }
-        console.log(`Server is running on http://localhost:${port}`);
+        const { email } = req.session.user;
+        try {
+          const db = await connectToDatabase();
+          const database = client.db(dbName);
+          const homeownersCollection = database.collection('homeowners');
+          const accCollection = database.collection('acc');
+          const accUser = await accCollection.findOne({ email });
+          const homeownerUser = await homeownersCollection.findOne({ email });
+
+          if (accUser && homeownerUser) {
+
+            return res.json({
+
+              success: true,
+              success: true,
+              username: req.session.user.username,
+              email: req.session.user.email,
+              firstname: homeownerUser.firstName,
+              lastname: homeownerUser.lastName,
+              status: homeownerUser.paymentStatus
+            });
+
+          } else {
+            return res.json({ success: false, message: "User not found in one or both collections" });
+          }
+
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          return res.status(500).json({ success: false, message: "Server error" });
+        }
       });
-          
-
-
-          app.get('/profile', async (req, res) => {
-
-            if (!req.session.user) {
-              return res.json({ success: false, message: "Not logged in" });
-            }
-            const { email } = req.session.user;
-            try {
-              const db = await connectToDatabase();
-              const database = client.db(dbName);
-              const homeownersCollection = database.collection('homeowners');
-              const accCollection = database.collection('acc');
-              const accUser = await accCollection.findOne({ email });
-              const homeownerUser = await homeownersCollection.findOne({ email });
-
-              if (accUser && homeownerUser) {
-
-                return res.json({
-
-                  success: true,
-                  success: true,
-                  username: req.session.user.username,
-                  email: req.session.user.email,
-                  firstname: homeownerUser.firstName,
-                  lastname: homeownerUser.lastName,
-                  status: homeownerUser.paymentStatus
-                });
-
-              } else {
-                return res.json({ success: false, message: "User not found in one or both collections" });
-              }
-
-            } catch (error) {
-              console.error("Error fetching user profile:", error);
-              return res.status(500).json({ success: false, message: "Server error" });
-            }
-          });
 
 
 
@@ -643,26 +648,7 @@
             }
         }
         
-          app.post('/update-payment-status', async (req, res) => {
-            try {
-              const { eventName, isPaid } = req.body;
-              const db = await connectToDatabase();
-              const eventpaymentsCollection = db.collection('eventpayments');
           
-              if (isPaid) {
-                // If marked as paid, add to eventpayments collection
-                await eventpaymentsCollection.insertOne({ eventName, paidAt: new Date() });
-              } else {
-                // If marked as unpaid, remove from eventpayments collection
-                await eventpaymentsCollection.deleteOne({ eventName });
-              }
-          
-              res.json({ success: true, message: 'Payment status updated successfully' });
-            } catch (error) {
-              console.error('Error updating payment status:', error);
-              res.status(500).json({ success: false, message: 'Error updating payment status' });
-            }
-          });
           
 
       app.post('/logout', (req, res) => {
@@ -877,10 +863,13 @@
             // Fetch from `events` collection
             const eventDetails = await eventsCollection.findOne({ eventName, eventDate });
 
-          
+            if (eventDetails) {
+                res.json({ success: true, eventDetails });
+            } else {
+                res.json({ success: false, message: 'Event not found' });
             }
-         catch (error) {
-            console.error('Error fetching receipt image or event details:', error);
+        } catch (error) {
+            console.error('Error fetching event details:', error);
             res.status(500).json({ success: false, message: 'Server error' });
         }
       });
@@ -1014,7 +1003,7 @@
           currentPage: page,
           totalPages: Math.ceil(totalEvents / limit)
         });
-      } catch (error) {
+      } catch(error) {
         console.error('Error fetching upcoming events:', error);
         res.status(500).json({ error: 'Failed to fetch upcoming events' });
       }
@@ -1354,29 +1343,106 @@ app.post('/updateUserDetails', async (req, res) => {
 // CONCERN REPLY-----------------------------------------------
 // Handle form submission
 app.post("/sendReply", upload.single("attachment"), async (req, res) => {
-  const { subject, message } = req.body;
+  const { subject, message, concernId } = req.body; // Added concernId
   const attachment = req.file ? req.file.filename : null;
 
   // Validate inputs
-  if (!subject || !message) {
+  if (!subject || !message || !concernId) { // Added validation for concernId
     return res
       .status(400)
-      .json({ success: false, message: "Subject and message are required" });
+      .json({ success: false, message: "Subject, message, and concernId are required" });
   }
 
-  // Simulate saving to the database (replace with actual DB logic)
-  console.log("Reply data:", { subject, message, attachment });
-
-  // Log the reply activity
   try {
+    const db = await connectToDatabase();
+    const concernsCollection = db.collection('Concerns');
+
+    // Update the concern document with the reply
+    await concernsCollection.updateOne(
+      { _id: new ObjectId(concernId) },
+      {
+        $push: { replies: { reply: message, attachment, timestamp: new Date() } },
+        $set: { status: 'replied' } // Set status to 'replied'
+      }
+    );
+
+    // Log the reply activity
     await logActivity("replySent", `Reply to concern: ${subject}`);
 
     // Send a success response
     res.json({ success: true });
   } catch (error) {
-    console.error("Error saving activity:", error);
+    console.error("Error saving reply:", error);
     res
       .status(500)
-      .json({ success: false, message: "Failed to record activity" });
+      .json({ success: false, message: "Failed to save reply" });
   }
 });
+
+// Analytics: Amenity Reservation Frequency
+app.get('/api/analytics/amenity-frequency', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const aeventsCollection = db.collection('aevents');
+    const dateFilter = getDateRange(req.query.filter);
+    
+    const result = await aeventsCollection.aggregate([
+      { $match: { eventDate: { $gte: dateFilter.toISOString().split('T')[0] } } },
+      { $group: { _id: "$amenity", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]).toArray();
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching amenity frequency:', error);
+    res.status(500).json({ error: 'Failed to fetch amenity frequency' });
+  }
+});
+
+// Analytics: Popular Reservation Days
+app.get('/api/analytics/popular-days', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const aeventsCollection = db.collection('aevents');
+    const dateFilter = getDateRange(req.query.filter);
+    
+    const result = await aeventsCollection.aggregate([
+      { $match: { eventDate: { $gte: dateFilter.toISOString().split('T')[0] } } },
+      { $group: { _id: { $dayOfWeek: { $toDate: "$eventDate" } }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]).toArray();
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching popular reservation days:', error);
+    res.status(500).json({ error: 'Failed to fetch popular reservation days' });
+  }
+});
+
+// Analytics: Frequent Event Types
+app.get('/api/analytics/event-types', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const aeventsCollection = db.collection('aevents');
+    const dateFilter = getDateRange(req.query.filter);
+    
+    const result = await aeventsCollection.aggregate([
+      { $match: { eventDate: { $gte: dateFilter.toISOString().split('T')[0] } } },
+      { $group: { _id: "$eventType", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]).toArray();
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching event types:', error);
+    res.status(500).json({ error: 'Failed to fetch event types' });
+  }
+});
+      app.listen(port, (err) => {
+        if (err) {
+          console.error("Failed to start server:", err.message);
+          process.exit(1);
+        }
+        console.log(`Server is running on http://localhost:${port}`);
+      });
+

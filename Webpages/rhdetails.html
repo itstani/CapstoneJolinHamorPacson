@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration Form</title>
+    <title>Homeowner Details</title>
     <style>
         body {
             padding-top: 60px;  /* Adjust based on the height of your top bar */
@@ -116,93 +116,72 @@
                 <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
             </div>
 
-            <form id="registerForm" method="POST">
+            <form id="homeownerForm" method="POST">
                 <div class="row">
-                    <!-- First Name -->
                     <div class="column">
-                        <input type="text" class="rounded-input" placeholder="Enter First Name" name="un" id="un">
+                        <input type="text" class="rounded-input" placeholder="Enter First Name" name="firstName" id="firstName" required>
                     </div>
-                    <!-- Homeowner Number -->
-                    <div class="column homeowner-details">
-                        <input type="text" class="rounded-input" placeholder="Enter Address" name="number" id="number">
+                    <div class="column">
+                        <input type="text" class="rounded-input" placeholder="Enter Last Name" name="lastName" id="lastName" required>
                     </div>
                 </div>
                 <div class="row">
-                    <!-- Last Name -->
                     <div class="column">
-                        <input type="text" class="rounded-input" placeholder="Enter Last Name" name="ln" id="ln">
+                        <input type="text" class="rounded-input" placeholder="Enter Address" name="address" id="address" required>
                     </div>
-                    <!-- Homeowner Landline -->
-                    <div class="column homeowner-details">
-                        <input type="text" class="rounded-input" placeholder="Enter House Landline" name="landline" id="landline">
+                    <div class="column">
+                        <input type="tel" class="rounded-input" placeholder="Enter Phone Number" name="phoneNumber" id="phoneNumber" required>
                     </div>
-                    
+                </div>
+                <div class="row">
+                    <div class="column">
+                        <input type="tel" class="rounded-input" placeholder="Enter House Landline" name="landline" id="landline">
+                    </div>
                 </div>
                 
                 <div class="registerbutton">
-                    <button type="submit" class="regis" onclick="window.location.href='login.html'">Register</button>
-                </div>
-                <div class="login-here" onclick="window.location.href='login.html'">
-                    Or login here
+                    <button type="submit" class="regis">Submit Details</button>
                 </div>
             </form>
-            
         </div>
 
         
         
         <script>
-            const form = document.getElementById('registerForm');
-        
+            const form = document.getElementById('homeownerForm');
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+
             form.addEventListener('submit', async function(event) {
-                event.preventDefault();  // Prevent the default form submission
-        
-                const username = document.getElementById('un').value;
-                const lastname = document.getElementById('ln').value;
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('pw').value;
-                const confirmPassword = document.getElementById('cpw').value;
+                event.preventDefault();
+
+                const firstName = document.getElementById('firstName').value;
+                const lastName = document.getElementById('lastName').value;
                 const address = document.getElementById('address').value;
-                const number = document.getElementById('number').value;
+                const phoneNumber = document.getElementById('phoneNumber').value;
                 const landline = document.getElementById('landline').value;
-        
-                // Simple password confirmation check
-                if (password !== confirmPassword) {
-                    alert('Passwords do not match');
-                    return;
-                }
-        
-                // Send form data to the backend using fetch
-                const response = await fetch('http://localhost:3000/register', {
+
+                const response = await fetch('http://localhost:3000/homeowner-details', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        username: username, // dapat firstname pero d ko pa nachange
-                        lastname: lastname,
-                        email: email,
-                        password: password, //homeowner monthly status to be verified by admin if paid or not nasa backend naka auto set 'to be verified' pag naayos na admin side pwede iverify'
-                        address: address,
-                        number: number,
-                        landline: landline
+                        email,
+                        firstName,
+                        lastName,
+                        address,
+                        phoneNumber,
+                        landline
                     }),
                 });
-        //change below
+
                 const result = await response.json();
-        
+
                 if (result.success) {
-                    // Create a new window with a success message
-                    const successWindow = window.open('', '_blank', 'width=200,height=100');
-                    successWindow.document.write('<h2>Login/Register Successful!</h2>');
-        
-                    // Redirect the user to the login page after 2 seconds
-                    setTimeout(function() {
-                        window.location.href = 'login.html';
-                        successWindow.close();
-                    }, 2000);
+                    alert('Homeowner details submitted successfully!');
+                    window.location.href = 'login.html';
                 } else {
-                    // Display error message if username or email already exists
                     alert(result.message);
                 }
             });
@@ -210,3 +189,4 @@
     </div>
 </body>
 </html>
+
