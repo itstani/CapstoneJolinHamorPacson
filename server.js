@@ -26,6 +26,7 @@ require("dotenv").config();
       const { ObjectId } = require('mongodb');
       const { MongoClient, ServerApiVersion } = require("mongodb");
       const schedule = require('node-schedule');
+      const officegen = require('officegen');
 
 
       const app = express();
@@ -163,6 +164,120 @@ require("dotenv").config();
           });
         }
       });
+      
+      app.get('/api/generate-report', async (req, res) => {
+        try {
+          const db = await connectToDatabase();
+          const aeventsCollection = db.collection('aevents');
+          const homeownersCollection = db.collection('homeowners');
+          const eventpaymentsCollection = db.collection('eventpayments');
+      
+          const now = new Date();
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const startOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+          const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      
+          // Get all events from last month
+          const events = await aeventsCollection.find({
+            eventDate: {
+              $gte: startOfLastMonth.toISOString().split('T')[0],
+              $lte: endOfLastMonth.toISOString().split('T')[0]
+            }
+          }).toArray();
+      
+          const docx = officegen('docx');
+      
+          docx.on('error', (err) => {
+            console.log(err);
+            res.status(500).send('Error generating document');
+          });
+      
+          // Add title
+          const titleParagraph = docx.createP();
+          titleParagraph.addText('Last Month\'s Reservation Report', { 
+            bold: true, 
+            font_size: 18 
+          });
+      
+          // Process each event
+          for (const event of events) {
+            try {
+              // Find homeowner information
+              const homeowner = await homeownersCollection.findOne({ 
+                email: event.userEmail 
+              });
+      
+              // Find payment information
+              const payment = await eventpaymentsCollection.findOne({ 
+                eventName: event.eventName,
+                eventDate: event.eventDate
+              });
+      
+              // Create a new paragraph for each event
+              const eventParagraph = docx.createP();
+      
+              // Add homeowner information
+              eventParagraph.addText(`Homeowner: ${homeowner ? `${homeowner.firstName} ${homeowner.lastName}` : 'N/A'}`, { bold: true });
+              eventParagraph.addLineBreak();
+              eventParagraph.addText(`Address: ${homeowner ? homeowner.address : 'N/A'}`);
+              eventParagraph.addLineBreak();
+      
+              // Add event details
+              eventParagraph.addText(`Amenity: ${event.amenity || 'N/A'}`);
+              eventParagraph.addLineBreak();
+              eventParagraph.addText(`Date Reserved: ${event.eventDate || 'N/A'}`);
+              eventParagraph.addLineBreak();
+              eventParagraph.addText(`Event Type: ${event.eventType || 'N/A'}`);
+              eventParagraph.addLineBreak();
+              eventParagraph.addText(`Start Time: ${event.startTime || 'N/A'}`);
+              eventParagraph.addLineBreak();
+              eventParagraph.addText(`End Time: ${event.endTime || 'N/A'}`);
+              eventParagraph.addLineBreak();
+      
+              // Add payment information
+              eventParagraph.addText(`Amount Paid: ${payment ? `₱${payment.amount}` : 'N/A'}`);
+              eventParagraph.addLineBreak();
+              eventParagraph.addText(`Payment Status: ${payment ? 'Paid' : 'Pending'}`);
+              eventParagraph.addLineBreak();
+              eventParagraph.addLineBreak();
+      
+            } catch (eventError) {
+              console.error('Error processing event:', eventError);
+              // Continue with next event if there's an error with current one
+              continue;
+            }
+          }
+      
+          const tempFilePath = path.join(__dirname, 'temp_report.docx');
+          const out = fs.createWriteStream(tempFilePath);
+      
+          out.on('error', (err) => {
+            console.log(err);
+            res.status(500).send('Error saving document');
+          });
+      
+          out.on('finish', () => {
+            const today = new Date().toISOString().split('T')[0];
+            res.download(tempFilePath, `${today}-monthlyreport.docx`, (err) => {
+              if (err) {
+                console.log(err);
+                res.status(500).send('Error downloading document');
+              }
+              fs.unlink(tempFilePath, (unlinkErr) => {
+                if (unlinkErr) console.log('Error deleting temporary file:', unlinkErr);
+              });
+            });
+          });
+      
+          docx.generate(out);
+        } catch (error) {
+          console.error('Error generating report:', error);
+          res.status(500).json({ error: 'Failed to generate report' });
+        }
+      });
+      
+      
+      
           
       app.get("/", (req, res) => {
         res.sendFile(path.join(__dirname, "Webpages/login.html"));
