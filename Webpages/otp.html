@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 50px; 
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            width: 600px; 
+        }
+
+        h2 {
+            font-size: 36px; 
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 18px;
+            color: gray;
+            margin-bottom: 20px;
+        }
+
+        .otp-input {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .otp-input input {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            font-size: 32px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .otp-input input:focus {
+            border-color: #AF2630;
+        }
+
+        .verify-btn {
+            width: 100%;
+            background: #AF2630;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .verify-btn:hover {
+            background: #AF2630;
+        }
+
+        .resend-link {
+            display: block;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #AF2630;
+            text-decoration: none;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Email Verification</h2>
+        <p>We have sent a code to your email</p>
+
+        <div class="otp-input">
+            <input type="text" maxlength="1" oninput="handleInput(this, 1)" onkeydown="handleBackspace(this, 0)">
+            <input type="text" maxlength="1" oninput="handleInput(this, 2)" onkeydown="handleBackspace(this, 1)">
+            <input type="text" maxlength="1" oninput="handleInput(this, 3)" onkeydown="handleBackspace(this, 2)">
+            <input type="text" maxlength="1" oninput="handleInput(this, 4)" onkeydown="handleBackspace(this, 3)">
+        </div>
+
+        <button class="verify-btn">Verify Account</button>
+
+        <a href="#" class="resend-link">Resend OTP</a>
+    </div>
+
+    <script>
+        function handleInput(input, index) {
+        let nextInput = document.querySelectorAll(".otp-input input")[index];
+        if (input.value && nextInput) {
+            nextInput.focus();
+        }
+    }
+
+    function handleBackspace(input, index) {
+        if (event.key === "Backspace" && !input.value) {
+            let prevInput = document.querySelectorAll(".otp-input input")[index - 1];
+            if (prevInput) {
+                prevInput.focus();
+                prevInput.value = ""; 
+            }
+        }
+    }
+    </script>
+
+</body>
+</html>

@@ -1563,3 +1563,44 @@ app.get('/api/analytics/event-types', async (req, res) => {
         console.log(`Server is running on http://localhost:${port}`);
       });
 
+// email otp--------------------------------------
+app.use(cors());
+app.use(bodyParser.json());
+
+ /*  smtp comment out need install nodemailer
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'test@mail',// email mo
+    pass: 'sample pass wadwd wadawd '    //pass key
+  }
+});
+*/
+
+//generate otp
+const generateOTP = () => {
+  return Math.floor(1000 + Math.random() * 9000);  //4 otp
+};
+
+//otp sending
+app.post('/send-otp', (req, res) => {
+  const userEmail = req.body.email;  
+  const otp = generateOTP();         
+
+  
+  const mailOptions = {
+    from: 'test@mail',
+    to: userEmail,                  
+    subject: 'Your OTP Code',
+    text: `Your OTP code is: ${otp}`  
+  };
+
+ 
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log(error);
+      return res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    }
+    res.json({ success: true, message: 'OTP sent successfully' });
+  });
+});

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 50px; 
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            width: 600px; 
+        }
+
+        h2 {
+            font-size: 36px; 
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 18px;
+            color: gray;
+            margin-bottom: 20px;
+        }
+
+        .email-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            margin-bottom: 30px;
+            transition: border 0.3s;
+        }
+
+        .email-input:focus {
+            border-color: #AF2630;
+        }
+
+        .verify-btn {
+            width: 100%;
+            background: #AF2630;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .verify-btn:hover {
+            background: #AF2630;
+        }
+
+        .resend-link {
+            display: block;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #AF2630;
+            text-decoration: none;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Email Verification</h2>
+        <p>Enter your account's email to send OTP</p>
+
+        <input type="email" class="email-input" id="email" placeholder="Enter your email" required>
+
+        <button class="verify-btn" onclick="sendOTP()">Send OTP</button>
+
+    </div>
+
+    <script>
+       function sendOTP() {
+    const email = document.getElementById("email").value;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (email && emailRegex.test(email)) {  
+        const payload = { email: email };
+
+        fetch('/send-otp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("OTP sent to your email!");
+                window.location.href = "otp.html";
+            } else {
+                alert("Failed to send OTP. Please try again.");
+            }
+        })
+        .catch(error => {
+            console.error('Error sending OTP:', error);
+            alert("An error occurred. Please try again.");
+        });
+    } else {
+        alert("Please enter a valid email.");
+    }
+}
+
+    </script>
+
+</body>
+</html>
