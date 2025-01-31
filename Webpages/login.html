@@ -159,6 +159,62 @@
             border-radius: 5px;
             cursor: pointer;
         }
+       /* Popup overlay */
+.popup {
+    display: none; /* Initially hidden */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    z-index: 9999; /* Make sure the popup is on top of everything */
+}
+
+/* Popup content */
+.popup-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+/* Close button */
+.close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 30px;
+    font-weight: bold;
+    color: #333;
+    cursor: pointer;
+}
+
+/* Popup text */
+.popup-content h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.popup-content p {
+    font-size: 18px;
+    margin: 5px 0;
+}
+
+.popup-content p strong {
+    color: #333;
+    font-weight: bold;
+}
+
+
+        
 
     </style>
     <script>
@@ -204,6 +260,16 @@
             const alertElement = document.getElementById('customAlert');
             alertElement.style.display = 'none';
         }
+        // Function to show the popup
+function showPasswordResetPopup() {
+    document.getElementById('passwordResetPopup').style.display = 'flex';
+}
+
+// Function to close the popup
+function closePasswordResetPopup() {
+    document.getElementById('passwordResetPopup').style.display = 'none';
+}
+
     </script>
     
     
@@ -237,9 +303,23 @@
             <div class="regis-here" onclick="window.location.href='register.html'">
                 Sign up here
             </div>
-            <div class="fpw" onclick="window.location.href='cpw.html'">
+            <div class="fpw" onclick="showPasswordResetPopup()">
                 Forgot password?
             </div>
+            <!-- Popup HTML -->
+            <div id="passwordResetPopup" class="popup">
+                <div class="popup-content">
+                    <span class="close" onclick="closePasswordResetPopup()">&times;</span>
+                    <h2>Password Reset</h2>
+                    <p>For a temporary password reset, please contact us through the following channels:</p>
+                    <br>
+                    <p><strong>Email:</strong> support@example.com</p>
+                    <p><strong>Landline:</strong> 123-456-7890</p>
+                    
+                </div>
+            </div>
+            
+</div>
         </div>
             
         </form>
