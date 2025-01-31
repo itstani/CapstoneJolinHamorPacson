@@ -1604,3 +1604,35 @@ app.post('/send-otp', (req, res) => {
     res.json({ success: true, message: 'OTP sent successfully' });
   });
 });
+
+
+//adminn pass reset====================
+app.post('/updatePassword', async (req, res) => {
+  const { email, newPassword } = req.body;  
+  if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+  }
+
+  try {
+      const db = await connectToDatabase();
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const accCollection = db.collection('acc');
+
+      const result = await accCollection.updateOne(
+          { email: email }, 
+          { $set: { password: hashedPassword } } //temp pass
+      );
+
+      
+      if (result.modifiedCount === 0) {
+          return res.status(404).json({ message: 'User not found or password is the same.' });
+      }
+
+      
+      res.json({ message: 'Password updated successfully.' });
+  } catch (error) {
+      console.error('Error updating password:', error);
+      res.status(500).json({ message: 'An error occurred while updating the password.' });
+  }
+});
