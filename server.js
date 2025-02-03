@@ -1536,64 +1536,7 @@ async function startServer() {
   }
 }
 
-function checkDeploymentReadiness() {
-  const requiredFiles = ["package.json", "server.js"]
-  const requiredDirs = ["Webpages"]
-  const errors = []
-  const warnings = []
 
-  console.log("🔍 Checking deployment readiness...\n")
-
-  // Check required files
-  requiredFiles.forEach((file) => {
-    if (!fs.existsSync(file)) {
-      errors.push(`Missing required file: ${file}`)
-    }
-  })
-
-  // Check required directories
-  requiredDirs.forEach((dir) => {
-    if (!fs.existsSync(dir)) {
-      errors.push(`Missing required directory: ${dir}`)
-    }
-  })
-
-  // Check package.json configuration
-  try {
-    const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"))
-    if (!packageJson.scripts?.start) {
-      errors.push("Missing start script in package.json")
-    }
-    if (!packageJson.main) {
-      warnings.push("No main field in package.json")
-    }
-  } catch (error) {
-    errors.push("Invalid package.json")
-  }
-
-  // Log results
-  if (errors.length > 0) {
-    console.log("Errors found:")
-    errors.forEach((error) => console.log(`❌ ${error}`))
-  }
-  if (warnings.length > 0) {
-    console.log("Warnings found:")
-    warnings.forEach((warning) => console.log(`⚠️ ${warning}`))
-  }
-  if (errors.length === 0 && warnings.length === 0) {
-    console.log("✅ Project is ready for deployment!")
-  }
-
-  return errors.length === 0
-}
-
-// Call the deployment readiness check before starting the server
-if (checkDeploymentReadiness()) {
-  startServer()
-} else {
-  console.error("Deployment readiness check failed. Please fix the issues before starting the server.")
-  process.exit(1)
-}
 
 // email otp--------------------------------------
 app.use(cors())

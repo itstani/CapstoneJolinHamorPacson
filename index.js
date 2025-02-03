@@ -13,6 +13,6 @@ app.get('/images/:imageName', (req, res) => {
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Monitoring system', 'Webpages', 'register.html'));
 });
-app.listen(3000, () => {
+app.listen(80, () => {
   console.log('Server started on port 3000');
 });
