@@ -218,58 +218,99 @@
 
     </style>
     <script>
-         async function handleLogin(event) {
-            event.preventDefault(); 
-            const login = document.getElementById("login").value; 
-            const password = document.getElementById("pw").value;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Move all your JavaScript code inside this function
+            async function handleLogin(event) {
+                event.preventDefault(); 
+                const login = document.getElementById("login").value; 
+                const password = document.getElementById("pw").value;
 
-            try {
-                const response = await fetch('/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ login, password }),
-                });
-                const userData = await response.json();
-                if (userData.success) {
-                    console.log('Login successful. User data:', userData);
-                    localStorage.setItem('username', userData.username);
-                    localStorage.setItem('email', userData.email);
-                    window.location.href = userData.redirectUrl; 
-                } else {
-                    console.error('Login failed:', userData.message);
-                    showCustomAlert('Login failed: ' + userData.message);
+                try {
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ login, password }),
+                    });
+                    const userData = await response.json();
+                    if (userData.success) {
+                        console.log('Login successful. User data:', userData);
+                        localStorage.setItem('username', userData.username);
+                        localStorage.setItem('email', userData.email);
+                        window.location.href = userData.redirectUrl; 
+                    } else {
+                        console.error('Login failed:', userData.message);
+                        showCustomAlert('Login failed: ' + userData.message);
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showCustomAlert('An error occurred during login. Please try again.');
                 }
-            } catch (error) {
-                console.error('Login error:', error);
-                showCustomAlert('An error occurred during login. Please try again.');
             }
-        }
 
-        document.getElementById("loginForm").addEventListener("submit", handleLogin);
+            const loginForm = document.getElementById("loginForm");
+            if (loginForm) {
+                loginForm.addEventListener("submit", handleLogin);
+            } else {
+                console.error("Login form not found");
+            }
 
-        function showCustomAlert(message) {
-            const alertElement = document.getElementById('customAlert');
-            const messageElement = document.getElementById('customAlertMessage');
-            messageElement.textContent = message;
-            alertElement.style.display = 'block';
-        }
+            function showCustomAlert(message) {
+                const alertElement = document.getElementById('customAlert');
+                const messageElement = document.getElementById('customAlertMessage');
+                if (alertElement && messageElement) {
+                    messageElement.textContent = message;
+                    alertElement.style.display = 'block';
+                } else {
+                    console.error("Custom alert elements not found");
+                }
+            }
 
-        function closeCustomAlert() {
-            const alertElement = document.getElementById('customAlert');
-            alertElement.style.display = 'none';
-        }
-        // Function to show the popup
-function showPasswordResetPopup() {
-    document.getElementById('passwordResetPopup').style.display = 'flex';
-}
+            function closeCustomAlert() {
+                const alertElement = document.getElementById('customAlert');
+                if (alertElement) {
+                    alertElement.style.display = 'none';
+                } else {
+                    console.error("Custom alert element not found");
+                }
+            }
 
-// Function to close the popup
-function closePasswordResetPopup() {
-    document.getElementById('passwordResetPopup').style.display = 'none';
-}
+            // Function to show the popup
+            function showPasswordResetPopup() {
+                const popup = document.getElementById('passwordResetPopup');
+                if (popup) {
+                    popup.style.display = 'flex';
+                } else {
+                    console.error("Password reset popup not found");
+                }
+            }
 
+            // Function to close the popup
+            function closePasswordResetPopup() {
+                const popup = document.getElementById('passwordResetPopup');
+                if (popup) {
+                    popup.style.display = 'none';
+                } else {
+                    console.error("Password reset popup not found");
+                }
+            }
+
+            // Add event listeners for the password reset popup
+            const forgotPasswordLink = document.querySelector('.fpw');
+            if (forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('click', showPasswordResetPopup);
+            } else {
+                console.error("Forgot password link not found");
+            }
+
+            const closePopupButton = document.querySelector('#passwordResetPopup .close');
+            if (closePopupButton) {
+                closePopupButton.addEventListener('click', closePasswordResetPopup);
+            } else {
+                console.error("Close popup button not found");
+            }
+        });
     </script>
     
     
@@ -283,7 +324,7 @@ function closePasswordResetPopup() {
         </div>
 
         <!-- Update the form to call handleLogin function on submit -->
-        <form id="loginForm" onsubmit="handleLogin(event)">
+        <form id="loginForm">
             <div class="column">
                 <div class="col-12">
                     <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="email">
@@ -303,17 +344,17 @@ function closePasswordResetPopup() {
             <div class="regis-here" onclick="window.location.href='register.html'">
                 Sign up here
             </div>
-            <div class="fpw" onclick="showPasswordResetPopup()">
+            <div class="fpw">
                 Forgot password?
             </div>
             <!-- Popup HTML -->
             <div id="passwordResetPopup" class="popup">
                 <div class="popup-content">
-                    <span class="close" onclick="closePasswordResetPopup()">&times;</span>
+                    <span class="close">&times;</span>
                     <h2>Password Reset</h2>
                     <p>For a temporary password reset, please contact us through the following channels:</p>
                     <br>
-                    <p><strong>Email:</strong> support@example.com</p>
+                    <p><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="45363035352a373105203d24283529206b262a28">[email&#160;protected]</a></p>
                     <p><strong>Landline:</strong> 123-456-7890</p>
                     
                 </div>
@@ -334,5 +375,6 @@ function closePasswordResetPopup() {
         </div>
     </div>
 
-</body>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
 </html>
+
