@@ -75,29 +75,28 @@ async function connectToDatabase() {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
-app.use('/images', (req, res, next) => {
-  const filePath = path.join(__dirname, 'images', req.path);
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      console.error(`Error sending file ${filePath}:`, err);
-      next();
-    }
-  });
-});
-app.use('/CSS', (req, res, next) => {
-  const filePath = path.join(__dirname, 'CSS', req.path);
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      console.error(`Error sending file ${filePath}:`, err);
-      next();
-    }
-  });
-});
+
+app.use(
+  "/images",
+  express.static(path.join(__dirname, "images"), {
+    setHeaders: (res, path) => {
+      res.set("Cache-Control", "public, max-age=31536000")
+    },
+  }),
+)
+app.use(
+  "/CSS",
+  express.static(path.join(__dirname, "CSS"), {
+    setHeaders: (res, path) => {
+      res.set("Cache-Control", "public, max-age=31536000")
+    },
+  }),
+)
 
 // Add explicit favicon handling
-app.get('/favicon.ico', (req, res) => {
-  res.sendFile(path.join(__dirname, 'images', 'favicon.ico'));
-});
+app.get("/favicon.ico", (req, res) => {
+  res.sendFile(path.join(__dirname, "images", "favicon.ico"))
+})
 app.use('/Webpages', express.static(path.join(__dirname, 'Webpages')));
 app.use(cors());
 app.use(
