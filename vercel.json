@@ -6,47 +6,38 @@
       "use": "@vercel/node"
     },
     {
-      "src": "Webpages/**",
+      "src": "Webpages/**/*",
       "use": "@vercel/static"
     },
     {
-      "src": "images/**",
+      "src": "CSS/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "images/**/*",
       "use": "@vercel/static"
     }
-    
-
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/images/(.*)",
       "dest": "/images/$1"
     },
     {
-      "src": "/favicon.ico",
-      "dest": "/Webpages/favicon.ico"
+      "src": "/CSS/(.*)",
+      "dest": "/CSS/$1"
     },
     {
-      "src": "/(.*\\.js|.*\\.css|.*\\.html)",
+      "src": "/(.*\\.html)",
       "dest": "/Webpages/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/Webpages/$1"
-    },
-    {
-      "src": "/images/(.*)",
-      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
