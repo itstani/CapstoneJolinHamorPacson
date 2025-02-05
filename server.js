@@ -74,9 +74,10 @@ async function connectToDatabase() {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "Webpages")));
-app.use("/CSS", express.static(path.join(__dirname, "CSS")));
-app.use("/images", express.static(path.join(__dirname, "images")));
+app.use(express.static(path.join(__dirname)));
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/CSS', express.static(path.join(__dirname, 'CSS')));
+app.use('/Webpages', express.static(path.join(__dirname, 'Webpages')));
 app.use(cors());
 app.use(
   session({
@@ -91,6 +92,11 @@ app.use(
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "Webpages/login.html"));
 });
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Webpages', 'login.html'));
+});
+
 
 // Middleware to attach the database
 app.use(async (req, res, next) => {
