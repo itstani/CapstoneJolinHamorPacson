@@ -2,36 +2,30 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
+      "src": "index.js",
       "use": "@vercel/node"
     },
     {
       "src": "images/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "CSS/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/images/(.*)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "access-control-allow-origin": "*"
+      },
       "dest": "/images/$1"
     },
     {
-      "src": "/CSS/(.*)",
-      "dest": "/CSS/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/images/favicon.ico"
+      "src": "/debug-images",
+      "dest": "/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "/index.js"
     }
   ]
 }
-

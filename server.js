@@ -76,14 +76,34 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-app.use(
-  "/images",
-  express.static(path.join(__dirname, "images"), {
-    setHeaders: (res, path) => {
-      res.set("Cache-Control", "public, max-age=31536000")
-    },
-  }),
-)
+app.use('/images', express.static(path.join(__dirname, 'images'), {
+  setHeaders: (res, path) => {
+    res.set({
+      'Cache-Control': 'public, max-age=31536000',
+      'Access-Control-Allow-Origin': '*'
+    });
+  }
+}));
+
+app.get('/debug-images', (req, res) => {
+  const imagesPath = path.join(__dirname, 'images');
+  const fs = require('fs');
+  try {
+    const files = fs.readdirSync(imagesPath);
+    res.json({
+      imagesPath,
+      files,
+      exists: fs.existsSync(imagesPath)
+    });
+  } catch (error) {
+    res.json({
+      error: error.message,
+      imagesPath,
+      exists: false
+    });
+  }
+});
+
 app.use(
   "/CSS",
   express.static(path.join(__dirname, "CSS"), {
@@ -1597,3 +1617,13 @@ app.listen(port, (err) => {
   }
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+module.exports = app;
