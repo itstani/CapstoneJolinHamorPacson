@@ -13,6 +13,8 @@
       "src": "images/**",
       "use": "@vercel/static"
     }
+    
+
   ],
   "routes": [
     {
@@ -34,6 +36,14 @@
     {
       "src": "/(.*)",
       "dest": "/Webpages/$1"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/server.js"
     }
   ],
   "env": {
