@@ -74,32 +74,18 @@ let activityLogsCollection
 // Single database connection function
 async function connectToDatabase() {
   try {
-    if (!database) {
-      await client.connect()
-      console.log("Connected successfully to MongoDB")
-      database = client.db(dbName)
-      activityLogsCollection = database.collection("activityLogs")
+    if (!global.mongoClient) {
+      await client.connect();
+      global.mongoClient = client;
+      console.log("Connected successfully to MongoDB Atlas");
     }
-    return database
+    return client.db(dbName);
   } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw error
+    console.error("MongoDB connection error:", error);
+    throw error;
   }
 }
 
-async function connectToDatabase() {
-  try {
-    if (!global.mongoClient) {
-      await client.connect()
-      global.mongoClient = client
-      console.log("Connected successfully to MongoDB Atlas")
-    }
-    return client.db(dbName)
-  } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw error
-  }
-}
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -285,15 +271,16 @@ app.get("/favicon.ico", (req, res) => {
 })
 app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
 app.use(cors())
-app.use(
-  session({
-    secret: "N3$Pxm/mXm1eYY",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: app.get("env") === "production" },
-  }),
-)
-
+app.use(session({
+  secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 app.use(
   cors({
     origin:
@@ -543,65 +530,49 @@ app.get("/", (req, res) => {
 })
 
 app.post("/login", async (req, res) => {
-  const { login, password } = req.body
+  const { login, password } = req.body;
 
   try {
-    if (user) {
-      req.session.userId = user._id;
-      req.session.userEmail = user.email;
-    }
-
-    const db = await connectToDatabase()
-    const usersCollection = db.collection("acc")
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("acc");
 
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
-    })
+    });
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      })
+      });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password)
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      })
-    }
-
-    // Set session data
     req.session.user = {
       id: user._id,
       username: user.username,
       email: user.email,
       role: user.role,
-    }
+    };
 
-    // Log successful login
-    await logActivity("login", `User ${user.username} logged in successfully`)
+    await logActivity("login", `User ${user.username} logged in successfully`);
 
     res.json({
       success: true,
       username: user.username,
       email: user.email,
       redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
-    })
+    });
   } catch (error) {
-    console.error("Login error:", error)
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
-    })
+    });
   }
-})
+});
 
 async function logActivity(action, details) {
   try {
@@ -1507,9 +1478,7 @@ app.get("/api/event/:eventId", async (req, res) => {
 
 app.get('/api/notifications', async (req, res) => {
   try {
-    // Check if the user is authenticated
-    if (!req.session || !req.session.userId || !req.session.userEmail) {
-      console.log("User not authenticated");
+    if (!req.session.user || !req.session.user.email) {
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
@@ -1518,15 +1487,10 @@ app.get('/api/notifications', async (req, res) => {
       });
     }
 
-    const userEmail = req.session.userEmail;
-
-    // Connect to the database
+    const userEmail = req.session.user.email;
     const db = await connectToDatabase();
     const notificationsCollection = db.collection("notifications");
 
-    console.log("Connected to database, fetching notifications for:", userEmail);
-
-    // Fetch notifications for this user
     const notifications = await notificationsCollection
       .find({
         userEmail: userEmail,
@@ -1535,8 +1499,6 @@ app.get('/api/notifications', async (req, res) => {
       .sort({ timestamp: -1 })
       .limit(10)
       .toArray();
-
-    console.log("Found notifications:", notifications.length);
 
     res.json({
       success: true,
