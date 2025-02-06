@@ -14,24 +14,24 @@ function getDateRange(filter) {
   }
 }
 
-require("dotenv").config();
-const express = require("express");
-const bodyParser = require("body-parser");
-const multer = require("multer");
-const path = require("path");
-const session = require("express-session");
-const bcrypt = require("bcryptjs");
-const cors = require("cors");
-const fs = require("fs");
-const { ObjectId } = require("mongodb");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-const schedule = require("node-schedule");
-const officegen = require("officegen");
+require("dotenv").config()
+const express = require("express")
+const bodyParser = require("body-parser")
+const multer = require("multer")
+const path = require("path")
+const session = require("express-session")
+const bcrypt = require("bcryptjs")
+const cors = require("cors")
+const fs = require("fs")
+const { ObjectId } = require("mongodb")
+const { MongoClient, ServerApiVersion } = require("mongodb")
+const schedule = require("node-schedule")
+const officegen = require("officegen")
 
 const app = express();
 const port = 3000;
-const dbName = "avidadb";
-const uri = "mongodb+srv://ethan:Edj1026@avidadb.upica.mongodb.net/?retryWrites=true&w=majority&appName=avidadb";
+const dbName = process.env.DB_NAME || "avidadb"
+const uri = process.env.MONGODB_URI
 
 function getClient() {
   return new MongoClient(uri, {
@@ -49,51 +49,49 @@ let database
 let activityLogsCollection // Declare activityLogsCollection here
 
 async function connectToDatabase() {
-  if (!client) {
-    client = new MongoClient(uri, {
+  if (!global.client) {
+    global.client = new MongoClient(uri, {
       serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
       },
-    });
+    })
 
     try {
-      await client.connect();
-      console.log("Connected to MongoDB!");
-      database = client.db(dbName);
-      activityLogsCollection = database.collection("activityLogs");
+      await global.client.connect()
+      console.log("Connected to MongoDB!")
+      global.database = global.client.db(dbName)
+      global.activityLogsCollection = global.database.collection("activityLogs")
     } catch (err) {
-      console.error("Error connecting to MongoDB:", err);
-      throw err;
+      console.error("Error connecting to MongoDB:", err)
+      throw err
     }
   }
-
-  return database;
+  return global.database
 }
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-app.use('/images', (req, res, next) => {
-  const imagePath = path.join(__dirname, 'images', req.path);
-  console.log('Image request details:', {
-    requestedPath: req.path,
+app.use(express.static(path.join(__dirname)))
+
+// Specific static file handling with logging
+app.use("/images", (req, res, next) => {
+  const imagePath = path.join(__dirname, "images", req.path)
+  console.log("Image request:", {
+    path: req.path,
     fullPath: imagePath,
-    exists: require('fs').existsSync(imagePath)
-  });
-  
+    exists: fs.existsSync(imagePath),
+  })
+
   res.sendFile(imagePath, (err) => {
     if (err) {
-      console.error('Error serving image:', {
-        error: err.message,
-        path: imagePath
-      });
-      next(err);
+      console.error("Error serving image:", err)
+      next(err)
     }
-  });
-});
+  })
+})
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*")
@@ -102,9 +100,7 @@ app.use((req, res, next) => {
 })
 
 app.get("/debug", (req, res) => {
-  const fs = require("fs")
   const imagesDir = path.join(__dirname, "images")
-
   try {
     const files = fs.readdirSync(imagesDir)
     res.json({
@@ -112,6 +108,8 @@ app.get("/debug", (req, res) => {
       imagesDirectory: imagesDir,
       files: files,
       exists: fs.existsSync(imagesDir),
+      mongodbUri: uri ? "URI is set" : "URI is not set",
+      nodeEnv: process.env.NODE_ENV || "not set",
     })
   } catch (error) {
     res.json({
@@ -122,6 +120,25 @@ app.get("/debug", (req, res) => {
   }
 })
 
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+    const collections = await db.listCollections().toArray()
+    res.json({
+      success: true,
+      message: "Database connected successfully",
+      collections: collections.map((c) => c.name),
+    })
+  } catch (error) {
+    console.error("Database test error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+      error: error.message,
+    })
+  }
+})
 
 app.get('/debug-images', (req, res) => {
   const imagesPath = path.join(__dirname, 'images');
@@ -166,6 +183,16 @@ app.use(
   })
 );
 
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://capstone-jolin-hamor-pacson.vercel.app"
+        : "http://localhost:3000",
+    credentials: true,
+  }),
+)
+
 // Example route
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "Webpages/login.html"));
@@ -175,6 +202,18 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'Webpages', 'login.html'));
 });
 
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }),
+)
 
 // Middleware to attach the database
 app.use(async (req, res, next) => {
@@ -1094,14 +1133,14 @@ app.get("/getConcerns", async (req, res) => {
 })
 
 process.on("SIGINT", async () => {
-  console.log("Shutting down server...");
-  if (client) {
-    await client.close();
-    console.log("MongoDB client closed.");
+  if (global.client) {
+    await global.client.close()
+    console.log("MongoDB connection closed.")
   }
-  process.exit(0);
-});
-//recent activity logs
+  process.exit(0)
+})
+
+module.exports = app
 app.get("/getRecentActivity", async (req, res) => {
   try {
     const page = Number.parseInt(req.query.page) || 1
@@ -1663,5 +1702,13 @@ app.use((err, req, res, next) => {
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
+
+app.use((err, req, res, next) => {
+  console.error("Error:", err)
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+  })
+})
 
 module.exports = app;

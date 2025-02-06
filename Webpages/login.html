@@ -314,8 +314,11 @@
 
         function handleImageError(img) {
     console.error('Failed to load image:', img.src);
-    // Optionally set a fallback image
-    // img.src = '/images/fallback.png';
+    // Log additional debugging information
+    fetch('/debug')
+        .then(response => response.json())
+        .then(data => console.log('Debug info:', data))
+        .catch(error => console.error('Error fetching debug info:', error));
 }
     </script>
     
