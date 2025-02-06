@@ -505,43 +505,84 @@ app.get("/", (req, res) => {
 })
 
 app.post("/login", async (req, res) => {
-  const { login, password } = req.body
+  const { login, password } = req.body;
 
   try {
-    const usersCollection = req.db.collection("acc")
+    if (!login || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("acc");
+    
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } },
-      ],
-    })
+        { username: { $regex: new RegExp(`^${login}$`, "i") } }
+      ]
+    });
 
-    if (user) {
-      const isPasswordValid = await bcrypt.compare(password, user.password)
-      if (isPasswordValid) {
-        req.session.user = {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-        }
-
-        res.json({
-          success: true,
-          username: user.username,
-          email: user.email,
-          redirectUrl: user.role === "admin" ? "../AdHome.html" : "../HoHome.html",
-        })
-      } else {
-        res.status(401).json({ success: false, message: "Invalid credentials" })
-      }
-    } else {
-      res.status(401).json({ success: false, message: "Invalid credentials" })
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
     }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
+
+    // Set session data
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
+
+    // Log successful login
+    await logActivity("login", `User ${user.username} logged in successfully`);
+
+    res.json({
+      success: true,
+      username: user.username,
+      email: user.email,
+      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html"
+    });
+
   } catch (error) {
-    console.error("Error during login:", error)
-    res.status(500).json({ success: false, message: "Server error" })
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during login"
+    });
   }
-})
+});
+
+async function logActivity(action, details) {
+  try {
+    if (!activityLogsCollection) {
+      const db = await connectToDatabase();
+      activityLogsCollection = db.collection("activityLogs");
+    }
+    await activityLogsCollection.insertOne({
+      action,
+      details,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error("Error logging activity:", error);
+  }
+}
 
 app.get("/check-existence", async (req, res) => {
   const { field, value } = req.query
