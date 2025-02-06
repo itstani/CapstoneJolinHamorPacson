@@ -218,37 +218,56 @@
 
     </style>
     <script>
+        function handleImageError(img) {
+        console.error('Failed to load image:', img.src);
+        // Log additional debugging information
+        fetch('/debug')
+            .then(response => response.json())
+            .then(data => console.log('Debug info:', data))
+            .catch(error => console.error('Error fetching debug info:', error));
+    }
         document.addEventListener('DOMContentLoaded', function() {
             // Move all your JavaScript code inside this function
             async function handleLogin(event) {
-                event.preventDefault(); 
-                const login = document.getElementById("login").value; 
-                const password = document.getElementById("pw").value;
+        event.preventDefault();
+        
+        try {
+            const formData = new FormData(event.target);
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    login: formData.get('login'),
+                    password: formData.get('password')
+                }),
+                credentials: 'include'
+            });
 
-                try {
-                    const response = await fetch('/login', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ login, password }),
-                    });
-                    const userData = await response.json();
-                    if (userData.success) {
-                        console.log('Login successful. User data:', userData);
-                        localStorage.setItem('username', userData.username);
-                        localStorage.setItem('email', userData.email);
-                        window.location.href = userData.redirectUrl; 
-                    } else {
-                        console.error('Login failed:', userData.message);
-                        showCustomAlert('Login failed: ' + userData.message);
-                    }
-                } catch (error) {
-                    console.error('Login error:', error);
-                    showCustomAlert('An error occurred during login. Please try again.');
-                }
+            const data = await response.json();
+
+            if (data.success) {
+                // Store user data if needed
+                localStorage.setItem('user', JSON.stringify({
+                    username: data.user.username,
+                    email: data.user.email
+                }));
+                
+                // Redirect based on role
+                window.location.href = data.redirectUrl;
+            } else {
+                // Show error message
+                alert(data.message || 'Login failed');
             }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('An error occurred during login. Please try again.');
+        }
+    }
 
+    // Add this to your login form
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
             const loginForm = document.getElementById("loginForm");
             if (loginForm) {
                 loginForm.addEventListener("submit", handleLogin);
@@ -312,14 +331,7 @@
             }
         });
 
-        function handleImageError(img) {
-    console.error('Failed to load image:', img.src);
-    // Log additional debugging information
-    fetch('/debug')
-        .then(response => response.json())
-        .then(data => console.log('Debug info:', data))
-        .catch(error => console.error('Error fetching debug info:', error));
-}
+        
     </script>
     
     

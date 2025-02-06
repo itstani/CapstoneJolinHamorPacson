@@ -27,6 +27,7 @@ const { ObjectId } = require("mongodb")
 const { MongoClient, ServerApiVersion } = require("mongodb")
 const schedule = require("node-schedule")
 const officegen = require("officegen")
+const { MongoClient, ServerApiVersion } = require("mongodb")
 
 const app = express();
 const port = 3000;
@@ -44,32 +45,39 @@ function getClient() {
     useUnifiedTopology: true,
   })
 }
-let client;
+
 let database
 let activityLogsCollection // Declare activityLogsCollection here
 
 async function connectToDatabase() {
-  if (!global.client) {
-    global.client = new MongoClient(uri, {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
-    })
-
-    try {
-      await global.client.connect()
-      console.log("Connected to MongoDB!")
-      global.database = global.client.db(dbName)
-      global.activityLogsCollection = global.database.collection("activityLogs")
-    } catch (err) {
-      console.error("Error connecting to MongoDB:", err)
-      throw err
+  try {
+    if (!global.mongoClient) {
+      await client.connect()
+      global.mongoClient = client
+      console.log("Connected successfully to MongoDB Atlas")
     }
+    return client.db(dbName)
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw error
   }
-  return global.database
 }
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  retryWrites: true,
+  retryReads: true,
+  w: "majority",
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+})
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -99,23 +107,60 @@ app.use((req, res, next) => {
   next()
 })
 
-app.get("/debug", (req, res) => {
-  const imagesDir = path.join(__dirname, "images")
+app.get("/debug", async (req, res) => {
   try {
-    const files = fs.readdirSync(imagesDir)
+    // Collect environment information
+    const envInfo = {
+      nodeEnv: process.env.NODE_ENV,
+      mongodbUri: process.env.MONGODB_URI ? "Set" : "Not set",
+      dbName: process.env.DB_NAME,
+      vercelEnv: process.env.VERCEL_ENV,
+      region: process.env.VERCEL_REGION,
+    }
+
+    // Test database connection
+    let dbConnection = "Not tested"
+    let collections = []
+    try {
+      const db = await connectToDatabase()
+      collections = await db.listCollections().toArray()
+      dbConnection = "Success"
+    } catch (dbError) {
+      dbConnection = `Error: ${dbError.message}`
+    }
+
+    // Collect request information
+    const requestInfo = {
+      headers: req.headers,
+      cookies: req.cookies,
+      query: req.query,
+      method: req.method,
+      path: req.path,
+      protocol: req.protocol,
+      hostname: req.hostname,
+    }
+
     res.json({
-      currentDirectory: __dirname,
-      imagesDirectory: imagesDir,
-      files: files,
-      exists: fs.existsSync(imagesDir),
-      mongodbUri: uri ? "URI is set" : "URI is not set",
-      nodeEnv: process.env.NODE_ENV || "not set",
+      timestamp: new Date().toISOString(),
+      status: "debug_endpoint_working",
+      environment: envInfo,
+      database: {
+        connection: dbConnection,
+        collections: collections.map((c) => c.name),
+      },
+      request: requestInfo,
+      serverInfo: {
+        platform: process.platform,
+        nodeVersion: process.version,
+        memoryUsage: process.memoryUsage(),
+      },
     })
   } catch (error) {
-    res.json({
-      error: error.message,
-      currentDirectory: __dirname,
-      imagesDirectory: imagesDir,
+    console.error("Debug endpoint error:", error)
+    res.status(500).json({
+      error: "Debug endpoint error",
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     })
   }
 })
@@ -225,6 +270,19 @@ app.use(async (req, res, next) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+connectToDatabase().catch(console.error)
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  next()
+})
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() })
+})
 
 const uploadsDir = path.join(__dirname, "uploads")
 if (!fs.existsSync(uploadsDir)) {
@@ -1704,10 +1762,19 @@ app.use((err, req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error("Error:", err)
+  console.error("Unhandled error:", err)
   res.status(500).json({
-    error: "Internal Server Error",
-    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+    error: "Internal server error",
+    message: process.env.NODE_ENV === "development" ? err.message : "An unexpected error occurred",
+    timestamp: new Date().toISOString(),
+  })
+})
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Route ${req.method} ${req.path} not found`,
+    timestamp: new Date().toISOString(),
   })
 })
 
