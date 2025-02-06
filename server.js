@@ -1507,53 +1507,54 @@ app.get("/api/event/:eventId", async (req, res) => {
   }
 })
 
-app.get('/api/notifications', (req, res) => {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ success: false, error: 'User not authenticated' });
-  }
-
-    if (!userEmail) {
-      console.log("No user email found in session")
+app.get('/api/notifications', async (req, res) => {
+  try {
+    // Check if the user is authenticated
+    if (!req.session || !req.session.userId || !req.session.userEmail) {
+      console.log("User not authenticated");
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
         notifications: [],
         unreadCount: 0,
-      })
+      });
     }
 
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
+    const userEmail = req.session.userEmail;
 
-    console.log("Connected to database, fetching notifications...")
+    // Connect to the database
+    const db = await connectToDatabase();
+    const notificationsCollection = db.collection("notifications");
+
+    console.log("Connected to database, fetching notifications for:", userEmail);
 
     // Fetch notifications for this user
     const notifications = await notificationsCollection
       .find({
-        userEmail: userEmail, // This should now correctly use the user's email from the session
+        userEmail: userEmail,
         read: false,
       })
       .sort({ timestamp: -1 })
       .limit(10)
-      .toArray()
+      .toArray();
 
-    console.log("Found notifications:", notifications.length)
+    console.log("Found notifications:", notifications.length);
 
     res.json({
       success: true,
       notifications: notifications,
       unreadCount: notifications.length,
-    })
+    });
   } catch (error) {
-    console.error("Error fetching notifications:", error)
+    console.error("Error fetching notifications:", error);
     res.status(500).json({
       success: false,
       error: "Internal server error",
       notifications: [],
       unreadCount: 0,
-    })
+    });
   }
-})
+});
 
 app.post("/api/markNotificationsAsRead", async (req, res) => {
   try {
