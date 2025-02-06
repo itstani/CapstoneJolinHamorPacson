@@ -1117,5 +1117,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: false });
     }
 });
+
+function handleImageError(img) {
+    console.error('Failed to load image:', img.src);
+    img.src = '../images/placeholder.png'; // Replace with a placeholder image
+}
   </script>
 </html>
