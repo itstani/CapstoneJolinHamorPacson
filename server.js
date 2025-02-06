@@ -27,7 +27,7 @@ const { ObjectId } = require("mongodb")
 const { MongoClient, ServerApiVersion } = require("mongodb")
 const schedule = require("node-schedule")
 const officegen = require("officegen")
-const { MongoClient, ServerApiVersion } = require("mongodb")
+
 
 const app = express();
 const port = 3000;
@@ -45,24 +45,6 @@ function getClient() {
     useUnifiedTopology: true,
   })
 }
-
-let database
-let activityLogsCollection // Declare activityLogsCollection here
-
-async function connectToDatabase() {
-  try {
-    if (!global.mongoClient) {
-      await client.connect()
-      global.mongoClient = client
-      console.log("Connected successfully to MongoDB Atlas")
-    }
-    return client.db(dbName)
-  } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw error
-  }
-}
-
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -78,11 +60,43 @@ const client = new MongoClient(uri, {
   socketTimeoutMS: 45000,
 })
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname)));
+let database
+let activityLogsCollection
 
+// Single database connection function
+async function connectToDatabase() {
+  try {
+    if (!database) {
+      await client.connect()
+      console.log("Connected successfully to MongoDB")
+      database = client.db(dbName)
+      activityLogsCollection = database.collection("activityLogs")
+    }
+    return database
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw error
+  }
+}
+
+async function connectToDatabase() {
+  try {
+    if (!global.mongoClient) {
+      await client.connect()
+      global.mongoClient = client
+      console.log("Connected successfully to MongoDB Atlas")
+    }
+    return client.db(dbName)
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw error
+  }
+}
+
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 app.use(express.static(path.join(__dirname)))
+
 
 // Specific static file handling with logging
 app.use("/images", (req, res, next) => {
@@ -100,6 +114,13 @@ app.use("/images", (req, res, next) => {
     }
   })
 })
+
+app.use("/images", express.static(path.join(__dirname, "images"), {
+  setHeaders: (res) => {
+    res.setHeader("Cache-Control", "public, max-age=31536000")
+    res.setHeader("Access-Control-Allow-Origin", "*")
+  }
+}))
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*")
@@ -217,7 +238,7 @@ app.use(
 app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "images", "favicon.ico"))
 })
-app.use('/Webpages', express.static(path.join(__dirname, 'Webpages')));
+app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
 app.use(cors());
 app.use(
   session({
@@ -228,15 +249,12 @@ app.use(
   })
 );
 
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://capstone-jolin-hamor-pacson.vercel.app"
-        : "http://localhost:3000",
-    credentials: true,
-  }),
-)
+app.use(cors({
+  origin: process.env.NODE_ENV === "production" 
+    ? "https://capstone-jolin-hamor-pacson.vercel.app"
+    : "http://localhost:3000",
+  credentials: true
+}))
 
 // Example route
 app.get("/", (req, res) => {
@@ -251,11 +269,11 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
     resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000
     },
   }),
 )
@@ -263,13 +281,12 @@ app.use(
 // Middleware to attach the database
 app.use(async (req, res, next) => {
   try {
-    req.db = await connectToDatabase();
-    next();
+    req.db = await connectToDatabase()
+    next()
   } catch (error) {
-    console.error("Database connection error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    next(error)
   }
-});
+})
 
 connectToDatabase().catch(console.error)
 
