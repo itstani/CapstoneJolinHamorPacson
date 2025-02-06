@@ -76,14 +76,26 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-app.use('/images', express.static(path.join(__dirname, 'images'), {
-  setHeaders: (res, path) => {
-    res.set({
-      'Cache-Control': 'public, max-age=31536000',
-      'Access-Control-Allow-Origin': '*'
-    });
-  }
-}));
+app.use("/images", (req, res, next) => {
+  // Log the requested image path
+  console.log("Image requested:", req.url)
+  console.log("Full path:", path.join(__dirname, "images", req.url))
+
+  // Attempt to send the file
+  res.sendFile(path.join(__dirname, "images", req.url), (err) => {
+    if (err) {
+      console.error("Error sending image:", err)
+      next(err)
+    }
+  })
+})
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  next()
+})
+
 
 app.get('/debug-images', (req, res) => {
   const imagesPath = path.join(__dirname, 'images');
