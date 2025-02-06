@@ -1,18 +1,10 @@
-const express = require('express');
-const path = require('path');
+const app = require("./server")
 
-const app = express();
+const port = process.env.PORT || 3000
 
-app.use(express.static('Webpages'));
+// Single app.listen call
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`)
+  console.log(`Debug endpoint: http://localhost:${port}/debug`)
+})
 
-
-app.get('/images/:imageName', (req, res) => {
-  const imageName = req.params.imageName;
-  res.sendFile(__dirname + '/images/' + imageName);
-});
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'Monitoring system', 'Webpages', 'register.html'));
-});
-app.listen(80, () => {
-  console.log('Server started on port 3000');
-});

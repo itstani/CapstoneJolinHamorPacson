@@ -76,24 +76,50 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-app.use("/images", (req, res, next) => {
-  // Log the requested image path
-  console.log("Image requested:", req.url)
-  console.log("Full path:", path.join(__dirname, "images", req.url))
-
-  // Attempt to send the file
-  res.sendFile(path.join(__dirname, "images", req.url), (err) => {
+app.use('/images', (req, res, next) => {
+  const imagePath = path.join(__dirname, 'images', req.path);
+  console.log('Image request details:', {
+    requestedPath: req.path,
+    fullPath: imagePath,
+    exists: require('fs').existsSync(imagePath)
+  });
+  
+  res.sendFile(imagePath, (err) => {
     if (err) {
-      console.error("Error sending image:", err)
-      next(err)
+      console.error('Error serving image:', {
+        error: err.message,
+        path: imagePath
+      });
+      next(err);
     }
-  })
-})
+  });
+});
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*")
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
   next()
+})
+
+app.get("/debug", (req, res) => {
+  const fs = require("fs")
+  const imagesDir = path.join(__dirname, "images")
+
+  try {
+    const files = fs.readdirSync(imagesDir)
+    res.json({
+      currentDirectory: __dirname,
+      imagesDirectory: imagesDir,
+      files: files,
+      exists: fs.existsSync(imagesDir),
+    })
+  } catch (error) {
+    res.json({
+      error: error.message,
+      currentDirectory: __dirname,
+      imagesDirectory: imagesDir,
+    })
+  }
 })
 
 

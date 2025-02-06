@@ -2,14 +2,13 @@
   "name": "monitoring-system",
   "version": "1.0.0",
   "description": "A monitoring system project",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "build": "chmod +x vercel-build.sh && ./vercel-build.sh",
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node index.js",
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
@@ -17,19 +16,16 @@
     "express": "^4.21.0",
     "express-session": "^1.18.0",
     "mongodb": "^6.13.0",
-    "mongoose": "^8.8.1",
     "multer": "^1.4.5-lts.1",
     "node-schedule": "^2.1.1",
-    "officegen": "^0.6.5",
-    "passport": "^0.7.0",
-    "passport-facebook": "^3.0.0",
-    "passport-google-oauth20": "^2.0.0"
+    "officegen": "^0.6.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.7",
     "vercel": "^41.0.1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "engines": {
+    "node": "18.x"
+  }
 }
+
