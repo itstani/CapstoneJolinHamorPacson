@@ -224,6 +224,27 @@ app.get("/api/test-db", async (req, res) => {
   }
 })
 
+async function checkSession() {
+  try {
+    const response = await fetch('/api/check-session', { credentials: 'include' });
+    const data = await response.json();
+    return data.isValid;
+  } catch (error) {
+    console.error('Error checking session:', error);
+    return false;
+  }
+}
+
+async function fetchNotificationsWithSessionCheck() {
+  const isSessionValid = await checkSession();
+  if (isSessionValid) {
+    await fetchNotifications();
+  } else {
+    console.log('Session expired, redirecting to login');
+    window.location.href = '/login.html';
+  }
+}
+
 app.get("/debug-images", (req, res) => {
   const imagesPath = path.join(__dirname, "images")
   const fs = require("fs")
