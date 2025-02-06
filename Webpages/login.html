@@ -226,109 +226,80 @@
             .then(data => console.log('Debug info:', data))
             .catch(error => console.error('Error fetching debug info:', error));
     }
-        document.addEventListener('DOMContentLoaded', function() {
-            // Move all your JavaScript code inside this function
+        ddocument.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const customAlert = document.getElementById('customAlert');
+            const customAlertMessage = document.getElementById('customAlertMessage');
+
             async function handleLogin(event) {
-        event.preventDefault();
-        
-        try {
-            const formData = new FormData(event.target);
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    login: formData.get('login'),
-                    password: formData.get('password')
-                }),
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Store user data if needed
-                localStorage.setItem('user', JSON.stringify({
-                    username: data.user.username,
-                    email: data.user.email
-                }));
+                event.preventDefault();
                 
-                // Redirect based on role
-                window.location.href = data.redirectUrl;
-            } else {
-                // Show error message
-                alert(data.message || 'Login failed');
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            alert('An error occurred during login. Please try again.');
-        }
-    }
+                try {
+                    const formData = new FormData(event.target);
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            login: formData.get('login'),
+                            password: formData.get('password')
+                        }),
+                        credentials: 'include'
+                    });
 
-    // Add this to your login form
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            const loginForm = document.getElementById("loginForm");
-            if (loginForm) {
-                loginForm.addEventListener("submit", handleLogin);
-            } else {
-                console.error("Login form not found");
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Store user data
+                        localStorage.setItem('username', data.username);
+                        localStorage.setItem('email', data.email);
+                        
+                        // Redirect based on role
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        showCustomAlert(data.message || 'Login failed');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showCustomAlert('An error occurred during login. Please try again.');
+                }
             }
 
             function showCustomAlert(message) {
-                const alertElement = document.getElementById('customAlert');
-                const messageElement = document.getElementById('customAlertMessage');
-                if (alertElement && messageElement) {
-                    messageElement.textContent = message;
-                    alertElement.style.display = 'block';
-                } else {
-                    console.error("Custom alert elements not found");
-                }
+                customAlertMessage.textContent = message;
+                customAlert.style.display = 'block';
             }
 
-            function closeCustomAlert() {
-                const alertElement = document.getElementById('customAlert');
-                if (alertElement) {
-                    alertElement.style.display = 'none';
-                } else {
-                    console.error("Custom alert element not found");
-                }
+            window.closeCustomAlert = function() {
+                customAlert.style.display = 'none';
             }
 
-            // Function to show the popup
-            function showPasswordResetPopup() {
-                const popup = document.getElementById('passwordResetPopup');
-                if (popup) {
-                    popup.style.display = 'flex';
-                } else {
-                    console.error("Password reset popup not found");
-                }
-            }
-
-            // Function to close the popup
-            function closePasswordResetPopup() {
-                const popup = document.getElementById('passwordResetPopup');
-                if (popup) {
-                    popup.style.display = 'none';
-                } else {
-                    console.error("Password reset popup not found");
-                }
-            }
-
-            // Add event listeners for the password reset popup
+            // Password reset popup functionality
             const forgotPasswordLink = document.querySelector('.fpw');
-            if (forgotPasswordLink) {
-                forgotPasswordLink.addEventListener('click', showPasswordResetPopup);
-            } else {
-                console.error("Forgot password link not found");
-            }
-
+            const passwordResetPopup = document.getElementById('passwordResetPopup');
             const closePopupButton = document.querySelector('#passwordResetPopup .close');
-            if (closePopupButton) {
-                closePopupButton.addEventListener('click', closePasswordResetPopup);
-            } else {
-                console.error("Close popup button not found");
-            }
+
+            forgotPasswordLink.addEventListener('click', () => {
+                passwordResetPopup.style.display = 'flex';
+            });
+
+            closePopupButton.addEventListener('click', () => {
+                passwordResetPopup.style.display = 'none';
+            });
+
+            // Close popup when clicking outside
+            window.addEventListener('click', (event) => {
+                if (event.target === passwordResetPopup) {
+                    passwordResetPopup.style.display = 'none';
+                }
+            });
+
+            loginForm.addEventListener('submit', handleLogin);
         });
 
         
@@ -341,19 +312,18 @@
     
     <div class="container">
         <div class="Welcome">
-            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="handleImageError(this)">
+            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
         </div>
 
-        <!-- Update the form to call handleLogin function on submit -->
         <form id="loginForm">
             <div class="column">
                 <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="email">
+                    <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="login" required>
                 </div>
             </div>
             <div class="column">
                 <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Enter Password" id="pw" name="password">
+                    <input type="password" class="rounded-input" placeholder="Enter Password" id="pw" name="password" required>
                 </div>
             </div>
             <div class="Loginbutton">
@@ -368,24 +338,19 @@
             <div class="fpw">
                 Forgot password?
             </div>
-            <!-- Popup HTML -->
             <div id="passwordResetPopup" class="popup">
                 <div class="popup-content">
                     <span class="close">&times;</span>
                     <h2>Password Reset</h2>
                     <p>For a temporary password reset, please contact us through the following channels:</p>
                     <br>
-                    <p><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="45363035352a373105203d24283529206b262a28">[email&#160;protected]</a></p>
+                    <p><strong>Email:</strong> support@example.com</p>
                     <p><strong>Landline:</strong> 123-456-7890</p>
-                    
                 </div>
             </div>
-            
-</div>
         </div>
-            
-        </form>
     </div>
+
     <div id="customAlert" class="custom-alert">
         <div class="custom-alert-content">
             <div class="custom-alert-header">Notice</div>
@@ -395,7 +360,6 @@
             </div>
         </div>
     </div>
-
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
 </html>
 

@@ -34,6 +34,16 @@ const port = 3000;
 const dbName = process.env.DB_NAME || "avidadb"
 const uri = process.env.MONGODB_URI
 
+app.use(express.json());
+app.use(
+  session({
+    secret: "N3$Pxm/mXm1eYY", 
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+
 function getClient() {
   return new MongoClient(uri, {
     serverApi: {
