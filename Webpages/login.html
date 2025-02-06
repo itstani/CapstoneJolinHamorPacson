@@ -228,14 +228,13 @@
     }
     document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
-            const customAlert = document.getElementById('customAlert');
-            const customAlertMessage = document.getElementById('customAlertMessage');
+            const errorMessage = document.getElementById('errorMessage');
 
-            async function handleLogin(event) {
+            loginForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 
                 try {
-                    const formData = new FormData(event.target);
+                    const formData = new FormData(loginForm);
                     const response = await fetch('/login', {
                         method: 'POST',
                         headers: {
@@ -248,10 +247,6 @@
                         credentials: 'include'
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
                     const data = await response.json();
 
                     if (data.success) {
@@ -262,26 +257,22 @@
                         // Redirect based on role
                         window.location.href = data.redirectUrl;
                     } else {
-                        showCustomAlert(data.message || 'Login failed');
+                        errorMessage.textContent = data.message || 'Login failed';
+                        errorMessage.style.display = 'block';
                     }
                 } catch (error) {
                     console.error('Login error:', error);
-                    showCustomAlert('An error occurred during login. Please try again.');
+                    errorMessage.textContent = 'An error occurred during login. Please try again.';
+                    errorMessage.style.display = 'block';
                 }
-            }
+            });
 
-            function showCustomAlert(message) {
-                customAlertMessage.textContent = message;
-                customAlert.style.display = 'block';
-            }
-
-            window.closeCustomAlert = function() {
-                customAlert.style.display = 'none';
-            }
-
-            loginForm.addEventListener('submit', handleLogin);
+            // Handle forgot password
+            document.getElementById('forgotPassword').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Please contact support for password reset assistance.');
+            });
         });
-
         
     </script>
     
