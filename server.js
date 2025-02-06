@@ -245,6 +245,12 @@ async function fetchNotificationsWithSessionCheck() {
   }
 }
 
+// Use fetchNotificationsWithSessionCheck instead of fetchNotifications
+document.addEventListener('DOMContentLoaded', () => {
+  fetchNotificationsWithSessionCheck();
+  setInterval(fetchNotificationsWithSessionCheck, 30000);
+});
+
 app.get("/debug-images", (req, res) => {
   const imagesPath = path.join(__dirname, "images")
   const fs = require("fs")
@@ -1501,11 +1507,10 @@ app.get("/api/event/:eventId", async (req, res) => {
   }
 })
 
-app.get("/api/notifications", async (req, res) => {
-  try {
-    const userEmail = req.session?.user?.email
-
-    console.log("Fetching notifications for user:", userEmail)
+app.get('/api/notifications', (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ success: false, error: 'User not authenticated' });
+  }
 
     if (!userEmail) {
       console.log("No user email found in session")
