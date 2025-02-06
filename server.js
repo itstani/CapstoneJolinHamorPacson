@@ -28,21 +28,19 @@ const { MongoClient, ServerApiVersion } = require("mongodb")
 const schedule = require("node-schedule")
 const officegen = require("officegen")
 
-
-const app = express();
-const port = 3000;
+const app = express()
+const port = 3000
 const dbName = process.env.DB_NAME || "avidadb"
 const uri = process.env.MONGODB_URI
 
-app.use(express.json());
+app.use(express.json())
 app.use(
   session({
-    secret: "N3$Pxm/mXm1eYY", 
+    secret: "N3$Pxm/mXm1eYY",
     resave: false,
     saveUninitialized: true,
-  })
-);
-
+  }),
+)
 
 function getClient() {
   return new MongoClient(uri, {
@@ -107,7 +105,6 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(express.static(path.join(__dirname)))
 
-
 // Specific static file handling with logging
 app.use("/images", (req, res, next) => {
   const imagePath = path.join(__dirname, "images", req.path)
@@ -125,12 +122,15 @@ app.use("/images", (req, res, next) => {
   })
 })
 
-app.use("/images", express.static(path.join(__dirname, "images"), {
-  setHeaders: (res) => {
-    res.setHeader("Cache-Control", "public, max-age=31536000")
-    res.setHeader("Access-Control-Allow-Origin", "*")
-  }
-}))
+app.use(
+  "/images",
+  express.static(path.join(__dirname, "images"), {
+    setHeaders: (res) => {
+      res.setHeader("Cache-Control", "public, max-age=31536000")
+      res.setHeader("Access-Control-Allow-Origin", "*")
+    },
+  }),
+)
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*")
@@ -196,7 +196,6 @@ app.get("/debug", async (req, res) => {
   }
 })
 
-
 app.get("/api/test-db", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -216,24 +215,24 @@ app.get("/api/test-db", async (req, res) => {
   }
 })
 
-app.get('/debug-images', (req, res) => {
-  const imagesPath = path.join(__dirname, 'images');
-  const fs = require('fs');
+app.get("/debug-images", (req, res) => {
+  const imagesPath = path.join(__dirname, "images")
+  const fs = require("fs")
   try {
-    const files = fs.readdirSync(imagesPath);
+    const files = fs.readdirSync(imagesPath)
     res.json({
       imagesPath,
       files,
-      exists: fs.existsSync(imagesPath)
-    });
+      exists: fs.existsSync(imagesPath),
+    })
   } catch (error) {
     res.json({
       error: error.message,
       imagesPath,
-      exists: false
-    });
+      exists: false,
+    })
   }
-});
+})
 
 app.use(
   "/CSS",
@@ -249,41 +248,44 @@ app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "images", "favicon.ico"))
 })
 app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
-app.use(cors());
+app.use(cors())
 app.use(
   session({
     secret: "N3$Pxm/mXm1eYY",
     resave: false,
     saveUninitialized: true,
     cookie: { secure: app.get("env") === "production" },
-  })
-);
+  }),
+)
 
-app.use(cors({
-  origin: process.env.NODE_ENV === "production" 
-    ? "https://capstone-jolin-hamor-pacson.vercel.app"
-    : "http://localhost:3000",
-  credentials: true
-}))
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://capstone-jolin-hamor-pacson.vercel.app"
+        : "http://localhost:3000",
+    credentials: true,
+  }),
+)
 
 // Example route
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Webpages/login.html"));
-});
+  res.sendFile(path.join(__dirname, "Webpages/login.html"))
+})
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'Webpages', 'login.html'));
-});
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
+})
 
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
     resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 24 * 60 * 60 * 1000
+    saveUninitialized: true,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     },
   }),
 )
@@ -505,40 +507,40 @@ app.get("/", (req, res) => {
 })
 
 app.post("/login", async (req, res) => {
-  const { login, password } = req.body;
+  const { login, password } = req.body
 
   try {
     if (!login || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required"
-      });
+        message: "Email and password are required",
+      })
     }
 
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("acc");
-    
+    const db = await connectToDatabase()
+    const usersCollection = db.collection("acc")
+
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } }
-      ]
-    });
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
+      ],
+    })
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
-      });
+        message: "Invalid credentials",
+      })
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
-      });
+        message: "Invalid credentials",
+      })
     }
 
     // Set session data
@@ -546,41 +548,40 @@ app.post("/login", async (req, res) => {
       id: user._id,
       username: user.username,
       email: user.email,
-      role: user.role
-    };
+      role: user.role,
+    }
 
     // Log successful login
-    await logActivity("login", `User ${user.username} logged in successfully`);
+    await logActivity("login", `User ${user.username} logged in successfully`)
 
     res.json({
       success: true,
       username: user.username,
       email: user.email,
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html"
-    });
-
+      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+    })
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error)
     res.status(500).json({
       success: false,
-      message: "An error occurred during login"
-    });
+      message: "An error occurred during login",
+    })
   }
-});
+})
 
 async function logActivity(action, details) {
   try {
     if (!activityLogsCollection) {
-      const db = await connectToDatabase();
-      activityLogsCollection = db.collection("activityLogs");
+      const db = await connectToDatabase()
+      activityLogsCollection = db.collection("activityLogs")
     }
     await activityLogsCollection.insertOne({
       action,
       details,
-      timestamp: new Date()
-    });
+      timestamp: new Date(),
+    })
   } catch (error) {
-    console.error("Error logging activity:", error);
+    console.error("Error logging activity:", error)
   }
 }
 
@@ -1772,7 +1773,6 @@ app.get("/api/analytics/event-types", async (req, res) => {
   }
 })
 
-
 async function startServer() {
   try {
     await connectToDatabase()
@@ -1784,8 +1784,6 @@ async function startServer() {
     process.exit(1)
   }
 }
-
-
 
 // email otp--------------------------------------
 app.use(cors())
@@ -1815,19 +1813,19 @@ app.post("/send-otp", (req, res) => {
 
 app.listen(port, (err) => {
   if (err) {
-    console.error("Failed to start server:", err.message);
-    process.exit(1);
+    console.error("Failed to start server:", err.message)
+    process.exit(1)
   }
-  console.log(`Server is running on http://localhost:${port}`);
-});
+  console.log(`Server is running on http://localhost:${port}`)
+})
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error(err.stack)
   res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+  })
+})
 
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err)
@@ -1846,4 +1844,5 @@ app.use((req, res) => {
   })
 })
 
-module.exports = app;
+module.exports = app
+
