@@ -546,11 +546,9 @@ app.post("/login", async (req, res) => {
   const { login, password } = req.body
 
   try {
-    if (!login || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      })
+    if (user) {
+      req.session.userId = user._id;
+      req.session.userEmail = user.email;
     }
 
     const db = await connectToDatabase()
