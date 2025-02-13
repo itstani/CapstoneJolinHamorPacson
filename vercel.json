@@ -32,6 +32,10 @@
       }
     },
     {
+      "src": "/(.*)",
+      "dest": "server.js"
+    },
+    {
       "src": "/CSS/(.*)",
       "dest": "/CSS/$1",
       "headers": {
@@ -56,6 +60,7 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "MONGODB_URI": "@mongodb_uri"
   }
 }
