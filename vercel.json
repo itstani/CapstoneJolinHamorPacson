@@ -20,8 +20,7 @@
   ],
   "routes": [
     {
-      "src": "/login",
-      "methods": ["POST"],
+      "src": "/api/(.*)",
       "dest": "/server.js"
     },
     {
@@ -48,11 +47,7 @@
       "dest": "/images/favicon.ico"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/(login|register|profile)(.*)",
+      "src": "/(login|register|profile)",
       "dest": "/Webpages/$1.html"
     },
     {
@@ -64,4 +59,3 @@
     "NODE_ENV": "production"
   }
 }
-
