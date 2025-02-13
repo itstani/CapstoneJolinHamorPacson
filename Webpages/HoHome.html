@@ -631,54 +631,71 @@
     <div class="top-bar"></div>
     
     <div class="side-bar">
-        <div class="Home">
-            <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-                <img src="/images/house.png" alt="Home" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p>Home</p>
-        </div>
-        
-        <div class="Calendar">
-            <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
-                <img src="/images/Calendar.png" alt="calendar" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p>Calendar</p>
-        </div>
-        
-        <div class="Profile">
-            <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
-                <img src="/images/profileicon.png" alt="Profile" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p>Profile</p>
-        </div>
-        
-        <div class="button">
-            <button type="button" id="logoutButton">Logout</button>
-            <p>Logout</p>
-        </div>
+      <div class="Home">
+        <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
+          <img src="images/house.png" alt="Home" />
+        </button>
+        <p>Home</p>
+      </div>
+ 
+      <div class="Calendar">
+        <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
+          <img src="images/Calendar.png" alt="calendar">
+        </button>
+        <p>Calendar</p>
+      </div>
+ 
+      <div class="Profile">
+        <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
+          <img src="images/profileicon.png" alt="Profile" />
+        </button>
+        <p>Profile</p>
+      </div>
+      <div class="button">
+        <button type="button" id="logoutButton">Logout</button>
+        <p>Logout</p>
+      </div>
+ 
     </div>
     
     <div class="Welcome">
-        <h1>Welcome home!</h1>
-        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+      <h1>Welcome home!</h1>
+      <img
+        src="/images/AvidaSettingsLogo.png"
+        alt="Avida Settings Logo"
+        class="avidalogo"
+      />
     </div>
     
     <div class="reserve">
-        <p class="reservetext1">What would you like to do?</p>
-        
-        <div class="reserve-item">
-            <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
-                <img src="/images/pool.png" alt="Pool" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p class="reservetext">Reserve for an Outing or an event?</p>
-        </div>
-        
-        <div class="reserve-item">
-            <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
-                <img src="/images/admin.png" alt="Admin" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p class="raisetext">Raise your concern to an admin</p>
-        </div>
+      <p class="reservetext1">What would you like to do?</p>
+ 
+      <div class="reserve-item">
+        <button
+          type="button"
+          class="poolbutton"
+          id="poolbutton"
+          name="poolbutton"
+          aria-label="pool"
+          onclick="window.location.href='addevent.html'"
+        >
+          <img src="images/pool.png" />
+        </button>
+        <p class="reservetext">Reserve for an Outing or an event?</p>
+      </div>
+ 
+      <div class="reserve-item">
+        <button
+          type="button"
+          class="adminbutton"
+          id="adminbutton"
+          name="adminbutton"
+          aria-label="admin"
+        >
+          <img src="images/admin.png" />
+        </button>
+        <p class="raisetext">Raise your concern to an admin</p>
+      </div>
     </div>
  
     <div id="adminPopup" class="popup">
@@ -715,7 +732,7 @@
       </div>
   </div>
   <div class="notification-icon" id="notificationIcon">
-    <img src="images/bell.png" alt="Notifications" />
+    <img src="../images/bell.png" alt="Notifications" />
     <span class="notification-count" id="notificationCount">0</span>
   </div>
 
@@ -1105,18 +1122,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handleImageError(img) {
-            console.error('Failed to load image:', img.src);
-            img.src = '/images/placeholder.png';
-        }
-        
-        // Add event listeners for image error handling
-        document.addEventListener('DOMContentLoaded', function() {
-            const images = document.querySelectorAll('img');
-            images.forEach(img => {
-                img.addEventListener('error', function() {
-                    handleImageError(this);
-                });
-            });
-        });
+    console.error('Failed to load image:', img.src);
+    img.src = '../images/*'; // Replace with a placeholder image
+}
   </script>
 </html>
