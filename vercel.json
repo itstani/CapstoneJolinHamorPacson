@@ -61,6 +61,6 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "MONGODB_URI": "@mongodb_uri"
+    "MONGODB_URI": "mongodb+srv://ethan:Edj1026@avidadb.upica.mongodb.net/?retryWrites=true&w=majority&appName=avidadb"
   }
 }
