@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     },
     {
@@ -21,25 +21,18 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/images/(.*)",
-      "dest": "/images/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable",
-        "access-control-allow-origin": "*"
-      }
+      "dest": "/images/$1"
     },
     {
       "src": "/CSS/(.*)",
-      "dest": "/CSS/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000"
-      }
+      "dest": "/CSS/$1"
     },
     {
-      "src": "/Webpages/(.*)\\.html",
+      "src": "/(.*)\\.html",
       "dest": "/Webpages/$1.html"
     },
     {
@@ -52,7 +45,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "/Webpages/HoHome.html"
     }
   ],
   "env": {
