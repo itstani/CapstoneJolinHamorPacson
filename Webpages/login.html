@@ -248,6 +248,7 @@
                     });
 
                     const data = await response.json();
+                    
 
                     if (data.success) {
                         // Store user data
@@ -257,13 +258,17 @@
                         // Redirect based on role
                         window.location.href = data.redirectUrl;
                     } else {
-                        errorMessage.textContent = data.message || 'Login failed';
-                        errorMessage.style.display = 'block';
+                        if (errorMessage) {
+                            errorMessage.textContent = data.message || 'Invalid credentials. Please try again.';
+                            errorMessage.style.display = 'block';
+                        }
                     }
                 } catch (error) {
                     console.error('Login error:', error);
-                    errorMessage.textContent = 'An error occurred during login. Please try again.';
-                    errorMessage.style.display = 'block';
+                    if (errorMessage) {
+                        errorMessage.textContent = 'An error occurred during login. Please try again.';
+                        errorMessage.style.display = 'block';
+                    }
                 }
             });
 
@@ -283,7 +288,7 @@
     
     <div class="container">
         <div class="Welcome">
-            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
+            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="handleImageError(this)">
         </div>
 
         <form id="loginForm">
@@ -301,12 +306,12 @@
                 <button type="submit" class="Login">Login</button>
             </div>
         </form>
-        
+        <div id="errorMessage" style="color: #AF2630; margin-top: 10px; display: none;"></div>
         <div>
             <div class="regis-here" onclick="window.location.href='register.html'">
                 Sign up here
             </div>
-            <div class="fpw">
+            <div class="fpw" id="forgotPassword">
                 Forgot password?
             </div>
             <div id="passwordResetPopup" class="popup">
@@ -315,7 +320,7 @@
                     <h2>Password Reset</h2>
                     <p>For a temporary password reset, please contact us through the following channels:</p>
                     <br>
-                    <p><strong>Email:</strong> support@example.com</p>
+                    <p><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfcccacfcfd0cdcbffdac7ded2cfd3da91dcd0d2">[email&#160;protected]</a></p>
                     <p><strong>Landline:</strong> 123-456-7890</p>
                 </div>
             </div>
@@ -331,6 +336,6 @@
             </div>
         </div>
     </div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
 </html>
 
