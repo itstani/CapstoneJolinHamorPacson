@@ -226,58 +226,63 @@
             .then(data => console.log('Debug info:', data))
             .catch(error => console.error('Error fetching debug info:', error));
     }
-    document.addEventListener('DOMContentLoaded', function() {
-            const loginForm = document.getElementById('loginForm');
-            const errorMessage = document.getElementById('errorMessage');
+    // Update the login form handler
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('errorMessage');
 
-            loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                
-                try {
-                    const formData = new FormData(loginForm);
-                    const response = await fetch('/login', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            login: formData.get('login'),
-                            password: formData.get('password')
-                        }),
-                        credentials: 'include'
-                    });
-
-                    const data = await response.json();
-                    
-
-                    if (data.success) {
-                        // Store user data
-                        localStorage.setItem('username', data.username);
-                        localStorage.setItem('email', data.email);
-                        
-                        // Redirect based on role
-                        window.location.href = data.redirectUrl;
-                    } else {
-                        if (errorMessage) {
-                            errorMessage.textContent = data.message || 'Invalid credentials. Please try again.';
-                            errorMessage.style.display = 'block';
-                        }
-                    }
-                } catch (error) {
-                    console.error('Login error:', error);
-                    if (errorMessage) {
-                        errorMessage.textContent = 'An error occurred during login. Please try again.';
-                        errorMessage.style.display = 'block';
-                    }
-                }
+    loginForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        try {
+            const formData = new FormData(loginForm);
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    login: formData.get('login'),
+                    password: formData.get('password')
+                }),
+                credentials: 'include'
             });
 
-            // Handle forgot password
-            document.getElementById('forgotPassword').addEventListener('click', function(e) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Store user data
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('email', data.email);
+                
+                // Redirect based on role
+                window.location.href = data.redirectUrl;
+            } else {
+                if (errorMessage) {
+                    errorMessage.textContent = data.message || 'Invalid credentials. Please try again.';
+                    errorMessage.style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            if (errorMessage) {
+                errorMessage.textContent = 'An error occurred during login. Please try again.';
+                errorMessage.style.display = 'block';
+            }
+        }
+    });
+// Handle forgot password
+document.getElementById('forgotPassword').addEventListener('click', function(e) {
                 e.preventDefault();
                 alert('Please contact support for password reset assistance.');
             });
         });
+         
+
         
     </script>
     

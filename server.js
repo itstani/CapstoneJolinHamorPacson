@@ -522,8 +522,18 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "Webpages/login.html"))
 })
 
+// Update the login endpoint
 app.post("/login", async (req, res) => {
+  console.log("Login attempt received:", req.body); // Debug log
+
   const { login, password } = req.body;
+
+  if (!login || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email/username and password are required"
+    });
+  }
 
   try {
     const db = await connectToDatabase();
@@ -532,37 +542,49 @@ app.post("/login", async (req, res) => {
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } },
-      ],
+        { username: { $regex: new RegExp(`^${login}$`, "i") } }
+      ]
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid credentials"
       });
     }
 
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
+
+    // Set session data
     req.session.user = {
       id: user._id,
       username: user.username,
       email: user.email,
-      role: user.role,
+      role: user.role
     };
 
-    await logActivity("login", `User ${user.username} logged in successfully`);
+    // Log successful login
+    console.log("Login successful for user:", user.username);
 
     res.json({
       success: true,
       username: user.username,
       email: user.email,
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html"
     });
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
       success: false,
-      message: "An error occurred during login",
+      message: "An error occurred during login"
     });
   }
 });
