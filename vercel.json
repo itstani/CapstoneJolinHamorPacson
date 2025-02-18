@@ -20,12 +20,12 @@
   ],
   "routes": [
     {
-      "src": "/login",
-      "methods": ["POST"],
+      "src": "/api/(.*)",
       "dest": "/api/index.js"
     },
     {
-      "src": "/api/(.*)",
+      "src": "/login",
+      "methods": ["POST"],
       "dest": "/api/index.js"
     },
     {
@@ -54,3 +54,4 @@
     }
   ]
 }
+
