@@ -71,19 +71,16 @@ const client = new MongoClient(uri, {
 let database
 let activityLogsCollection
 
-// Single database connection function
 async function connectToDatabase() {
-  try {
-    if (!global.mongoClient) {
-      await client.connect();
-      global.mongoClient = client;
-      console.log("Connected successfully to MongoDB Atlas");
+  const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
     }
-    return client.db(dbName);
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
+  });
+  await client.connect();
+  return client.db(dbName);
 }
 
 
@@ -531,7 +528,7 @@ app.get("/", (req, res) => {
 
 // Update the login endpoint
 app.post("/login", async (req, res) => {
-  console.log("Login attempt received:", req.body); // Debug log
+  console.log("Login attempt received:", req.body);
 
   const { login, password } = req.body;
 
@@ -569,7 +566,6 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    // Set session data
     req.session.user = {
       id: user._id,
       username: user.username,
@@ -577,7 +573,6 @@ app.post("/login", async (req, res) => {
       role: user.role
     };
 
-    // Log successful login
     console.log("Login successful for user:", user.username);
 
     res.json({
@@ -595,6 +590,7 @@ app.post("/login", async (req, res) => {
     });
   }
 });
+
 
 async function logActivity(action, details) {
   try {
