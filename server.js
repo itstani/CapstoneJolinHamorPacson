@@ -527,7 +527,7 @@ app.get("/", (req, res) => {
 })
 
 // Update the login endpoint
-app.post("/login", async (req, res) => {
+app.post("/api/login", async (req, res) => {
   console.log("Login attempt received:", req.body);
 
   const { login, password } = req.body;
