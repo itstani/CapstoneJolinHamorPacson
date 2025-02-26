@@ -24,11 +24,6 @@
       "dest": "/api/index.js"
     },
     {
-      "src": "/login",
-      "methods": ["POST"],
-      "dest": "/api/index.js"
-    },
-    {
       "src": "/images/(.*)",
       "dest": "/images/$1"
     },
@@ -50,8 +45,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/Webpages/HoHome.html"
+      "dest": "/api/index.js"
     }
   ]
 }
-

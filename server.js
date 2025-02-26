@@ -274,6 +274,13 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+app.use(cors({
+  origin: process.env.NODE_ENV === "production" 
+    ? "https://capstone-jolin-hamor-pacson.vercel.app" 
+    : "http://localhost:3000",
+  credentials: true
+}));
 app.use(
   cors({
     origin:
