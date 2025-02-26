@@ -218,7 +218,7 @@
 
     </style>
    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+   document.addEventListener('DOMContentLoaded', function() {
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
     
@@ -227,7 +227,7 @@
             
             try {
                 const formData = new FormData(loginForm);
-                const response = await fetch('/api/login', {  // Updated endpoint
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
