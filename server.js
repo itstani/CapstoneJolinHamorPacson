@@ -533,6 +533,7 @@ app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
 
   if (!login || !password) {
+    console.log("Missing login or password");
     return res.status(400).json({
       success: false,
       message: "Email/username and password are required"
@@ -540,9 +541,13 @@ app.post("/api/login", async (req, res) => {
   }
 
   try {
+    console.log("Attempting to connect to database...");
     const db = await connectToDatabase();
+    console.log("Connected to database successfully");
+
     const usersCollection = db.collection("acc");
 
+    console.log("Searching for user...");
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
@@ -551,21 +556,25 @@ app.post("/api/login", async (req, res) => {
     });
 
     if (!user) {
+      console.log("User not found");
       return res.status(401).json({
         success: false,
         message: "Invalid credentials"
       });
     }
 
+    console.log("User found, comparing passwords...");
     const isValidPassword = await bcrypt.compare(password, user.password);
     
     if (!isValidPassword) {
+      console.log("Invalid password");
       return res.status(401).json({
         success: false,
         message: "Invalid credentials"
       });
     }
 
+    console.log("Password valid, creating session...");
     req.session.user = {
       id: user._id,
       username: user.username,
@@ -586,7 +595,8 @@ app.post("/api/login", async (req, res) => {
     console.error("Login error:", error);
     res.status(500).json({
       success: false,
-      message: "An error occurred during login"
+      message: "An error occurred during login",
+      error: error.message
     });
   }
 });
@@ -1860,3 +1870,11 @@ app.use((req, res) => {
 
 module.exports = app
 
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'An unexpected error occurred',
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
+  });
+});
