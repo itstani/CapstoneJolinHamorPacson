@@ -218,43 +218,53 @@
 
     </style>
    <script>
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const login = document.getElementById('login').value;
-            const password = document.getElementById('password').value;
+    document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
             const errorMessage = document.getElementById('errorMessage');
 
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ login, password }),
-                    credentials: 'include'
-                });
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const login = document.getElementById('login').value;
+                const password = document.getElementById('password').value;
 
-                const data = await response.json();
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ login, password }),
+                        credentials: 'include'
+                    });
 
-                if (data.success) {
-                    // Store user info in sessionStorage
-                    sessionStorage.setItem('user', JSON.stringify({
-                        username: data.username,
-                        email: data.email,
-                        role: data.role
-                    }));
+                    const data = await response.json();
 
-                    // Redirect based on role
-                    window.location.href = data.redirectUrl;
-                } else {
-                    errorMessage.textContent = data.message || 'Login failed. Please try again.';
+                    if (data.success) {
+                        // Store user info in sessionStorage
+                        sessionStorage.setItem('user', JSON.stringify({
+                            username: data.username,
+                            email: data.email,
+                            role: data.role
+                        }));
+
+                        // Redirect based on role
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        errorMessage.textContent = data.message || 'Login failed. Please try again.';
+                        errorMessage.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorMessage.textContent = 'An error occurred. Please try again.';
+                    errorMessage.style.display = 'block';
                 }
-            } catch (error) {
-                console.error('Login error:', error);
-                errorMessage.textContent = 'An error occurred. Please try again.';
-            }
+            });
         });
+
+        function showForgotPassword() {
+            alert('Please contact support for password reset assistance.');
+        }
      
     </script>
     

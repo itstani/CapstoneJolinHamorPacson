@@ -219,7 +219,6 @@ app.get("/api/test-db", async (req, res) => {
   }
 })
 
-// Login endpoint
 app.post("/api/login", async (req, res) => {
   console.log("Login attempt received:", { email: req.body.login })
 
@@ -264,14 +263,25 @@ app.post("/api/login", async (req, res) => {
       role: user.role,
     }
 
-    console.log("Login successful for user:", user.username)
+    // Save session before sending response
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err)
+        return res.status(500).json({
+          success: false,
+          message: "Error saving session",
+        })
+      }
 
-    res.json({
-      success: true,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      console.log("Login successful for user:", user.username)
+
+      res.json({
+        success: true,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      })
     })
   } catch (error) {
     console.error("Login error:", error)
