@@ -675,7 +675,7 @@
     
     <div class="reserve-item">
         <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
-            <img src="/images/admin.png" alt="Admin" onerror="handleImageError(this)" />
+            <img src="/images/Admin.png" alt="Admin" onerror="handleImageError(this)" />
         </button>
         <p class="raisetext">Raise your concern to an admin</p>
     </div>
@@ -884,7 +884,54 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
         notificationModal.style.display = 'none';
       });
 
-      
+      async function fetchNotifications() {
+    try {
+        const response = await fetch('/api/notifications', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Handle session expiration
+        if (response.status === 401) {
+            console.log('Session expired, redirecting to login');
+            // Clear any stored user data
+            localStorage.clear();
+            sessionStorage.clear();
+            // Redirect with a message
+            window.location.href = '/login.html?expired=true';
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            notifications = data.notifications || [];
+            notificationCount.textContent = data.unreadCount || '0';
+            updateNotificationList();
+            updateClearButtons();
+        } else {
+            throw new Error(data.error || 'Failed to fetch notifications');
+        }
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        
+        if (error instanceof TypeError && error.message.includes('NetworkError')) {
+            showErrorMessage('Network error occurred. Please check your internet connection and try again.');
+        } else {
+            showErrorMessage('Failed to fetch notifications. Please try again later.');
+        }
+        
+        handleNoNotifications();
+    }
+}
 
 let retryCount = 0;
 const MAX_RETRIES = 3;
