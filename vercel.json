@@ -22,7 +22,7 @@
     {
       "src": "/api/(.*)",
       "dest": "/server.js"
-    },
+    }, 
     {
       "src": "/images/(.*)",
       "dest": "/images/$1"
@@ -40,8 +40,12 @@
       "dest": "/images/favicon.ico"
     },
     {
-      "src": "/(login|register|profile)",
-      "dest": "/server.js"
+      "src": "/login",
+      "dest": "/Webpages/login.html"
+    },
+    {
+      "src": "/",
+      "dest": "/Webpages/login.html"
     },
     {
       "src": "/(.*)",
@@ -49,3 +53,4 @@
     }
   ]
 }
+
