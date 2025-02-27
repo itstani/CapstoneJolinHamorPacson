@@ -1210,7 +1210,7 @@ app.get("/api/notifications", async (req, res) => {
         userEmail: userEmail,
         read: false,
       })
-      .sort({ timestamp: -1 })
+      .sort({ timestamp: 30 })
       .limit(10)
       .toArray()
 
