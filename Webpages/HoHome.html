@@ -884,7 +884,7 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
         notificationModal.style.display = 'none';
       });
 
-     async function fetchNotifications() {
+      async function fetchNotifications() {
       try {
         const response = await fetch('/api/notifications', {
           method: 'GET',
@@ -1148,6 +1148,7 @@ function showErrorMessage(message) {
         });
       }, 30000);
     });
+
     // Update the handleImageError function
     function handleImageError(img) {
         console.error('Failed to load image:', img.src);

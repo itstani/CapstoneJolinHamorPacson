@@ -69,8 +69,8 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? ["https://capstone-jolin-hamor-pacson.vercel.app"]
-        : ["http://localhost:3000"],
+        ? "https://capstone-jolin-hamor-pacson.vercel.app"
+        : "http://localhost:3000",
     credentials: true,
   }),
 )
@@ -87,6 +87,10 @@ const sessionConfig = {
   },
 }
 
+// In production, we need to trust the proxy
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1)
+}
 // In production, we need to trust the proxy
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1)
