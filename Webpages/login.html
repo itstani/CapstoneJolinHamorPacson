@@ -218,48 +218,49 @@
 
     </style>
    <script>
-   document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    const errorMessage = document.getElementById('errorMessage');
-
-    loginForm.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        
-        try {
-            const formData = new FormData(loginForm);
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    login: formData.get('login'),
-                    password: formData.get('password')
-                }),
-                credentials: 'include'
-            });
-
-            const data = await response.json();
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+    
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
             
-            if (data.success) {
-                localStorage.setItem('username', data.username);
-                localStorage.setItem('email', data.email);
-                window.location.href = data.redirectUrl;
-            } else {
+            try {
+                const formData = new FormData(loginForm);
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        login: formData.get('login'),
+                        password: formData.get('password')
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('email', data.email);
+                    window.location.href = data.redirectUrl;
+                } else {
+                    if (errorMessage) {
+                        errorMessage.textContent = data.message || 'Login failed. Please try again.';
+                        errorMessage.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Login error:', error);
                 if (errorMessage) {
-                    errorMessage.textContent = data.message || 'Login failed. Please try again.';
+                    errorMessage.textContent = 'An error occurred during login. Please try again.';
                     errorMessage.style.display = 'block';
                 }
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            if (errorMessage) {
-                errorMessage.textContent = 'An error occurred during login. Please try again. Error: ' + error.message;
-                errorMessage.style.display = 'block';
-            }
-        }
+        });
     });
-});
+     
     </script>
     
     
