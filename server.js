@@ -69,25 +69,30 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? "https://capstone-jolin-hamor-pacson.vercel.app"
-        : "http://localhost:3000",
+        ? ["https://capstone-jolin-hamor-pacson.vercel.app"]
+        : ["http://localhost:3000"],
     credentials: true,
   }),
 )
 
-// Configure session - single configuration
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  }),
-)
+// Configure session - optimized for serverless
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+}
+
+// In production, we need to trust the proxy
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1)
+}
+
+app.use(session(sessionConfig))
 
 app.use(express.static(path.join(__dirname)))
 app.use(
@@ -125,6 +130,7 @@ app.use(async (req, res, next) => {
     req.db = await connectToDatabase()
     next()
   } catch (error) {
+    console.error("Database connection error:", error)
     next(error)
   }
 })
@@ -291,7 +297,6 @@ app.post("/api/login", async (req, res) => {
     })
   }
 })
-
 
 // Activity logging function
 async function logActivity(action, details) {
@@ -1010,6 +1015,8 @@ app.get("/getRecentActivity", async (req, res) => {
     res.json({
       activities: recentActivity,
       totalPages: Math.ceil(totalActivities / limit),
+      currentPage: recentActivity,
+      totalPages: Math.ceil(totalActivities / limit),
       currentPage: page,
     })
   } catch (error) {
@@ -1210,7 +1217,7 @@ app.get("/api/notifications", async (req, res) => {
         userEmail: userEmail,
         read: false,
       })
-      .sort({ timestamp: 30 })
+      .sort({ timestamp: -1 })
       .limit(10)
       .toArray()
 
