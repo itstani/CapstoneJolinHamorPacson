@@ -52,11 +52,16 @@ async function connectToDatabase() {
   })
 
   try {
-    await client.connect()
-    return client.db(dbName)
+    if (!uri) {
+      throw new Error('MongoDB URI is not defined');
+    }
+    await client.connect();
+    await client.db().command({ ping: 1 }); // Test the connection
+    console.log("Successfully connected to MongoDB");
+    return client.db(dbName);
   } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw error
+    console.error("MongoDB connection error:", error);
+    throw new Error(`Database connection failed: ${error.message}`);
   }
 }
 
@@ -75,7 +80,7 @@ app.use(
   }),
 )
 
-// Configure session - single configuration
+// Update session configuration for Vercel serverless environment
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
@@ -85,7 +90,9 @@ app.use(
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
     },
+    name: 'sessionId', // Custom session cookie name
   }),
 )
 
@@ -128,6 +135,14 @@ app.use(async (req, res, next) => {
     next(error)
   }
 })
+
+// Add session check middleware
+app.use((req, res, next) => {
+  if (!req.session) {
+    console.error("Session middleware not properly initialized");
+  }
+  next();
+});
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
@@ -221,65 +236,96 @@ app.get("/api/test-db", async (req, res) => {
 
 // Login endpoint
 app.post("/api/login", async (req, res) => {
-  console.log("Login attempt received:", req.body)
+  console.log("Login attempt received:", {
+    hasLogin: !!req.body.login,
+    hasPassword: !!req.body.password,
+  });
 
-  const { login, password } = req.body
+  const { login, password } = req.body;
 
   if (!login || !password) {
     return res.status(400).json({
       success: false,
-      message: "Email/username and password are required",
-    })
+      message: "Email/username and password are required"
+    });
+  }
+
+  let db;
+  try {
+    db = await connectToDatabase();
+    console.log("Database connected successfully for login");
+  } catch (error) {
+    console.error("Database connection error during login:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error"
+    });
   }
 
   try {
-    const db = await connectToDatabase()
-    const usersCollection = db.collection("acc")
+    const usersCollection = db.collection("acc");
+    console.log("Searching for user with login:", login);
 
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } },
-      ],
-    })
+        { username: { $regex: new RegExp(`^${login}$`, "i") } }
+      ]
+    });
 
     if (!user) {
+      console.log("User not found for login:", login);
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
-      })
+        message: "Invalid credentials"
+      });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password)
-
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
     if (!isValidPassword) {
+      console.log("Invalid password for user:", login);
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
-      })
+        message: "Invalid credentials"
+      });
     }
 
+    // Set session data
     req.session.user = {
       id: user._id,
       username: user.username,
       email: user.email,
-      role: user.role,
-    }
+      role: user.role
+    };
 
-    console.log("Login successful for user:", user.username)
+    // Save session explicitly
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to create session"
+        });
+      }
 
-    res.json({
-      success: true,
-      username: user.username,
-      email: user.email,
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
-    })
+      console.log("Login successful for user:", user.username);
+      res.json({
+        success: true,
+        username: user.username,
+        email: user.email,
+        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html"
+      });
+    });
+
   } catch (error) {
-    console.error("Login error:", error)
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
-    })
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error"
+    });
   }
 })
 
@@ -1013,8 +1059,6 @@ app.get("/getUpcomingEvents", async (req, res) => {
   try {
     const db = await connectToDatabase()
     const eventsCollection = db.collection("aevents")
-    \
-    const page = Number.parseInt(req.query.page    const eventsCollection = db.collection("aevents");
 
     const page = Number.parseInt(req.query.page) || 1
     const limit = 5
@@ -1461,41 +1505,3 @@ app.get("/api/analytics/event-types", async (req, res) => {
 // Generate OTP function
 const generateOTP = () => {
   return Math.floor(1000 + Math.random() * 9000) // 4-digit OTP
-}
-
-// Send OTP endpoint
-app.post("/send-otp", (req, res) => {
-  const userEmail = req.body.email
-  const otp = generateOTP()
-
-  // In a serverless environment, we can't use nodemailer directly
-  // This is a mock implementation for testing
-  res.json({ success: true, message: "OTP sent successfully", otp })
-})
-
-// Root route - serve login page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Webpages/login.html"))
-})
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err)
-  res.status(500).json({
-    error: "Internal server error",
-    message: process.env.NODE_ENV === "development" ? err.message : "An unexpected error occurred",
-    timestamp: new Date().toISOString(),
-  })
-})
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Not Found",
-    message: `Route ${req.method} ${req.path} not found`,
-    timestamp: new Date().toISOString(),
-  })
-})
-
-module.exports = app
-
