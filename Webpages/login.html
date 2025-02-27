@@ -218,7 +218,7 @@
 
     </style>
    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+   document.addEventListener('DOMContentLoaded', function() {
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
     
@@ -238,6 +238,10 @@
                     }),
                     credentials: 'include'
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 
