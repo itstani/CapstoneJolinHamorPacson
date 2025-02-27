@@ -633,21 +633,21 @@
     <div class="side-bar">
         <div class="Home">
             <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-                <img src="/images/house.png" alt="Home" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="/images/house.png" alt="Home" onerror="this.onerror=null;" />
             </button>
             <p>Home</p>
         </div>
         
         <div class="Calendar">
             <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
-                <img src="/images/Calendar.png" alt="calendar" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="/images/Calendar.png" alt="calendar" onerror="this.onerror=null; " />
             </button>
             <p>Calendar</p>
         </div>
         
         <div class="Profile">
             <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
-                <img src="/images/profileicon.png" alt="Profile" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="/images/profileicon.png" alt="Profile" onerror="this.onerror=null;" />
             </button>
             <p>Profile</p>
         </div>
@@ -660,7 +660,7 @@
     
     <div class="Welcome">
         <h1>Welcome home!</h1>
-        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+        <img src="../images/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="this.onerror=null;" />
     </div>
     
     <div class="reserve">
@@ -668,14 +668,14 @@
         
         <div class="reserve-item">
             <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
-                <img src="/images/pool.png" alt="Pool" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="../images/images/pool.png" alt="Pool" onerror="this.onerror=null;" />
             </button>
             <p class="reservetext">Reserve for an Outing or an event?</p>
         </div>
         
         <div class="reserve-item">
             <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
-                <img src="/images/admin.png" alt="Admin" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="../images/images/admin.png" alt="Admin" onerror="this.onerror=null; " />
             </button>
             <p class="raisetext">Raise your concern to an admin</p>
         </div>
@@ -715,7 +715,7 @@
       </div>
   </div>
   <div class="notification-icon" id="notificationIcon">
-    <img src="/images/bell.png" alt="Notifications" />
+    <img src="../images/bell.png" alt="Notifications" />
     <span class="notification-count" id="notificationCount">0</span>
   </div>
 
@@ -1106,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function handleImageError(img) {
             console.error('Failed to load image:', img.src);
-            img.src = '/images/placeholder.png';
+            
         }
         
         // Add event listeners for image error handling
