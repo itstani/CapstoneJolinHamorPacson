@@ -277,6 +277,17 @@
                 popup.style.display = 'none';
             }
         }
+
+        function closeCustomAlert() {
+            document.getElementById('customAlert').style.display = 'none';
+        }
+
+        function showCustomAlert(message) {
+            const alertElement = document.getElementById('customAlert');
+            const messageElement = document.getElementById('customAlertMessage');
+            messageElement.textContent = message;
+            alertElement.style.display = 'block';
+        }
     </script>
     
     
@@ -288,7 +299,7 @@
     
     <div class="container">
         <div class="Welcome">
-            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="handleImageError(this)">
+            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="this.onerror=null; this.src='/images/placeholder.png';">
         </div>
 
         <form id="loginForm">
@@ -299,7 +310,7 @@
             </div>
             <div class="column">
                 <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Enter Password" id="pw" name="password" required>
+                    <input type="password" class="rounded-input" placeholder="Enter Password" id="password" name="password" required>
                 </div>
             </div>
             <div class="Loginbutton">
@@ -311,16 +322,16 @@
             <div class="regis-here" onclick="window.location.href='register.html'">
                 Sign up here
             </div>
-            <div class="fpw" id="forgotPassword">
+            <div class="fpw" id="forgotPassword" onclick="showForgotPassword()">
                 Forgot password?
             </div>
             <div id="passwordResetPopup" class="popup">
                 <div class="popup-content">
-                    <span class="close">&times;</span>
+                    <span class="close" onclick="closePopup()">&times;</span>
                     <h2>Password Reset</h2>
                     <p>For a temporary password reset, please contact us through the following channels:</p>
                     <br>
-                    <p><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfcccacfcfd0cdcbffdac7ded2cfd3da91dcd0d2">[email&#160;protected]</a></p>
+                    <p><strong>Email:</strong> support@avidadb.com</p>
                     <p><strong>Landline:</strong> 123-456-7890</p>
                 </div>
             </div>
@@ -336,6 +347,6 @@
             </div>
         </div>
     </div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</body>
 </html>
 
