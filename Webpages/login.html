@@ -218,52 +218,43 @@
 
     </style>
    <script>
-   document.addEventListener('DOMContentLoaded', function() {
-        const loginForm = document.getElementById('loginForm');
-        const errorMessage = document.getElementById('errorMessage');
-    
-        loginForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             
+            const login = document.getElementById('login').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+
             try {
-                const formData = new FormData(loginForm);
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        login: formData.get('login'),
-                        password: formData.get('password')
-                    }),
+                    body: JSON.stringify({ login, password }),
                     credentials: 'include'
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    localStorage.setItem('username', data.username);
-                    localStorage.setItem('email', data.email);
+                    // Store user info in sessionStorage
+                    sessionStorage.setItem('user', JSON.stringify({
+                        username: data.username,
+                        email: data.email,
+                        role: data.role
+                    }));
+
+                    // Redirect based on role
                     window.location.href = data.redirectUrl;
                 } else {
-                    if (errorMessage) {
-                        errorMessage.textContent = data.message || 'Login failed. Please try again.';
-                        errorMessage.style.display = 'block';
-                    }
+                    errorMessage.textContent = data.message || 'Login failed. Please try again.';
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                if (errorMessage) {
-                    errorMessage.textContent = 'An error occurred during login. Please try again.';
-                    errorMessage.style.display = 'block';
-                }
+                errorMessage.textContent = 'An error occurred. Please try again.';
             }
         });
-    });
      
     </script>
     
@@ -279,20 +270,16 @@
             <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="handleImageError(this)">
         </div>
 
-        <form id="loginForm">
-            <div class="column">
-                <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="login" required>
-                </div>
+        <form id="loginForm" class="login-form">
+            <h2>Login</h2>
+            <div class="form-group">
+                <input type="text" id="login" name="login" placeholder="Email or Username" required>
             </div>
-            <div class="column">
-                <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Enter Password" id="pw" name="password" required>
-                </div>
+            <div class="form-group">
+                <input type="password" id="password" name="password" placeholder="Password" required>
             </div>
-            <div class="Loginbutton">
-                <button type="submit" class="Login">Login</button>
-            </div>
+            <button type="submit">Login</button>
+            <div id="errorMessage" class="error-message"></div>
         </form>
         <div id="errorMessage" style="color: #AF2630; margin-top: 10px; display: none;"></div>
         <div>
