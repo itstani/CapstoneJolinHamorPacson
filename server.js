@@ -280,7 +280,7 @@ app.post("/api/login", async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+        redirectUrl: user.role === "admin" ? "/AdHome.html" : "/HoHome.html",
       })
     })
   } catch (error) {
