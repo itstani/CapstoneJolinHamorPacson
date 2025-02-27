@@ -885,49 +885,49 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
       });
 
       async function fetchNotifications() {
-  try {
-    const response = await fetch('/api/notifications', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
+      try {
+        const response = await fetch('/api/notifications', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
 
-    if (response.status === 401) {
-      console.log('Session expired, redirecting to login');
-      window.location.href = '/login.html';
-      return;
-    }
+        if (response.status === 401) {
+          console.log('Session expired, redirecting to login');
+          window.location.href = '/login.html';
+          return;
+        }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-      const data = await response.json();
-      if (data.success) {
-        notifications = data.notifications || [];
-        notificationCount.textContent = data.unreadCount || '0';
-        updateNotificationList();
-        updateClearButtons();
-      } else {
-        console.error('Failed to fetch notifications:', data.error);
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const data = await response.json();
+          if (data.success) {
+            notifications = data.notifications || [];
+            notificationCount.textContent = data.unreadCount || '0';
+            updateNotificationList();
+            updateClearButtons();
+          } else {
+            console.error('Failed to fetch notifications:', data.error);
+            handleNoNotifications();
+          }
+        } else {
+          console.error('Received non-JSON response');
+          handleNoNotifications();
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
         handleNoNotifications();
+        showErrorMessage('Failed to fetch notifications. Please try again later.');
       }
-    } else {
-      console.error('Received non-JSON response');
-      handleNoNotifications();
     }
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    handleNoNotifications();
-    // Display error message to user
-    showErrorMessage('Failed to fetch notifications. Please try again later.');
-  }
-}
+
 
 function handleNoNotifications() {
   notifications = [];
@@ -1119,49 +1119,41 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showErrorMessage(message) {
-  const errorDiv = document.createElement('div');
-  errorDiv.textContent = message;
-  errorDiv.style.color = 'red';
-  errorDiv.style.padding = '10px';
-  errorDiv.style.marginTop = '10px';
-  document.body.appendChild(errorDiv);
-  setTimeout(() => errorDiv.remove(), 5000); // Remove after 5 seconds
-}
-
-// Initialize notifications with a delay and error handling
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    fetchNotifications().catch(error => {
-      console.error('Error in initial notification fetch:', error);
-      showErrorMessage('Failed to load notifications. Please refresh the page.');
-    });
-    // Fetch notifications every 30 seconds
-    setInterval(() => {
-      fetchNotifications().catch(error => {
-        console.error('Error in periodic notification fetch:', error);
-      });
-    }, 30000);
-  }, 1000);
-});
-
-// Update the handleImageError function
-function handleImageError(img) {
-    console.error('Failed to load image:', img.src);
-    const originalSrc = img.src;
-    
-    // Try to load the image with a different path format
-    if (!img.src.startsWith('data:')) {
-        const imageName = img.src.split('/').pop();
-        img.src = `/images/${imageName}`;
+      const errorDiv = document.createElement('div');
+      errorDiv.textContent = message;
+      errorDiv.style.color = 'red';
+      errorDiv.style.padding = '10px';
+      errorDiv.style.marginTop = '10px';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000); // Remove after 5 seconds
     }
-}
-// Initialize notifications with a delay to ensure session is established
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        fetchNotifications();
+
+    // Initialize notifications with a delay and error handling
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        fetchNotifications().catch(error => {
+          console.error('Error in initial notification fetch:', error);
+          showErrorMessage('Failed to load notifications. Please refresh the page.');
+        });
         // Fetch notifications every 30 seconds
-        setInterval(fetchNotifications, 3000000);
-    }, 1000);
-});
+        setInterval(() => {
+          fetchNotifications().catch(error => {
+            console.error('Error in periodic notification fetch:', error);
+          });
+        }, 30000);
+      }, 1000);
+    });
+
+    // Update the handleImageError function
+    function handleImageError(img) {
+        console.error('Failed to load image:', img.src);
+        const originalSrc = img.src;
+        
+        // Try to load the image with a different path format
+        if (!img.src.startsWith('data:')) {
+            const imageName = img.src.split('/').pop();
+            img.src = `/images/${imageName}`;
+        }
+    }
   </script>
 </html>
