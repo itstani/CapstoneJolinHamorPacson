@@ -885,52 +885,70 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
       });
 
       async function fetchNotifications() {
-      try {
+    try {
         const response = await fetch('/api/notifications', {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
         });
 
+        // Handle session expiration
         if (response.status === 401) {
-          console.log('Session expired, redirecting to login');
-          window.location.href = '/login.html';
-          return;
+            console.log('Session expired, redirecting to login');
+            // Clear any stored user data
+            localStorage.clear();
+            sessionStorage.clear();
+            // Redirect with a message
+            window.location.href = '/login.html?expired=true';
+            return;
         }
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const data = await response.json();
-          if (data.success) {
+        const data = await response.json();
+        
+        if (data.success) {
             notifications = data.notifications || [];
             notificationCount.textContent = data.unreadCount || '0';
             updateNotificationList();
             updateClearButtons();
-          } else {
-            console.error('Failed to fetch notifications:', data.error);
-            handleNoNotifications();
-          }
         } else {
-          console.error('Received non-JSON response');
-          handleNoNotifications();
+            throw new Error(data.error || 'Failed to fetch notifications');
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Error fetching notifications:', error);
-        handleNoNotifications();
+        
         if (error instanceof TypeError && error.message.includes('NetworkError')) {
-          showErrorMessage('Network error occurred. Please check your internet connection and try again.');
+            showErrorMessage('Network error occurred. Please check your internet connection and try again.');
         } else {
-          showErrorMessage('Failed to fetch notifications. Please try again later.');
+            showErrorMessage('Failed to fetch notifications. Please try again later.');
         }
-      }
+        
+        handleNoNotifications();
     }
+}
+
+let retryCount = 0;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 5000; // 5 seconds
+
+function fetchNotificationsWithRetry() {
+    fetchNotifications().catch(error => {
+        console.error('Error in notification fetch:', error);
+        if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            setTimeout(fetchNotificationsWithRetry, RETRY_DELAY);
+        } else {
+            showErrorMessage('Unable to connect to the server. Please refresh the page.');
+            retryCount = 0;
+        }
+    });
+}
 
 
 function handleNoNotifications() {
@@ -1137,28 +1155,27 @@ function showErrorMessage(message) {
 
     // Initialize notifications without delay
     document.addEventListener('DOMContentLoaded', () => {
-      fetchNotifications().catch(error => {
-        console.error('Error in initial notification fetch:', error);
-        showErrorMessage('Failed to load notifications. Please refresh the page.');
-      });
-      // Fetch notifications every 30 seconds
-      setInterval(() => {
-        fetchNotifications().catch(error => {
-          console.error('Error in periodic notification fetch:', error);
-        });
-      }, 30000);
-    });
+    fetchNotificationsWithRetry();
+    // Reset retry count periodically
+    setInterval(() => {
+        retryCount = 0;
+        fetchNotificationsWithRetry();
+    }, 30000);
+});
 
-    // Update the handleImageError function
-    function handleImageError(img) {
-        console.error('Failed to load image:', img.src);
-        const originalSrc = img.src;
-        
-        // Try to load the image with a different path format
-        if (!img.src.startsWith('data:')) {
-            const imageName = img.src.split('/').pop();
-            img.src = `/images/${imageName}`;
-        }
+function handleImageError(img) {
+    console.error('Failed to load image:', img.src);
+    
+    // If the image is already using the fallback path, use a data URI placeholder
+    if (img.src.includes('/images/')) {
+        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNhYWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgZm91bmQ8L3RleHQ+PC9zdmc+';
+        return;
     }
+    
+    // Try the /images/ path first
+    const imageName = img.src.split('/').pop();
+    img.src = `/images/${imageName}`;
+}
+
   </script>
 </html>

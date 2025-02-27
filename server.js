@@ -67,11 +67,10 @@ app.use(bodyParser.urlencoded({ extended: true }))
 // Configure CORS - single configuration
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://capstone-jolin-hamor-pacson.vercel.app"
-        : "http://localhost:3000",
+    origin: ["https://capstone-jolin-hamor-pacson.vercel.app", "http://localhost:3000"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   }),
 )
 
