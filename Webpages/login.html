@@ -263,9 +263,20 @@
         });
 
         function showForgotPassword() {
-            alert('Please contact support for password reset assistance.');
+            document.getElementById('passwordResetPopup').style.display = 'block';
         }
-     
+
+        function closePopup() {
+            document.getElementById('passwordResetPopup').style.display = 'none';
+        }
+
+        // Close popup when clicking outside
+        window.onclick = function(event) {
+            const popup = document.getElementById('passwordResetPopup');
+            if (event.target === popup) {
+                popup.style.display = 'none';
+            }
+        }
     </script>
     
     
