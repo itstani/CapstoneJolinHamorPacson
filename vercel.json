@@ -6,15 +6,15 @@
       "use": "@vercel/node"
     },
     {
-      "src": "Webpages/**",
-      "use": "@vercel/static"
-    },
-    {
       "src": "images/**",
       "use": "@vercel/static"
     },
     {
       "src": "CSS/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "Webpages/**",
       "use": "@vercel/static"
     }
   ],
@@ -25,11 +25,18 @@
     },
     {
       "src": "/images/(.*)",
-      "dest": "/images/$1"
+      "dest": "/images/$1",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "Access-Control-Allow-Origin": "*"
+      }
     },
     {
       "src": "/CSS/(.*)",
-      "dest": "/CSS/$1"
+      "dest": "/CSS/$1",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "src": "/(.*)\\.html",
@@ -40,20 +47,9 @@
       "dest": "/images/favicon.ico"
     },
     {
-      "src": "/login",
-      "dest": "/Webpages/login.html"
-    },
-    {
       "src": "/",
       "dest": "/Webpages/login.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/server.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
 
