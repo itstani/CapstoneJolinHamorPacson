@@ -221,26 +221,23 @@ app.get("/api/test-db", async (req, res) => {
 
 // Login endpoint
 app.post("/api/login", async (req, res) => {
-  console.log("Login attempt received:", req.body)
-
-  const { login, password } = req.body
-
-  if (!login || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Email/username and password are required",
-    })
-  }
+  console.log("Login attempt received:", { email: req.body.login })
 
   try {
+    const { login, password } = req.body
+
+    if (!login || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email/username and password are required",
+      })
+    }
+
     const db = await connectToDatabase()
     const usersCollection = db.collection("acc")
 
     const user = await usersCollection.findOne({
-      $or: [
-        { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } },
-      ],
+      $or: [{ email: login.toLowerCase() }, { username: login.toLowerCase() }],
     })
 
     if (!user) {
@@ -259,8 +256,9 @@ app.post("/api/login", async (req, res) => {
       })
     }
 
+    // Set session data
     req.session.user = {
-      id: user._id,
+      id: user._id.toString(),
       username: user.username,
       email: user.email,
       role: user.role,
@@ -272,16 +270,18 @@ app.post("/api/login", async (req, res) => {
       success: true,
       username: user.username,
       email: user.email,
+      role: user.role,
       redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
     })
   } catch (error) {
     console.error("Login error:", error)
     res.status(500).json({
       success: false,
-      message: "An error occurred during login",
+      message: "An error occurred during login. Please try again.",
     })
   }
 })
+
 
 // Activity logging function
 async function logActivity(action, details) {
@@ -1008,13 +1008,10 @@ app.get("/getRecentActivity", async (req, res) => {
   }
 })
 
-// Get upcoming events endpoint
 app.get("/getUpcomingEvents", async (req, res) => {
   try {
     const db = await connectToDatabase()
     const eventsCollection = db.collection("aevents")
-    \
-    const page = Number.parseInt(req.query.page    const eventsCollection = db.collection("aevents");
 
     const page = Number.parseInt(req.query.page) || 1
     const limit = 5

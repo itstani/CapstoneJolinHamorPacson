@@ -22,7 +22,7 @@
     {
       "src": "/api/(.*)",
       "dest": "/server.js"
-    }, 
+    },
     {
       "src": "/images/(.*)",
       "dest": "/images/$1"
@@ -51,6 +51,9 @@
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
 
