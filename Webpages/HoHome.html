@@ -633,53 +633,53 @@
     <div class="side-bar">
         <div class="Home">
             <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-                <img src="/images/house.png" alt="Home" onerror="this.onerror=null;" />
+                <img src="/images/house.png" alt="Home" onerror="handleImageError(this)" />
             </button>
             <p>Home</p>
         </div>
         
         <div class="Calendar">
             <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
-                <img src="/images/Calendar.png" alt="calendar" onerror="this.onerror=null; " />
+                <img src="/images/Calendar.png" alt="Calendar" onerror="handleImageError(this)" />
             </button>
             <p>Calendar</p>
         </div>
         
         <div class="Profile">
-            <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
-                <img src="/images/profileicon.png" alt="Profile" onerror="this.onerror=null;" />
-            </button>
-            <p>Profile</p>
-        </div>
-        
-        <div class="button">
-            <button type="button" id="logoutButton">Logout</button>
-            <p>Logout</p>
-        </div>
+          <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
+              <img src="/images/profileicon.png" alt="Profile" onerror="handleImageError(this)" />
+          </button>
+          <p>Profile</p>
+      </div>
+      
+      <div class="button">
+          <button type="button" id="logoutButton">Logout</button>
+          <p>Logout</p>
+      </div>
+  </div>
+    
+  <div class="Welcome">
+    <h1>Welcome home!</h1>
+    <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="handleImageError(this)" />
+</div>
+
+<div class="reserve">
+    <p class="reservetext1">What would you like to do?</p>
+    
+    <div class="reserve-item">
+        <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
+            <img src="/images/pool.png" alt="Pool" onerror="handleImageError(this)" />
+        </button>
+        <p class="reservetext">Reserve for an Outing or an event?</p>
     </div>
     
-    <div class="Welcome">
-        <h1>Welcome home!</h1>
-        <img src="../images/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="this.onerror=null;" />
+    <div class="reserve-item">
+        <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
+            <img src="/images/admin.png" alt="Admin" onerror="handleImageError(this)" />
+        </button>
+        <p class="raisetext">Raise your concern to an admin</p>
     </div>
-    
-    <div class="reserve">
-        <p class="reservetext1">What would you like to do?</p>
-        
-        <div class="reserve-item">
-            <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
-                <img src="../images/images/pool.png" alt="Pool" onerror="this.onerror=null;" />
-            </button>
-            <p class="reservetext">Reserve for an Outing or an event?</p>
-        </div>
-        
-        <div class="reserve-item">
-            <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
-                <img src="../images/images/admin.png" alt="Admin" onerror="this.onerror=null; " />
-            </button>
-            <p class="raisetext">Raise your concern to an admin</p>
-        </div>
-    </div>
+</div>
  
     <div id="adminPopup" class="popup">
       <div class="popup-content">
@@ -928,7 +928,6 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
       }
     }
 
-
 function handleNoNotifications() {
   notifications = [];
   notificationCount.textContent = '0';
@@ -1128,20 +1127,18 @@ function showErrorMessage(message) {
       setTimeout(() => errorDiv.remove(), 5000); // Remove after 5 seconds
     }
 
-    // Initialize notifications with a delay and error handling
+    // Initialize notifications without delay
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
+      fetchNotifications().catch(error => {
+        console.error('Error in initial notification fetch:', error);
+        showErrorMessage('Failed to load notifications. Please refresh the page.');
+      });
+      // Fetch notifications every 30 seconds
+      setInterval(() => {
         fetchNotifications().catch(error => {
-          console.error('Error in initial notification fetch:', error);
-          showErrorMessage('Failed to load notifications. Please refresh the page.');
+          console.error('Error in periodic notification fetch:', error);
         });
-        // Fetch notifications every 30 seconds
-        setInterval(() => {
-          fetchNotifications().catch(error => {
-            console.error('Error in periodic notification fetch:', error);
-          });
-        }, 30000);
-      }, 1000);
+      }, 30000);
     });
 
     // Update the handleImageError function
