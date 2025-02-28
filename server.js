@@ -294,13 +294,14 @@ app.post("/api/login", async (req, res) => {
     })
   } catch (error) {
     console.error("Login error:", error)
+    console.error("Error stack:", error.stack)
     res.status(500).json({
       success: false,
       message: "An error occurred during login. Please try again.",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     })
   }
 })
-
 // Activity logging function
 async function logActivity(action, details) {
   try {
