@@ -31,6 +31,10 @@
       }
     },
     {
+      "src": "/approved-events",
+      "dest": "/server.js"
+    },
+    {
       "src": "/images/(.*)",
       "dest": "/images/$1",
       "headers": {
