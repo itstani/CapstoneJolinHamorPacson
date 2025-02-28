@@ -395,9 +395,17 @@
         // Fetch approved events from the server
         async function fetchApprovedEvents() {
             try {
-                const response = await fetch('http://localhost:3000/approved-events', {
-                    credentials: 'include' // This is important for sending cookies 
-            }); // Update the port if necessary
+                const response = await fetch('https://capstone-jolin-hamor-pacson.vercel.app/approved-events', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
 
                 if (data.success) {
@@ -409,12 +417,12 @@
                             name: event.eventName,
                             time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
                             amenity: event.amenity
-                            
                         });
                         return acc;
                     }, {});
 
                     console.log("EventsByDate structure:", eventsByDate); // Log processed events
+                    renderCalendar(); // Render the calendar after fetching events
                 } else {
                     console.error("Failed to fetch events:", data.message);
                 }
@@ -422,7 +430,6 @@
                 console.error("Error fetching events:", error);
             }
         }
-
         // Format date to YYYY-MM-DD
         function formatDate(date) {
             const [month, day, year] = date.split('-'); // Assuming 'MM-DD-YYYY'
@@ -430,47 +437,73 @@
         }
 
         // Format time to 12-hour format
-        function formatTime(time) {
-            const [hour, minute] = time.split(':');
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const adjustedHour = hour % 12 || 12;
-            return `${adjustedHour}:${minute} ${period}`;
+        function formatTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':');
+            const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+            const formattedHours = (parseInt(hours) % 12) || 12; // Handle midnight (00:00)
+            return `${formattedHours}:${minutes} ${ampm}`;
         }
 
         // Render the calendar grid
         function renderCalendar() {
-            const date = new Date(currentYear, currentMonth, 1);
-            monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const calendar = document.getElementById('calendar');
+    calendar.innerHTML = ''; // Clear existing calendar
 
-            daysGrid.innerHTML = '';
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const startDay = date.getDay();
+    // Sample data (replace with your actual data)
+    const today = new Date();
+    const month = today.getMonth();
+    const year = today.getFullYear();
 
-            // Add empty slots for days before the start of the month
-            for (let i = 0; i < startDay; i++) {
-                daysGrid.innerHTML += '<div class="day empty"></div>';
-            }
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
 
-            // Add day slots with event bars
-            for (let i = 1; i <= daysInMonth; i++) {
-                const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                const events = eventsByDate[currentDate] || [];
-                
-                // Generate event bar HTML only if there are events
-                const eventHTML = events.map(event => `<div class="event-bar">${event.time}</div>`).join('');
+    let date = firstDay;
+    let dayOfWeek = firstDay.getDay();
 
-                // Render the day with the event bar if any events exist
-                daysGrid.innerHTML += `
-                    <div class="day" data-date="${currentDate}">
-                        ${i}
-                        ${eventHTML}
-                    </div>
-                `;
-            }
 
-            console.log("Rendered calendar for:", `${currentYear}-${currentMonth + 1}`); // Debug calendar rendering
-            addDayClickEvents();
+    let table = document.createElement('table');
+    let headerRow = table.insertRow();
+    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+        let th = document.createElement('th');
+        th.textContent = day;
+        headerRow.appendChild(th);
+    });
+
+    let weekRow = table.insertRow();
+    for (let i = 0; i < dayOfWeek; i++) {
+        let td = document.createElement('td');
+        weekRow.appendChild(td);
+    }
+
+    while (date <= lastDay) {
+        let day = date.getDate();
+        let formattedDate = date.toISOString().slice(0, 10);
+        let td = document.createElement('td');
+        td.textContent = day;
+
+        if (eventsByDate[formattedDate]) {
+            eventsByDate[formattedDate].forEach(event => {
+                let eventDiv = document.createElement('div');
+                eventDiv.className = 'event';
+                eventDiv.innerHTML = `<strong>${event.name}</strong><br>${event.time}<br>${event.amenity}`;
+                td.appendChild(eventDiv);
+            });
         }
+        weekRow.appendChild(td);
+        dayOfWeek++;
+        if (dayOfWeek === 7) {
+            weekRow = table.insertRow();
+            dayOfWeek = 0;
+        }
+        date.setDate(day + 1);
+    }
+
+    calendar.appendChild(table);
+}
+
+
+fetchApprovedEvents();
 
         // Add click event listeners to days
         function addDayClickEvents() {

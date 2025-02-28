@@ -1492,12 +1492,11 @@ app.get("/api/event/:eventId", async (req, res) => {
 
 app.get("/api/notifications", async (req, res) => {
   try {
-    const userEmail = req.session?.user?.email
+    console.log("Session in notifications endpoint:", req.session)
 
-    console.log("Fetching notifications for user:", userEmail)
-
-    if (!userEmail) {
-      console.log("No user email found in session")
+    // Check if the user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
+      console.log("User not authenticated in notifications endpoint")
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
@@ -1506,22 +1505,22 @@ app.get("/api/notifications", async (req, res) => {
       })
     }
 
+    const userEmail = req.session.user.email
+    console.log("Fetching notifications for:", userEmail)
+
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
 
-    console.log("Connected to database, fetching notifications...")
-
-    // Fetch notifications for this user
     const notifications = await notificationsCollection
       .find({
-        userEmail: userEmail, // This should now correctly use the user's email from the session
+        userEmail: userEmail,
         read: false,
       })
       .sort({ timestamp: -1 })
       .limit(10)
       .toArray()
 
-    console.log("Found notifications:", notifications.length)
+    console.log(`Found ${notifications.length} notifications for ${userEmail}`)
 
     res.json({
       success: true,
@@ -1805,7 +1804,20 @@ async function startServer() {
 }
 
 // email otp--------------------------------------
-app.use(cors())
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://capstone-jolin-hamor-pacson.vercel.app"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+)
+
+app.options("*", cors())
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
 app.use(bodyParser.json())
 
 //generate otp

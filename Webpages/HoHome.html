@@ -731,6 +731,8 @@
   </div>
   </body>
   <script>
+
+    
     function showNotification(message) {
     const notificationContent = document.getElementById('notificationContent');
     notificationContent.textContent = message;
@@ -865,7 +867,11 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
                   notificationCount.textContent = notifications.length;
                   updateNotificationList();
               }
- 
+              const MAX_RETRIES = 3;
+      const RETRY_DELAY = 2000;
+      let retryCount = 0;
+      const clearNotificationsButton = document.getElementById('clear-notifications');
+      const errorMessage = document.getElementById('error-message');
               let notifications = [];
       const notificationIcon = document.getElementById('notificationIcon');
       const notificationModal = document.getElementById('notificationModal');
@@ -884,10 +890,7 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
         notificationModal.style.display = 'none';
       });
 
-      let retryCount = 0;
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 5000; // 5 seconds
-
+      
 async function fetchNotifications() {
     try {
         const response = await fetch('/api/notifications', {
