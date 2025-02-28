@@ -10,15 +10,20 @@
       "use": "@vercel/static"
     },
     {
-      "src": "CSS/**",
+      "src": "Webpages/**",
       "use": "@vercel/static"
     },
     {
-      "src": "Webpages/**",
+      "src": "CSS/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/api/login",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/server.js"
+    },
     {
       "src": "/api/(.*)",
       "dest": "/server.js",
@@ -34,18 +39,18 @@
       "dest": "/images/$1",
       "headers": {
         "cache-control": "public, max-age=31536000, immutable",
-        "Access-Control-Allow-Origin": "*"
+        "access-control-allow-origin": "*"
       }
     },
     {
       "src": "/CSS/(.*)",
       "dest": "/CSS/$1",
       "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
+        "cache-control": "public, max-age=31536000"
       }
     },
     {
-      "src": "/(.*)\\.html",
+      "src": "/Webpages/(.*)\\.html",
       "dest": "/Webpages/$1.html"
     },
     {
@@ -53,9 +58,12 @@
       "dest": "/images/favicon.ico"
     },
     {
-      "src": "/",
-      "dest": "/Webpages/login.html"
+      "src": "/(.*)",
+      "dest": "/server.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
 

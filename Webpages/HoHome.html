@@ -890,7 +890,6 @@ const RETRY_DELAY = 5000; // 5 seconds
 
 async function fetchNotifications() {
     try {
-        console.log('Attempting to fetch notifications...');
         const response = await fetch('/api/notifications', {
             method: 'GET',
             credentials: 'include',
@@ -900,55 +899,39 @@ async function fetchNotifications() {
             }
         });
 
-        console.log('Fetch response received:', response);
-
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Parsed response data:', data);
         
         if (data.success) {
             notifications = data.notifications || [];
             notificationCount.textContent = data.unreadCount || '0';
             updateNotificationList();
             updateClearButtons();
-            console.log('Notifications updated successfully');
+            retryCount = 0; // Reset retry count on successful fetch
         } else {
             throw new Error(data.error || 'Failed to fetch notifications');
         }
     } catch (error) {
-        console.error('Detailed error in fetchNotifications:', error);
+        console.error('Error fetching notifications:', error);
         
         if (error instanceof TypeError && error.message.includes('NetworkError')) {
-            console.log('NetworkError detected, checking server status...');
-            checkServerStatus();
+            if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                console.log(`Retrying fetch (${retryCount}/${MAX_RETRIES})...`);
+                setTimeout(fetchNotifications, RETRY_DELAY);
+            } else {
+                showErrorMessage('Network error occurred. Please check your internet connection and try again.');
+                handleNoNotifications();
+            }
         } else {
-            showErrorMessage('Failed to fetch notifications. Please check the console for more details.');
+            showErrorMessage('Failed to fetch notifications. Please try again later.');
+            handleNoNotifications();
         }
-        handleNoNotifications();
     }
 }
-async function checkServerStatus() {
-    try {
-        const response = await fetch('/api/health-check', {
-            method: 'GET',
-            credentials: 'include'
-        });
-        if (response.ok) {
-            console.log('Server is responding to health check');
-            showErrorMessage('Server is up, but there was an issue fetching notifications. Please try again later.');
-        } else {
-            console.log('Server health check failed');
-            showErrorMessage('Unable to reach the server. Please check your internet connection and try again.');
-        }
-    } catch (error) {
-        console.error('Error during server health check:', error);
-        showErrorMessage('Unable to reach the server. Please check your internet connection and try again.');
-    }
-}
-
 
 function fetchNotificationsWithRetry() {
     fetchNotifications().catch(error => {

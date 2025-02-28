@@ -1,3 +1,19 @@
+function getDateRange(filter) {
+  const now = new Date()
+  switch (filter) {
+    case "week":
+      return new Date(now.setDate(now.getDate() - 7))
+    case "1 month":
+      return new Date(now.setMonth(now.getMonth() - 1))
+    case "6 months":
+      return new Date(now.setMonth(now.getMonth() - 6))
+    case "year":
+      return new Date(now.setFullYear(now.getFullYear() - 1))
+    default:
+      return new Date(0) // Beginning of time
+  }
+}
+
 require("dotenv").config()
 const express = require("express")
 const bodyParser = require("body-parser")
@@ -17,42 +33,67 @@ const port = 3000
 const dbName = process.env.DB_NAME || "avidadb"
 const uri = process.env.MONGODB_URI
 
-// Helper function to get date range for analytics
-function getDateRange(filter) {
-  const now = new Date()
-  switch (filter) {
-    case "week":
-      return new Date(now.setDate(now.getDate() - 7))
-    case "1 month":
-      return new Date(now.setMonth(now.getMonth() - 1))
-    case "6 months":
-      return new Date(now.setMonth(now.getMonth() - 6))
-    case "year":
-      return new Date(now.setFullYear(now.getFullYear() - 1))
-    default:
-      return new Date(0) // Beginning of time
-  }
-}
+app.use(express.json())
+app.use(
+  session({
+    secret: "N3$Pxm/mXm1eYY",
+    resave: false,
+    saveUninitialized: true,
+  }),
+)
 
-// MongoDB connection function - optimized for serverless
-async function connectToDatabase() {
-  const client = new MongoClient(uri, {
+function getClient() {
+  return new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true,
     },
-    maxPoolSize: 10,
-    minPoolSize: 1,
-    retryWrites: true,
-    retryReads: true,
-    w: "majority",
-    connectTimeoutMS: 30000,
-    socketTimeoutMS: 45000,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   })
+}
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  retryWrites: true,
+  retryReads: true,
+  w: "majority",
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+})
 
+let database
+let activityLogsCollection
+
+// Single database connection function
+async function connectToDatabase() {
   try {
-    await client.connect()
+    if (!database) {
+      await client.connect()
+      console.log("Connected successfully to MongoDB")
+      database = client.db(dbName)
+      activityLogsCollection = database.collection("activityLogs")
+    }
+    return database
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw error
+  }
+}
+
+async function connectToDatabase() {
+  try {
+    if (!global.mongoClient) {
+      await client.connect()
+      global.mongoClient = client
+      console.log("Connected successfully to MongoDB Atlas")
+    }
     return client.db(dbName)
   } catch (error) {
     console.error("MongoDB connection error:", error)
@@ -60,44 +101,27 @@ async function connectToDatabase() {
   }
 }
 
-app.use(express.json())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
-
-// Configure CORS - single configuration
-app.use(
-  cors({
-    origin: ["https://capstone-jolin-hamor-pacson.vercel.app", "http://localhost:3000"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  }),
-)
-
-// Configure session - optimized for serverless
-const sessionConfig = {
-  secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  },
-}
-
-// In production, we need to trust the proxy
-if (process.env.NODE_ENV === "production") {
-  app.set("trust proxy", 1)
-}
-// In production, we need to trust the proxy
-if (process.env.NODE_ENV === "production") {
-  app.set("trust proxy", 1)
-}
-
-app.use(session(sessionConfig))
-
 app.use(express.static(path.join(__dirname)))
+
+// Specific static file handling with logging
+app.use("/images", (req, res, next) => {
+  const imagePath = path.join(__dirname, "images", req.path)
+  console.log("Image request:", {
+    path: req.path,
+    fullPath: imagePath,
+    exists: fs.existsSync(imagePath),
+  })
+
+  res.sendFile(imagePath, (err) => {
+    if (err) {
+      console.error("Error serving image:", err)
+      next(err)
+    }
+  })
+})
+
 app.use(
   "/images",
   express.static(path.join(__dirname, "images"), {
@@ -107,49 +131,13 @@ app.use(
     },
   }),
 )
-app.use(
-  "/CSS",
-  express.static(path.join(__dirname, "CSS"), {
-    setHeaders: (res) => {
-      res.set("Cache-Control", "public, max-age=31536000")
-    },
-  }),
-)
-app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
 
-// Configure file uploads for serverless environment
-// In serverless, we need to use memory storage instead of disk storage
-const memoryStorage = multer.memoryStorage()
-const upload = multer({
-  storage: memoryStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-})
-
-// Middleware to attach the database
-app.use(async (req, res, next) => {
-  try {
-    req.db = await connectToDatabase()
-    next()
-  } catch (error) {
-    console.error("Database connection error:", error)
-    next(error)
-  }
-})
-
-// Debug middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  res.header("Access-Control-Allow-Origin", "*")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
   next()
 })
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() })
-})
-
-// Debug endpoint
 app.get("/debug", async (req, res) => {
   try {
     // Collect environment information
@@ -208,7 +196,6 @@ app.get("/debug", async (req, res) => {
   }
 })
 
-// Database test endpoint
 app.get("/api/test-db", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -228,16 +215,322 @@ app.get("/api/test-db", async (req, res) => {
   }
 })
 
+app.get("/debug-images", (req, res) => {
+  const imagesPath = path.join(__dirname, "images")
+  const fs = require("fs")
+  try {
+    const files = fs.readdirSync(imagesPath)
+    res.json({
+      imagesPath,
+      files,
+      exists: fs.existsSync(imagesPath),
+    })
+  } catch (error) {
+    res.json({
+      error: error.message,
+      imagesPath,
+      exists: false,
+    })
+  }
+})
+
+app.use(
+  "/CSS",
+  express.static(path.join(__dirname, "CSS"), {
+    setHeaders: (res, path) => {
+      res.set("Cache-Control", "public, max-age=31536000")
+    },
+  }),
+)
+
+// Add explicit favicon handling
+app.get("/favicon.ico", (req, res) => {
+  res.sendFile(path.join(__dirname, "images", "favicon.ico"))
+})
+app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
+app.use(cors())
+app.use(
+  session({
+    secret: "N3$Pxm/mXm1eYY",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: app.get("env") === "production" },
+  }),
+)
+
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://capstone-jolin-hamor-pacson.vercel.app"
+        : "http://localhost:3000",
+    credentials: true,
+  }),
+)
+
+// Example route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "Webpages/login.html"))
+})
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
+})
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  }),
+)
+
+// Middleware to attach the database
+app.use(async (req, res, next) => {
+  try {
+    req.db = await connectToDatabase()
+    next()
+  } catch (error) {
+    next(error)
+  }
+})
+
+connectToDatabase().catch(console.error)
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  next()
+})
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() })
+})
+
+const uploadsDir = path.join(__dirname, "uploads")
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/")
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname))
+  },
+})
+
+const upload = multer({ storage: storage })
+
+app.post("/upload-receipt", upload.single("receipt"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      })
+    }
+
+    // Read the uploaded file
+    const filePath = req.file.path
+    const fileBuffer = fs.readFileSync(filePath)
+
+    // Convert the file to Base64
+    const base64Image = fileBuffer.toString("base64")
+    const mimeType = req.file.mimetype
+
+    // Construct the MongoDB document
+    const paymentData = {
+      userEmail: req.body.userEmail, // Include userEmail in the payment data
+      eventName: req.body.eventName,
+      eventDate: req.body.eventDate,
+      amount: req.body.finalAmount,
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      paymentMethod: req.body.paymentMethod,
+      receiptImage: `data:${mimeType};base64,${base64Image}`,
+      timestamp: new Date(),
+    }
+
+    // Save to MongoDB
+    const db = await getClient().db(dbName)
+    const paymentsCollection = db.collection("eventpayments")
+    await paymentsCollection.insertOne(paymentData)
+
+    // Cleanup the temporary file
+    fs.unlinkSync(filePath)
+
+    res.status(200).json({
+      success: true,
+      message: "Receipt uploaded and payment processed successfully!",
+    })
+  } catch (err) {
+    console.error("Error handling receipt upload:", err)
+    // Cleanup the temporary file if it exists
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path)
+      } catch (unlinkErr) {
+        console.error("Error deleting temporary file:", unlinkErr)
+      }
+    }
+    res.status(500).json({
+      success: false,
+      message: "Error processing payment. Please try again.",
+    })
+  }
+})
+
+app.get("/api/generate-report", async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+    const aeventsCollection = db.collection("aevents")
+    const homeownersCollection = db.collection("homeowners")
+    const eventpaymentsCollection = db.collection("eventpayments")
+
+    const now = new Date()
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const startOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1)
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+
+    // Get all events from last month
+    const events = await aeventsCollection
+      .find({
+        eventDate: {
+          $gte: startOfLastMonth.toISOString().split("T")[0],
+          $lte: endOfLastMonth.toISOString().split("T")[0],
+        },
+      })
+      .toArray()
+
+    const docx = officegen("docx")
+
+    docx.on("error", (err) => {
+      console.log(err)
+      res.status(500).send("Error generating document")
+    })
+
+    // Add title
+    const titleParagraph = docx.createP()
+    titleParagraph.addText("Last Month's Reservation Report", {
+      bold: true,
+      font_size: 18,
+    })
+
+    // Process each event
+    for (const event of events) {
+      try {
+        // Find homeowner information
+        const homeowner = await homeownersCollection.findOne({
+          email: event.userEmail,
+        })
+
+        // Find payment information
+        const payment = await eventpaymentsCollection.findOne({
+          eventName: event.eventName,
+          eventDate: event.eventDate,
+        })
+
+        // Create a new paragraph for each event
+        const eventParagraph = docx.createP()
+
+        // Add homeowner information
+        eventParagraph.addText(`Homeowner: ${homeowner ? `${homeowner.firstName} ${homeowner.lastName}` : "N/A"}`, {
+          bold: true,
+        })
+        eventParagraph.addLineBreak()
+        eventParagraph.addText(`Address: ${homeowner ? homeowner.address : "N/A"}`)
+        eventParagraph.addLineBreak()
+
+        // Add event details
+        eventParagraph.addText(`Amenity: ${event.amenity || "N/A"}`)
+        eventParagraph.addLineBreak()
+        eventParagraph.addText(`Date Reserved: ${event.eventDate || "N/A"}`)
+        eventParagraph.addLineBreak()
+        eventParagraph.addText(`Event Type: ${event.eventType || "N/A"}`)
+        eventParagraph.addLineBreak()
+        eventParagraph.addText(`Start Time: ${event.startTime || "N/A"}`)
+        eventParagraph.addLineBreak()
+        eventParagraph.addText(`End Time: ${event.endTime || "N/A"}`)
+        eventParagraph.addLineBreak()
+
+        // Add payment information
+        eventParagraph.addText(`Amount Paid: ${payment ? `₱${payment.amount}` : "N/A"}`)
+        eventParagraph.addLineBreak()
+        eventParagraph.addText(`Payment Status: ${payment ? "Paid" : "Pending"}`)
+        eventParagraph.addLineBreak()
+        eventParagraph.addLineBreak()
+      } catch (eventError) {
+        console.error("Error processing event:", eventError)
+        // Continue with next event if there's an error with current one
+        continue
+      }
+    }
+
+    const tempFilePath = path.join(__dirname, "temp_report.docx")
+    const out = fs.createWriteStream(tempFilePath)
+
+    out.on("error", (err) => {
+      console.log(err)
+      res.status(500).send("Error saving document")
+    })
+
+    out.on("finish", () => {
+      const today = new Date().toISOString().split("T")[0]
+      res.download(tempFilePath, `${today}-monthlyreport.docx`, (err) => {
+        if (err) {
+          console.log(err)
+          res.status(500).send("Error downloading document")
+        }
+        fs.unlink(tempFilePath, (unlinkErr) => {
+          if (unlinkErr) console.log("Error deleting temporary file:", unlinkErr)
+        })
+      })
+    })
+
+    docx.generate(out)
+  } catch (error) {
+    console.error("Error generating report:", error)
+    res.status(500).json({ error: "Failed to generate report" })
+  }
+})
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "Webpages/login.html"))
+})
+
+// Add CORS middleware
+app.use((req, res, next) => {
+  res.header(
+    "Access-Control-Allow-Origin",
+    process.env.NODE_ENV === "production" ? "https://capstone-jolin-hamor-pacson.vercel.app" : "http://localhost:3000",
+  )
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  res.header("Access-Control-Allow-Credentials", "true")
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end()
+  }
+  next()
+})
+
 app.post("/api/login", async (req, res) => {
-  console.log("Login attempt received:", { email: req.body.login })
+  const { login, password } = req.body
 
   try {
-    const { login, password } = req.body
-
     if (!login || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email/username and password are required",
+        message: "Email and password are required",
       })
     }
 
@@ -245,7 +538,10 @@ app.post("/api/login", async (req, res) => {
     const usersCollection = db.collection("acc")
 
     const user = await usersCollection.findOne({
-      $or: [{ email: login.toLowerCase() }, { username: login.toLowerCase() }],
+      $or: [
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
+      ],
     })
 
     if (!user) {
@@ -255,9 +551,9 @@ app.post("/api/login", async (req, res) => {
       })
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password)
+    const isPasswordValid = await bcrypt.compare(password, user.password)
 
-    if (!isValidPassword) {
+    if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
@@ -266,47 +562,36 @@ app.post("/api/login", async (req, res) => {
 
     // Set session data
     req.session.user = {
-      id: user._id.toString(),
+      id: user._id,
       username: user.username,
       email: user.email,
       role: user.role,
     }
 
-    // Save session before sending response
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save error:", err)
-        return res.status(500).json({
-          success: false,
-          message: "Error saving session",
-        })
-      }
+    // Log successful login
+    await logActivity("login", `User ${user.username} logged in successfully`)
 
-      console.log("Login successful for user:", user.username)
-
-      res.json({
-        success: true,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        redirectUrl: user.role === "admin" ? "AdHome.html" : "HoHome.html",
-      })
+    res.json({
+      success: true,
+      username: user.username,
+      email: user.email,
+      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
     })
   } catch (error) {
     console.error("Login error:", error)
-    console.error("Error stack:", error.stack)
     res.status(500).json({
       success: false,
-      message: "An error occurred during login. Please try again.",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message: "An error occurred during login",
     })
   }
 })
-// Activity logging function
+
 async function logActivity(action, details) {
   try {
-    const db = await connectToDatabase()
-    const activityLogsCollection = db.collection("activityLogs")
+    if (!activityLogsCollection) {
+      const db = await connectToDatabase()
+      activityLogsCollection = db.collection("activityLogs")
+    }
     await activityLogsCollection.insertOne({
       action,
       details,
@@ -317,26 +602,6 @@ async function logActivity(action, details) {
   }
 }
 
-// Notification creation function
-async function createNotification(userEmail, type, message, relatedId) {
-  try {
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    await notificationsCollection.insertOne({
-      userEmail,
-      type,
-      message,
-      relatedId,
-      timestamp: new Date(),
-      read: false,
-    })
-  } catch (error) {
-    console.error("Error creating notification:", error)
-  }
-}
-
-// Check user existence endpoint
 app.get("/check-existence", async (req, res) => {
   const { field, value } = req.query
 
@@ -354,7 +619,6 @@ app.get("/check-existence", async (req, res) => {
   }
 })
 
-// Registration endpoint
 app.post("/register", async (req, res) => {
   const { username, email, password, isHomeowner } = req.body
   if (!username || !email || !password) {
@@ -389,7 +653,6 @@ app.post("/register", async (req, res) => {
   }
 })
 
-// Homeowner details endpoint
 app.post("/homeowner-details", async (req, res) => {
   const { email, firstName, lastName, address, phoneNumber, landline } = req.body
   if (!email || !firstName || !lastName || !address || !phoneNumber) {
@@ -419,7 +682,6 @@ app.post("/homeowner-details", async (req, res) => {
   }
 })
 
-// Update profile endpoint
 app.post("/updateProfile", async (req, res) => {
   const { newUsername, password } = req.body
 
@@ -436,7 +698,9 @@ app.post("/updateProfile", async (req, res) => {
 
   try {
     const db = await connectToDatabase()
-    const usersCollection = db.collection("acc")
+
+    const database = getClient().db(dbName)
+    const usersCollection = database.collection("acc")
 
     // Update user details
     const updateFields = { username: newUsername }
@@ -449,7 +713,7 @@ app.post("/updateProfile", async (req, res) => {
     const result = await usersCollection.updateOne({ email: req.session.user.email }, { $set: updateFields })
 
     if (result.modifiedCount > 0) {
-      await logActivity("profileUpdate", `User ${req.session.user.email} updated their profile`)
+      await logActivity("profileUpdate", `User ${req.session.user.email} updated their profile`) // Log activity
       res.json({ success: true, message: "Profile updated successfully." })
     } else {
       res.json({ success: false, message: "No changes made to the profile." })
@@ -463,7 +727,6 @@ app.post("/updateProfile", async (req, res) => {
   }
 })
 
-// Get user info endpoint
 app.get("/api/user-info", (req, res) => {
   if (!req.session || !req.session.user || !req.session.user.email) {
     return res.status(401).json({
@@ -478,7 +741,7 @@ app.get("/api/user-info", (req, res) => {
   })
 })
 
-// Add event endpoint
+// Update the existing addevent endpoint
 app.post("/addevent", async (req, res) => {
   if (!req.session || !req.session.user || !req.session.user.email) {
     return res.status(401).json({
@@ -528,18 +791,17 @@ app.post("/addevent", async (req, res) => {
   }
 })
 
-// Delete event endpoint
 app.post("/delEvent", async (req, res) => {
   const { username } = req.body
   try {
     const db = await connectToDatabase()
-    const eventsCollection = db.collection("events")
 
+    const database = getClient().db(dbName)
+    const eventsCollection = database.collection("events")
     const result = await eventsCollection.findOneAndDelete(
       { "createdBy.username": username },
       { sort: { createdAt: -1 } },
     )
-
     if (result.value) {
       res.json({
         success: true,
@@ -553,13 +815,12 @@ app.post("/delEvent", async (req, res) => {
     res.status(500).json({ success: false, message: "Error deleting recent event." })
   }
 })
-
-// Get events endpoint
 app.get("/eventfin", async (req, res) => {
   try {
     const db = await connectToDatabase()
-    const eventsCollection = db.collection("events")
 
+    const database = getClient().db(dbName)
+    const eventsCollection = database.collection("events")
     const events = await eventsCollection.find({}).toArray()
     res.json(events)
   } catch (error) {
@@ -567,8 +828,6 @@ app.get("/eventfin", async (req, res) => {
     res.status(500).send("An error occurred while fetching events")
   }
 })
-
-// GCash payment endpoint
 app.post("/gcash-payment", async (req, res) => {
   const { amount, eventName, eventDate } = req.body
   try {
@@ -581,25 +840,22 @@ app.post("/gcash-payment", async (req, res) => {
     res.json({ success: false, message: "Payment failed. Please try again." })
   }
 })
-
-// Get profile endpoint
 app.get("/profile", async (req, res) => {
   if (!req.session.user) {
     return res.json({ success: false, message: "Not logged in" })
   }
-
   const { email } = req.session.user
-
   try {
     const db = await connectToDatabase()
-    const homeownersCollection = db.collection("homeowners")
-    const accCollection = db.collection("acc")
-
+    const database = getClient().db(dbName)
+    const homeownersCollection = database.collection("homeowners")
+    const accCollection = database.collection("acc")
     const accUser = await accCollection.findOne({ email })
     const homeownerUser = await homeownersCollection.findOne({ email })
 
     if (accUser && homeownerUser) {
       return res.json({
+        success: true,
         success: true,
         username: req.session.user.username,
         email: req.session.user.email,
@@ -616,7 +872,6 @@ app.get("/profile", async (req, res) => {
   }
 })
 
-// Get approved events endpoint
 app.get("/approved-events", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -645,55 +900,55 @@ app.get("/approved-events", async (req, res) => {
   }
 })
 
-// Upload receipt endpoint - modified for serverless
-app.post("/upload-receipt", upload.single("receipt"), async (req, res) => {
+// Add new function to check and delete unpaid events
+async function checkAndDeleteUnpaidEvents() {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded",
-      })
-    }
-
-    // Get the file buffer from memory storage
-    const fileBuffer = req.file.buffer
-
-    // Convert the file to Base64
-    const base64Image = fileBuffer.toString("base64")
-    const mimeType = req.file.mimetype
-
-    // Construct the MongoDB document
-    const paymentData = {
-      userEmail: req.body.userEmail,
-      eventName: req.body.eventName,
-      eventDate: req.body.eventDate,
-      amount: req.body.finalAmount,
-      startTime: req.body.startTime,
-      endTime: req.body.endTime,
-      paymentMethod: req.body.paymentMethod,
-      receiptImage: `data:${mimeType};base64,${base64Image}`,
-      timestamp: new Date(),
-    }
-
-    // Save to MongoDB
     const db = await connectToDatabase()
-    const paymentsCollection = db.collection("eventpayments")
-    await paymentsCollection.insertOne(paymentData)
+    const aeventsCollection = db.collection("aevents")
+    const eventpaymentsCollection = db.collection("eventpayments")
+    const notificationsCollection = db.collection("notifications")
 
-    res.status(200).json({
-      success: true,
-      message: "Receipt uploaded and payment processed successfully!",
-    })
-  } catch (err) {
-    console.error("Error handling receipt upload:", err)
-    res.status(500).json({
-      success: false,
-      message: "Error processing payment. Please try again.",
-    })
+    // Get all approved events
+    const approvedEvents = await aeventsCollection.find().toArray()
+    const eventPayments = await eventpaymentsCollection.find().toArray()
+    const paidEventsMap = new Map(eventPayments.map((payment) => [payment.eventName, true]))
+
+    // Check each event
+    for (const event of approvedEvents) {
+      if (!paidEventsMap.has(event.eventName)) {
+        const eventDate = new Date(event.approvedAt)
+        const threeDaysAgo = new Date()
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+
+        // If event is older than 3 days and unpaid
+        if (eventDate < threeDaysAgo) {
+          // Delete the event
+          await aeventsCollection.deleteOne({ _id: event._id })
+
+          // Create notification for the user
+          await createNotification(
+            event.userEmail,
+            "event_deleted",
+            `Your event "${event.eventName}" has been automatically cancelled due to pending payment for more than 3 days.`,
+            event._id,
+          )
+
+          // Log the activity
+          await logActivity(
+            "eventAutoCancelled",
+            `Event ${event.eventName} was automatically cancelled due to pending payment`,
+          )
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in checkAndDeleteUnpaidEvents:", error)
   }
-})
+}
 
-// Update payment status endpoint
+// Schedule the check to run daily at midnight
+schedule.scheduleJob("0 0 * * *", checkAndDeleteUnpaidEvents)
+
 app.post("/update-payment-status", async (req, res) => {
   try {
     const { eventName, isPaid } = req.body
@@ -747,7 +1002,27 @@ app.post("/update-payment-status", async (req, res) => {
   }
 })
 
-// Logout endpoint
+
+
+// Add this after your existing createNotification function
+async function createNotification(userEmail, type, message, relatedId) {
+  try {
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
+
+    await notificationsCollection.insertOne({
+      userEmail,
+      type,
+      message,
+      relatedId,
+      timestamp: new Date(),
+      read: false,
+    })
+  } catch (error) {
+    console.error("Error creating notification:", error)
+  }
+}
+
 app.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -757,8 +1032,17 @@ app.post("/logout", (req, res) => {
     res.status(200).json({ message: "Logout successful" })
   })
 })
+async function run() {
+  try {
+    await connectToDatabase()
+    console.log("Pinged your deployment. You successfully connected to MongoDB!")
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error)
+  }
+}
+run().catch(console.dir)
 
-// Get homeowners endpoint
+//get data from acc collection to display in homeowner table hotable.html
 app.get("/getHomeowners", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -771,14 +1055,15 @@ app.get("/getHomeowners", async (req, res) => {
   }
 })
 
-// Update homeowner endpoint
 app.put("/updateHomeowner/:email", async (req, res) => {
   const { email } = req.params
   const updateData = req.body
 
   try {
     const db = await connectToDatabase()
-    const collection = db.collection("homeowners")
+
+    const database = getClient().db("avidadb")
+    const collection = database.collection("homeowners")
 
     // Retrieve the homeowner's document to get the last name
     const homeowner = await collection.findOne({ email: email })
@@ -790,8 +1075,8 @@ app.put("/updateHomeowner/:email", async (req, res) => {
     const result = await collection.updateOne({ email: email }, { $set: updateData })
 
     if (result.modifiedCount > 0) {
-      const lastName = homeowner.lastName
-      await logActivity("homeownerUpdate", `Homeowner with Last Name ${lastName} updated`)
+      const lastName = homeowner.lastName // Assuming 'lastName' is the field storing the last name
+      await logActivity("homeownerUpdate", `Homeowner with Last Name ${lastName} updated`) // Log activity
       res.json({ success: true, message: "Homeowner updated successfully" })
     } else {
       res.json({ success: false, message: "No document matched the query" })
@@ -802,7 +1087,6 @@ app.put("/updateHomeowner/:email", async (req, res) => {
   }
 })
 
-// Get pending events endpoint
 app.get("/pending-events", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -815,7 +1099,7 @@ app.get("/pending-events", async (req, res) => {
   }
 })
 
-// Approve event endpoint
+// Update the existing approve event route
 app.put("/approveEvent/:eventName", async (req, res) => {
   const { eventName } = req.params
 
@@ -849,7 +1133,6 @@ app.put("/approveEvent/:eventName", async (req, res) => {
   }
 })
 
-// Disapprove event endpoint
 app.post("/disapprove-event", async (req, res) => {
   const { eventName, reason } = req.body
 
@@ -857,7 +1140,7 @@ app.post("/disapprove-event", async (req, res) => {
     const db = await connectToDatabase()
     const eventpaymentsCollection = db.collection("eventpayments")
     const eventsCollection = db.collection("events")
-    const deventsCollection = db.collection("devents")
+    const deventsCollection = db.collection("devents") // Disapproved events collection
 
     // Fetch event from the events collection
     const event = await eventsCollection.findOne({ eventName })
@@ -874,7 +1157,7 @@ app.post("/disapprove-event", async (req, res) => {
         { eventName },
         { $set: { status: "disapproved", disapprovalReason: reason } },
       )
-      await logActivity("eventDisapproval", `Event ${eventName} disapproved. Reason: ${reason}`)
+      await logActivity("eventDisapproval", `Event ${eventName} disapproved. Reason: ${reason}`) // Log activity
       res.json({ success: true, message: "Event disapproved and moved to disapproved events." })
     } else {
       res.status(404).json({ success: false, message: "Event not found in events collection." })
@@ -885,14 +1168,12 @@ app.post("/disapprove-event", async (req, res) => {
   }
 })
 
-// Get receipt image endpoint
 app.get("/receipt-image", async (req, res) => {
   const { eventName, eventDate } = req.query
 
   try {
-    const db = await connectToDatabase()
-    const eventpaymentsCollection = db.collection("eventpayments")
-    const eventsCollection = db.collection("events")
+    const eventpaymentsCollection = req.db.collection("eventpayments")
+    const eventsCollection = req.db.collection("events")
 
     // Fetch from `eventpayments` collection
     const paymentEvent = await eventpaymentsCollection.findOne({ eventName, eventDate })
@@ -928,13 +1209,11 @@ app.get("/receipt-image", async (req, res) => {
   }
 })
 
-// Get event details endpoint
 app.get("/eventshow", async (req, res) => {
   const { eventName, eventDate } = req.query
 
   try {
-    const db = await connectToDatabase()
-    const eventsCollection = db.collection("events")
+    const eventsCollection = req.db.collection("events")
 
     // Fetch from `events` collection
     const eventDetails = await eventsCollection.findOne({ eventName, eventDate })
@@ -950,7 +1229,7 @@ app.get("/eventshow", async (req, res) => {
   }
 })
 
-// Add concern endpoint
+//Submit Concern
 app.post("/addconcern", async (req, res) => {
   const { username, email, subject, message } = req.body
 
@@ -963,10 +1242,10 @@ app.post("/addconcern", async (req, res) => {
       subject,
       message,
       createdAt,
-      status: "new",
+      status: "new", // Add this line
     }
 
-    const db = await connectToDatabase()
+    const db = getClient().db("avidadb")
     await db.collection("Concerns").insertOne(concern)
 
     res.json({ success: true })
@@ -976,7 +1255,7 @@ app.post("/addconcern", async (req, res) => {
   }
 })
 
-// Get concerns endpoint
+//Concern Table
 app.get("/getConcerns", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -999,11 +1278,17 @@ app.get("/getConcerns", async (req, res) => {
   }
 })
 
-// Get recent activity endpoint
+process.on("SIGINT", async () => {
+  if (global.client) {
+    await global.client.close()
+    console.log("MongoDB connection closed.")
+  }
+  process.exit(0)
+})
+
+module.exports = app
 app.get("/getRecentActivity", async (req, res) => {
   try {
-    const db = await connectToDatabase()
-    const activityLogsCollection = db.collection("activityLogs")
     const page = Number.parseInt(req.query.page) || 1
     const limit = 5
     const skip = (page - 1) * limit
@@ -1019,8 +1304,6 @@ app.get("/getRecentActivity", async (req, res) => {
     res.json({
       activities: recentActivity,
       totalPages: Math.ceil(totalActivities / limit),
-      currentPage: recentActivity,
-      totalPages: Math.ceil(totalActivities / limit),
       currentPage: page,
     })
   } catch (error) {
@@ -1028,6 +1311,18 @@ app.get("/getRecentActivity", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch recent activity" })
   }
 })
+
+async function logActivity(action, details) {
+  try {
+    await activityLogsCollection.insertOne({
+      action,
+      details,
+      timestamp: new Date(),
+    })
+  } catch (error) {
+    console.error("Error logging activity:", error)
+  }
+}
 
 app.get("/getUpcomingEvents", async (req, res) => {
   try {
@@ -1066,7 +1361,6 @@ app.get("/getUpcomingEvents", async (req, res) => {
   }
 })
 
-// Get currently reserved amenities endpoint
 app.get("/getCurrentlyReservedAmenities", async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -1102,7 +1396,6 @@ app.get("/getCurrentlyReservedAmenities", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch currently reserved amenities" })
   }
 })
-
 // Helper function to get the image path for each amenity
 function getAmenityImagePath(amenityName) {
   switch (amenityName.toLowerCase()) {
@@ -1117,7 +1410,6 @@ function getAmenityImagePath(amenityName) {
   }
 }
 
-// Resolve concern endpoint
 app.post("/resolveConcern/:id", async (req, res) => {
   try {
     const { id } = req.params
@@ -1138,7 +1430,6 @@ app.post("/resolveConcern/:id", async (req, res) => {
   }
 })
 
-// Update concern status endpoint
 app.put("/updateConcernStatus/:id", async (req, res) => {
   const { id } = req.params
   const { status } = req.body
@@ -1179,7 +1470,6 @@ app.put("/updateConcernStatus/:id", async (req, res) => {
   }
 })
 
-// Get event by ID endpoint
 app.get("/api/event/:eventId", async (req, res) => {
   const { eventId } = req.params
 
@@ -1200,11 +1490,14 @@ app.get("/api/event/:eventId", async (req, res) => {
   }
 })
 
-// Get notifications endpoint
 app.get("/api/notifications", async (req, res) => {
   try {
-    // Check if the user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
+    const userEmail = req.session?.user?.email
+
+    console.log("Fetching notifications for user:", userEmail)
+
+    if (!userEmail) {
+      console.log("No user email found in session")
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
@@ -1213,18 +1506,22 @@ app.get("/api/notifications", async (req, res) => {
       })
     }
 
-    const userEmail = req.session.user.email
-    const db = await connectToDatabase() // Use declared connectToDatabase
+    const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
 
+    console.log("Connected to database, fetching notifications...")
+
+    // Fetch notifications for this user
     const notifications = await notificationsCollection
       .find({
-        userEmail: userEmail,
+        userEmail: userEmail, // This should now correctly use the user's email from the session
         read: false,
       })
       .sort({ timestamp: -1 })
       .limit(10)
       .toArray()
+
+    console.log("Found notifications:", notifications.length)
 
     res.json({
       success: true,
@@ -1242,9 +1539,6 @@ app.get("/api/notifications", async (req, res) => {
   }
 })
 
-
-
-// Mark notifications as read endpoint
 app.post("/api/markNotificationsAsRead", async (req, res) => {
   try {
     const userEmail = req.session?.user?.email
@@ -1282,7 +1576,22 @@ app.post("/api/markNotificationsAsRead", async (req, res) => {
   }
 })
 
-// Clear all notifications endpoint
+async function createNotification(userEmail, type, message, relatedId) {
+  const db = await connectToDatabase()
+  const notificationsCollection = db.collection("notifications")
+
+  const notification = {
+    userEmail,
+    type,
+    message,
+    relatedId,
+    timestamp: new Date(),
+    read: false,
+  }
+
+  await notificationsCollection.insertOne(notification)
+}
+
 app.post("/api/clearAllNotifications", async (req, res) => {
   try {
     const userEmail = req.session?.user?.email
@@ -1313,7 +1622,8 @@ app.post("/api/clearAllNotifications", async (req, res) => {
   }
 })
 
-// Get user details endpoint
+// userdata edit
+
 app.get("/getUserDetails", async (req, res) => {
   const email = req.query.email
 
@@ -1345,7 +1655,8 @@ app.get("/getUserDetails", async (req, res) => {
   }
 })
 
-// Update user details endpoint
+//update user profile
+
 app.post("/updateUserDetails", async (req, res) => {
   const { email, username, lastname, address, phone, landline, newPassword } = req.body
 
@@ -1379,13 +1690,15 @@ app.post("/updateUserDetails", async (req, res) => {
   }
 })
 
-// Send reply endpoint
+// CONCERN REPLY-----------------------------------------------
+// Handle form submission
 app.post("/sendReply", upload.single("attachment"), async (req, res) => {
-  const { subject, message, concernId } = req.body
-  const attachment = req.file ? req.file.buffer.toString("base64") : null
+  const { subject, message, concernId } = req.body // Added concernId
+  const attachment = req.file ? req.file.filename : null
 
   // Validate inputs
   if (!subject || !message || !concernId) {
+    // Added validation for concernId
     return res.status(400).json({ success: false, message: "Subject, message, and concernId are required" })
   }
 
@@ -1479,27 +1792,60 @@ app.get("/api/analytics/event-types", async (req, res) => {
   }
 })
 
-// Generate OTP function
-const generateOTP = () => {
-  return Math.floor(1000 + Math.random() * 9000) // 4-digit OTP
+async function startServer() {
+  try {
+    await connectToDatabase()
+    app.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`)
+    })
+  } catch (error) {
+    console.error("Failed to start server:", error)
+    process.exit(1)
+  }
 }
 
-// Send OTP endpoint
+// email otp--------------------------------------
+app.use(cors())
+app.use(bodyParser.json())
+
+//generate otp
+const generateOTP = () => {
+  return Math.floor(1000 + Math.random() * 9000) //4 otp
+}
+
+//otp sending
 app.post("/send-otp", (req, res) => {
   const userEmail = req.body.email
   const otp = generateOTP()
 
-  // In a serverless environment, we can't use nodemailer directly
-  // This is a mock implementation for testing
-  res.json({ success: true, message: "OTP sent successfully", otp })
+  // Assuming you have configured transporter (nodemailer) elsewhere
+  const mailOptions = {
+    from: "test@mail", // Replace with your email address
+    to: userEmail,
+    subject: "Your OTP Code",
+    text: `Your OTP code is: ${otp}`,
+  }
+
+  // transporter.sendMail(mailOptions, (error, info) => { ... }); // Uncomment and implement if you have nodemailer setup
+  res.json({ success: true, message: "OTP sent successfully", otp }) // Send OTP in response for testing
 })
 
-// Root route - serve login page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Webpages/login.html"))
+app.listen(port, (err) => {
+  if (err) {
+    console.error("Failed to start server:", err.message)
+    process.exit(1)
+  }
+  console.log(`Server is running on http://localhost:${port}`)
 })
 
-// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+  })
+})
+
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err)
   res.status(500).json({
@@ -1509,7 +1855,6 @@ app.use((err, req, res, next) => {
   })
 })
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: "Not Found",
