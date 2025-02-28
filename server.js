@@ -1241,7 +1241,7 @@ app.get("/api/notifications", async (req, res) => {
   }
 })
 
-})
+
 
 // Mark notifications as read endpoint
 app.post("/api/markNotificationsAsRead", async (req, res) => {
