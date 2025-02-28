@@ -218,7 +218,7 @@
 
     </style>
    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+   document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
             const errorMessage = document.getElementById('errorMessage');
 
@@ -227,6 +227,8 @@
                 
                 const login = document.getElementById('login').value;
                 const password = document.getElementById('password').value;
+
+                console.log('Attempting login with:', { login, password: '********' });
 
                 try {
                     const response = await fetch('/api/login', {
@@ -238,7 +240,9 @@
                         credentials: 'include'
                     });
 
+                    console.log('Response status:', response.status);
                     const data = await response.json();
+                    console.log('Response data:', data);
 
                     if (data.success) {
                         // Store user info in sessionStorage
