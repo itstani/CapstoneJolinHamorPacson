@@ -395,7 +395,9 @@
         // Fetch approved events from the server
         async function fetchApprovedEvents() {
             try {
-                const response = await fetch('http://localhost:3000/approved-events'); // Update the port if necessary
+                const response = await fetch('http://localhost:3000/approved-events', {
+                    credentials: 'include' // This is important for sending cookies 
+            }); // Update the port if necessary
                 const data = await response.json();
 
                 if (data.success) {
