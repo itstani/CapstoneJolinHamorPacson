@@ -1202,7 +1202,8 @@ app.get("/api/event/:eventId", async (req, res) => {
 // Get notifications endpoint
 app.get("/api/notifications", async (req, res) => {
   try {
-    if (!req.session.user || !req.session.user.email) {
+    // Check if the user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
@@ -1212,7 +1213,7 @@ app.get("/api/notifications", async (req, res) => {
     }
 
     const userEmail = req.session.user.email
-    const db = await connectToDatabase()
+    const db = await connectToDatabase() // Use declared connectToDatabase
     const notificationsCollection = db.collection("notifications")
 
     const notifications = await notificationsCollection
@@ -1238,6 +1239,8 @@ app.get("/api/notifications", async (req, res) => {
       unreadCount: 0,
     })
   }
+})
+
 })
 
 // Mark notifications as read endpoint
