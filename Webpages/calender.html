@@ -375,12 +375,12 @@
     
 
     <script>
-        const monthDisplay = document.getElementById('monthDisplay');
-        const daysGrid = document.querySelector('.days-grid');
+        const monthDisplay = document.getElementById('month-display');
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
+        const daysGrid = document.querySelector('.days-grid');
         const modal = document.getElementById('eventDetails');
-        let eventsByDate = {};
+        
 
         // Days of the week
         const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -395,7 +395,7 @@
         async function fetchApprovedEvents() {
     try {
         const serverUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:5000' 
+            ? 'http://localhost:3000' 
             : 'https://capstone-jolin-hamor-pacson.vercel.app';
         
         const response = await fetch(`${serverUrl}/approved-events`, {
@@ -414,10 +414,11 @@
         const data = await response.json();
 
         if (data.success) {
-            // Process events into `eventsByDate`
             eventsByDate = data.events.reduce((acc, event) => {
-                const formattedDate = event.eventDate; // Already in YYYY-MM-DD format
-                acc[formattedDate] = acc[formattedDate] || [];
+                const formattedDate = event.eventDate;
+                if (!acc[formattedDate]) {
+                    acc[formattedDate] = [];
+                }
                 acc[formattedDate].push({
                     name: event.eventName,
                     time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
@@ -426,8 +427,8 @@
                 return acc;
             }, {});
 
-            console.log("EventsByDate structure:", eventsByDate); // Log processed events
-            renderCalendar(); // Render the calendar after fetching events
+            console.log("EventsByDate structure:", eventsByDate);
+            renderCalendar();
         } else {
             console.error("Failed to fetch events:", data.message);
         }
@@ -437,60 +438,51 @@
 }
 
 function renderCalendar() {
-    const calendar = document.getElementById('calendar');
-    calendar.innerHTML = ''; // Clear existing calendar
+    const daysGrid = document.querySelector('.days-grid');
+    if (!daysGrid) {
+        console.error("Calendar grid element not found");
+        return;
+    }
+    daysGrid.innerHTML = '';
 
-    // Sample data (replace with your actual data)
     const today = new Date();
-    const month = today.getMonth();
-    const year = today.getFullYear();
+    const month = currentMonth;
+    const year = currentYear;
 
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
 
-    let date = firstDay;
-    let dayOfWeek = firstDay.getDay();
+    monthDisplay.textContent = `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
 
-
-    let table = document.createElement('table');
-    let headerRow = table.insertRow();
-    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
-        let th = document.createElement('th');
-        th.textContent = day;
-        headerRow.appendChild(th);
-    });
-
-    let weekRow = table.insertRow();
-    for (let i = 0; i < dayOfWeek; i++) {
-        let td = document.createElement('td');
-        weekRow.appendChild(td);
+    for (let i = 0; i < firstDay.getDay(); i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.classList.add('day', 'empty');
+        daysGrid.appendChild(emptyDay);
     }
 
-    while (date <= lastDay) {
-        let day = date.getDate();
-        let formattedDate = date.toISOString().slice(0, 10);
-        let td = document.createElement('td');
-        td.textContent = day;
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('day');
+        dayElement.textContent = day;
+
+        const currentDate = new Date(year, month, day);
+        const formattedDate = currentDate.toISOString().split('T')[0];
 
         if (eventsByDate[formattedDate]) {
             eventsByDate[formattedDate].forEach(event => {
-                let eventDiv = document.createElement('div');
-                eventDiv.className = 'event';
-                eventDiv.innerHTML = `<strong>${event.name}</strong><br>${event.time}<br>${event.amenity}`;
-                td.appendChild(eventDiv);
+                const eventBar = document.createElement('div');
+                eventBar.classList.add('event-bar');
+                eventBar.textContent = `${event.name} (${event.amenity})`;
+                dayElement.appendChild(eventBar);
             });
         }
-        weekRow.appendChild(td);
-        dayOfWeek++;
-        if (dayOfWeek === 7) {
-            weekRow = table.insertRow();
-            dayOfWeek = 0;
-        }
-        date.setDate(day + 1);
+
+        dayElement.addEventListener('click', () => displayEventDetails(formattedDate));
+        daysGrid.appendChild(dayElement);
     }
 
-    calendar.appendChild(table);
+    addDayClickEvents();
 }
 
 
@@ -504,11 +496,12 @@ fetchApprovedEvents();
 
         // Format time to 12-hour format
         function formatTime(timeStr) {
-    const [hours, minutes] = timeStr.split(':');
-    const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
-    const formattedHours = (parseInt(hours) % 12) || 12; // Handle midnight (00:00)
-    return `${formattedHours}:${minutes} ${ampm}`;
-}
+            const [hours, minutes] = timeStr.split(':');
+            const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+            const formattedHours = (parseInt(hours) % 12) || 12; // Handle midnight (00:00)
+            return `${formattedHours}:${minutes} ${ampm}`;
+        }
+        let eventsByDate = {};
 
         // Render the calendar grid
         function renderCalendar() {
@@ -573,28 +566,23 @@ fetchApprovedEvents();
 
         // Add click event listeners to days
         function addDayClickEvents() {
-            document.querySelectorAll('.day').forEach(day => {
-                if (!day.classList.contains('empty')) {
-                    day.addEventListener('click', () => {
-                        const date = day.getAttribute('data-date');
-                        displayEventDetails(date);
-                    });
-                }
+            const days = document.querySelectorAll('.day:not(.empty)');
+            days.forEach(day => {
+                day.addEventListener('click', () => {
+                    // Add your event handling logic here
+                    console.log('Day clicked:', day.textContent);
+                });
             });
         }
 
         // Display event details in a popup
         function displayEventDetails(date) {
-            const events = eventsByDate[date] || [];
-            modalContent.innerHTML = `
-                <h3>Events on ${date}</h3>
-                ${events.length
-                    ? events.map(event => `
-                        <p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
-                    `).join('')
-                    : '<p>No events for this day.</p>'}
-            `;
-            modal.style.display = 'block';
+            if (eventsByDate[date]) {
+                const events = eventsByDate[date];
+                alert(`Events on ${date}:\n${events.map(event => `${event.name} (${event.time}, ${event.amenity})`).join('\n')}`);
+            } else {
+                alert(`No events on ${date}`);
+            }
         }
 
 
