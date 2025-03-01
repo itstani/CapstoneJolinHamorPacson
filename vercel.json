@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "builds": [
@@ -21,14 +22,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.js",
-      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      "headers": {
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Origin": "https://capstone-jolin-hamor-pacson.vercel.app",
-        "Access-Control-Allow-Methods": "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-        "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-      }
+      "dest": "/server.js"
     },
     {
       "src": "/approved-events",
@@ -36,18 +30,11 @@
     },
     {
       "src": "/images/(.*)",
-      "dest": "/images/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable",
-        "Access-Control-Allow-Origin": "*"
-      }
+      "dest": "/images/$1"
     },
     {
       "src": "/CSS/(.*)",
-      "dest": "/CSS/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000"
-      }
+      "dest": "/CSS/$1"
     },
     {
       "src": "/Webpages/(.*)\\.html",
@@ -66,4 +53,3 @@
     "NODE_ENV": "production"
   }
 }
-
