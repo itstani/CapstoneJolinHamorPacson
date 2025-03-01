@@ -395,11 +395,7 @@
 
         async function fetchApprovedEvents() {
             try {
-                const serverUrl = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:5000' 
-                    : 'https://capstone-jolin-hamor-pacson.vercel.app';
-                
-                const response = await fetch(`${serverUrl}/approved-events`, {
+                const response = await fetch('/approved-events', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
@@ -412,12 +408,20 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const data = await response.json();
+                const responseText = await response.text();
+                console.log("Response text:", responseText);
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error("Error parsing JSON:", parseError);
+                    throw new Error("Invalid JSON response");
+                }
 
                 if (data.success) {
-                    // Process events into `eventsByDate`
                     eventsByDate = data.events.reduce((acc, event) => {
-                        const formattedDate = event.eventDate; // Already in YYYY-MM-DD format
+                        const formattedDate = event.eventDate;
                         acc[formattedDate] = acc[formattedDate] || [];
                         acc[formattedDate].push({
                             name: event.eventName,
@@ -427,8 +431,8 @@
                         return acc;
                     }, {});
 
-                    console.log("EventsByDate structure:", eventsByDate); // Log processed events
-                    renderCalendar(); // Render the calendar after fetching events
+                    console.log("EventsByDate structure:", eventsByDate);
+                    renderCalendar();
                 } else {
                     console.error("Failed to fetch events:", data.message);
                 }
@@ -442,7 +446,7 @@
                 console.error("Days grid element not found");
                 return;
             }
-            daysGrid.innerHTML = ''; // Clear existing calendar
+            daysGrid.innerHTML = '';
 
             const firstDay = new Date(currentYear, currentMonth, 1);
             const lastDay = new Date(currentYear, currentMonth + 1, 0);
@@ -452,14 +456,12 @@
 
             let dayOfWeek = firstDay.getDay();
 
-            // Add empty cells for days before the first of the month
             for (let i = 0; i < dayOfWeek; i++) {
                 const emptyDay = document.createElement('div');
                 emptyDay.classList.add('day', 'empty');
                 daysGrid.appendChild(emptyDay);
             }
 
-            // Add days of the month
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayElement = document.createElement('div');
                 dayElement.classList.add('day');
@@ -482,7 +484,6 @@
             }
         }
 
-
 fetchApprovedEvents();
 
         // Format date to YYYY-MM-DD
@@ -495,7 +496,7 @@ fetchApprovedEvents();
         function formatTime(timeStr) {
             const [hours, minutes] = timeStr.split(':');
             const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
-            const formattedHours = (parseInt(hours) % 12) || 12; // Handle midnight (00:00)
+            const formattedHours = (parseInt(hours) % 12) || 12;
             return `${formattedHours}:${minutes} ${ampm}`;
         }
 
@@ -574,62 +575,45 @@ fetchApprovedEvents();
 
         // Display event details in a popup
         function displayEventDetails(date) {
-            if (eventsByDate[date]) {
-                const events = eventsByDate[date];
-                alert(`Events on ${date}:\n${events.map(event => `${event.name} (${event.time}, ${event.amenity})`).join('\n')}`);
-            } else {
-                alert(`No events on ${date}`);
-            }
+            const events = eventsByDate[date] || [];
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = `
+                <h3>Events on ${date}</h3>
+                ${events.length
+                    ? events.map(event => `
+                        <p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
+                    `).join('')
+                    : '<p>No events for this day.</p>'}
+            `;
+            modal.style.display = 'block';
         }
-
 
         function closeModal() {
             modal.style.display = 'none';
         }
 
-        // Close popup when clicking on the overlay
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('event-popup-overlay')) {
-                closeEventPopup();
-            }
-        });
-
-
-        // Navigate to the previous month
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentMonth = (currentMonth - 1 + 12) % 12;
             if (currentMonth === 11) currentYear--;
             renderCalendar();
         });
 
-        // Navigate to the next month
         document.getElementById('nextMonth').addEventListener('click', () => {
             currentMonth = (currentMonth + 1) % 12;
             if (currentMonth === 0) currentYear++;
             renderCalendar();
         });
 
-        // Close popup when clicking outside of it
-        document.addEventListener('click', (e) => {
-            const popup = document.querySelector('.event-popup');
-            if (popup && !popup.contains(e.target) && !e.target.closest('.day')) {
-                closeEventPopup();
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderDaysOfWeek();
+            await fetchApprovedEvents();
+        });
+
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                closeModal();
             }
-        });
-
-        // Initialize the calendar on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            await fetchApprovedEvents();
-            renderCalendar();
-        });
-        // Initialize the calendar on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderDaysOfWeek(); // Render the days of the week
-            await fetchApprovedEvents();
-            renderCalendar();
-        });
-
-        fetchApprovedEvents();
+        };
 
             </script>
 </body>

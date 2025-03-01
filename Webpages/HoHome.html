@@ -864,7 +864,7 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
                   updateNotificationList();
               }
               const MAX_RETRIES = 3;
-      const RETRY_DELAY = 2000;
+              const RETRY_DELAY = 2000;
       let retryCount = 0;
       const clearNotificationsButton = document.getElementById('clear-notifications');
       const errorMessage = document.getElementById('error-message');
@@ -872,8 +872,8 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
       const notificationIcon = document.getElementById('notificationIcon');
       const notificationModal = document.getElementById('notificationModal');
       const closeModal = document.getElementById('closeModal');
-      const notificationList = document.getElementById('notificationList');
-      const notificationCount = document.getElementById('notificationCount');
+      const notificationCount = document.getElementById('notification-count');
+    const notificationList = document.getElementById('notification-list');
       const clearSelectedBtn = document.getElementById('clearSelectedBtn');
       const clearAllBtn = document.getElementById('clearAllBtn');
 
@@ -888,51 +888,60 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
 
       
       async function fetchNotifications() {
-    try {
-      console.log("Attempting to fetch notifications...", retryCount);
-      const response = await fetch('/api/notifications', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+        try {
+            console.log("Attempting to fetch notifications...", retryCount);
+            const response = await fetch('/api/notifications', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
 
-      console.log("Fetch response received:", response);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+            console.log("Fetch response received:", response);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-      const data = await response.json();
-      
-      if (data.success) {
-        notifications = data.notifications || [];
-        notificationCount.textContent = data.unreadCount || '0';
-        updateNotificationList();
-        retryCount = 0; // Reset retry count on successful fetch
-      } else {
-        throw new Error(data.error || 'Failed to fetch notifications');
-      }
-    } catch (error) {
-      console.error('Detailed error in fetchNotifications:', error);
-      
-      if (error instanceof TypeError && error.message.includes('NetworkError')) {
-        if (retryCount < MAX_RETRIES) {
-          retryCount++;
-          console.log(`Retrying fetch (${retryCount}/${MAX_RETRIES})...`);
-          setTimeout(fetchNotifications, RETRY_DELAY);
-        } else {
-          showErrorMessage('Network error occurred. Please check your internet connection and try again.');
-          handleNoNotifications();
+            const responseText = await response.text();
+            console.log("Response text:", responseText);
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error("Error parsing JSON:", parseError);
+                throw new Error("Invalid JSON response");
+            }
+            
+            if (data.success) {
+                notifications = data.notifications || [];
+                notificationCount.textContent = data.unreadCount || '0';
+                updateNotificationList();
+                retryCount = 0; // Reset retry count on successful fetch
+            } else {
+                throw new Error(data.error || 'Failed to fetch notifications');
+            }
+        } catch (error) {
+            console.error('Detailed error in fetchNotifications:', error);
+            
+            if (error instanceof TypeError && error.message.includes('NetworkError')) {
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    console.log(`Retrying fetch (${retryCount}/${MAX_RETRIES})...`);
+                    setTimeout(fetchNotifications, RETRY_DELAY);
+                } else {
+                    showErrorMessage('Network error occurred. Please check your internet connection and try again.');
+                    handleNoNotifications();
+                }
+            } else {
+                showErrorMessage('Failed to fetch notifications. Please try again later.');
+                handleNoNotifications();
+            }
         }
-      } else {
-        showErrorMessage('Failed to fetch notifications. Please try again later.');
-        handleNoNotifications();
-      }
     }
-  }
 
 function fetchNotificationsWithRetry() {
     fetchNotifications().catch(error => {
@@ -955,15 +964,11 @@ function handleNoNotifications() {
     updateClearButtons();
 }
 
-      function updateNotificationList() {
+function updateNotificationList() {
         notificationList.innerHTML = '';
-
         if (notifications.length === 0) {
-          const noNotificationsDiv = document.createElement('div');
-          noNotificationsDiv.className = 'no-notifications';
-          noNotificationsDiv.textContent = 'No notifications';
-          notificationList.appendChild(noNotificationsDiv);
-          return;
+            handleNoNotifications();
+            return;
         }
 
         notifications.forEach(notification => {
