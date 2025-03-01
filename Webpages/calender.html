@@ -375,11 +375,12 @@
     
 
     <script>
-        const monthDisplay = document.getElementById('month-display');
+        const monthDisplay = document.getElementById('monthDisplay');
+        const daysGrid = document.querySelector('.days-grid');
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
-        const daysGrid = document.querySelector('.days-grid');
         const modal = document.getElementById('eventDetails');
+        let eventsByDate = {};
         
 
         // Days of the week
@@ -393,97 +394,93 @@
 
 
         async function fetchApprovedEvents() {
-    try {
-        const serverUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000' 
-            : 'https://capstone-jolin-hamor-pacson.vercel.app';
-        
-        const response = await fetch(`${serverUrl}/approved-events`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-
-        if (data.success) {
-            eventsByDate = data.events.reduce((acc, event) => {
-                const formattedDate = event.eventDate;
-                if (!acc[formattedDate]) {
-                    acc[formattedDate] = [];
-                }
-                acc[formattedDate].push({
-                    name: event.eventName,
-                    time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
-                    amenity: event.amenity
+            try {
+                const serverUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:5000' 
+                    : 'https://capstone-jolin-hamor-pacson.vercel.app';
+                
+                const response = await fetch(`${serverUrl}/approved-events`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
                 });
-                return acc;
-            }, {});
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
 
-            console.log("EventsByDate structure:", eventsByDate);
-            renderCalendar();
-        } else {
-            console.error("Failed to fetch events:", data.message);
-        }
-    } catch (error) {
-        console.error("Error fetching events:", error);
-    }
-}
+                if (data.success) {
+                    // Process events into `eventsByDate`
+                    eventsByDate = data.events.reduce((acc, event) => {
+                        const formattedDate = event.eventDate; // Already in YYYY-MM-DD format
+                        acc[formattedDate] = acc[formattedDate] || [];
+                        acc[formattedDate].push({
+                            name: event.eventName,
+                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                            amenity: event.amenity
+                        });
+                        return acc;
+                    }, {});
 
-function renderCalendar() {
-    const daysGrid = document.querySelector('.days-grid');
-    if (!daysGrid) {
-        console.error("Calendar grid element not found");
-        return;
-    }
-    daysGrid.innerHTML = '';
-
-    const today = new Date();
-    const month = currentMonth;
-    const year = currentYear;
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-
-    monthDisplay.textContent = `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
-
-    for (let i = 0; i < firstDay.getDay(); i++) {
-        const emptyDay = document.createElement('div');
-        emptyDay.classList.add('day', 'empty');
-        daysGrid.appendChild(emptyDay);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayElement = document.createElement('div');
-        dayElement.classList.add('day');
-        dayElement.textContent = day;
-
-        const currentDate = new Date(year, month, day);
-        const formattedDate = currentDate.toISOString().split('T')[0];
-
-        if (eventsByDate[formattedDate]) {
-            eventsByDate[formattedDate].forEach(event => {
-                const eventBar = document.createElement('div');
-                eventBar.classList.add('event-bar');
-                eventBar.textContent = `${event.name} (${event.amenity})`;
-                dayElement.appendChild(eventBar);
-            });
+                    console.log("EventsByDate structure:", eventsByDate); // Log processed events
+                    renderCalendar(); // Render the calendar after fetching events
+                } else {
+                    console.error("Failed to fetch events:", data.message);
+                }
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            }
         }
 
-        dayElement.addEventListener('click', () => displayEventDetails(formattedDate));
-        daysGrid.appendChild(dayElement);
-    }
+        function renderCalendar() {
+            if (!daysGrid) {
+                console.error("Days grid element not found");
+                return;
+            }
+            daysGrid.innerHTML = ''; // Clear existing calendar
 
-    addDayClickEvents();
-}
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+
+            monthDisplay.textContent = `${firstDay.toLocaleString('default', { month: 'long' })} ${currentYear}`;
+
+            let dayOfWeek = firstDay.getDay();
+
+            // Add empty cells for days before the first of the month
+            for (let i = 0; i < dayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('day', 'empty');
+                daysGrid.appendChild(emptyDay);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('day');
+                dayElement.textContent = day;
+
+                const date = new Date(currentYear, currentMonth, day);
+                const formattedDate = date.toISOString().split('T')[0];
+
+                if (eventsByDate[formattedDate]) {
+                    eventsByDate[formattedDate].forEach(event => {
+                        const eventBar = document.createElement('div');
+                        eventBar.classList.add('event-bar');
+                        eventBar.textContent = event.name;
+                        dayElement.appendChild(eventBar);
+                    });
+                }
+
+                dayElement.addEventListener('click', () => displayEventDetails(formattedDate));
+                daysGrid.appendChild(dayElement);
+            }
+        }
 
 
 fetchApprovedEvents();
@@ -501,7 +498,7 @@ fetchApprovedEvents();
             const formattedHours = (parseInt(hours) % 12) || 12; // Handle midnight (00:00)
             return `${formattedHours}:${minutes} ${ampm}`;
         }
-        let eventsByDate = {};
+
 
         // Render the calendar grid
         function renderCalendar() {
@@ -631,7 +628,7 @@ fetchApprovedEvents();
             await fetchApprovedEvents();
             renderCalendar();
         });
-        
+
         fetchApprovedEvents();
 
             </script>

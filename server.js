@@ -874,31 +874,21 @@ app.get("/profile", async (req, res) => {
 
 app.get("/approved-events", async (req, res) => {
   try {
-    const db = await connectToDatabase()
-    const aeventsCollection = db.collection("aevents")
-    const eventpaymentsCollection = db.collection("eventpayments")
+    const db = await connectToDatabase();
+    const aeventsCollection = db.collection("aevents");
 
-    const approvedEvents = await aeventsCollection.find().toArray()
-    const eventPayments = await eventpaymentsCollection.find().toArray()
+    const approvedEvents = await aeventsCollection.find().toArray();
 
-    // Create a map of paid events for faster lookup
-    const paidEventsMap = new Map(eventPayments.map((payment) => [payment.eventName, true]))
-
-    // Add payment status to each event
-    const eventsWithPaymentStatus = approvedEvents.map((event) => ({
-      ...event,
-      isPaid: paidEventsMap.has(event.eventName),
-    }))
-
-    res.json({ success: true, events: eventsWithPaymentStatus })
+    res.json({ success: true, events: approvedEvents });
   } catch (error) {
-    console.error("Error fetching approved events:", error)
+    console.error("Error fetching approved events:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching approved events",
-    })
+      events: [],
+    });
   }
-})
+});
 
 // Add new function to check and delete unpaid events
 async function checkAndDeleteUnpaidEvents() {
@@ -1492,24 +1482,24 @@ app.get("/api/event/:eventId", async (req, res) => {
 
 app.get("/api/notifications", async (req, res) => {
   try {
-    console.log("Session in notifications endpoint:", req.session)
+    console.log("Session in notifications endpoint:", req.session);
 
     // Check if the user is authenticated
     if (!req.session || !req.session.user || !req.session.user.email) {
-      console.log("User not authenticated in notifications endpoint")
+      console.log("User not authenticated in notifications endpoint");
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
         notifications: [],
         unreadCount: 0,
-      })
+      });
     }
 
-    const userEmail = req.session.user.email
-    console.log("Fetching notifications for:", userEmail)
+    const userEmail = req.session.user.email;
+    console.log("Fetching notifications for:", userEmail);
 
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
+    const db = await connectToDatabase();
+    const notificationsCollection = db.collection("notifications");
 
     const notifications = await notificationsCollection
       .find({
@@ -1518,25 +1508,25 @@ app.get("/api/notifications", async (req, res) => {
       })
       .sort({ timestamp: -1 })
       .limit(10)
-      .toArray()
+      .toArray();
 
-    console.log(`Found ${notifications.length} notifications for ${userEmail}`)
+    console.log(`Found ${notifications.length} notifications for ${userEmail}`);
 
     res.json({
       success: true,
       notifications: notifications,
       unreadCount: notifications.length,
-    })
+    });
   } catch (error) {
-    console.error("Error fetching notifications:", error)
+    console.error("Error fetching notifications:", error);
     res.status(500).json({
       success: false,
       error: "Internal server error",
       notifications: [],
       unreadCount: 0,
-    })
+    });
   }
-})
+});
 
 app.post("/api/markNotificationsAsRead", async (req, res) => {
   try {
