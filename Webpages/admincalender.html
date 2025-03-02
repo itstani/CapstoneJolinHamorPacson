@@ -552,7 +552,7 @@
 
         async function fetchApprovedEvents() {
             try {
-                const response = await fetch(`${API_BASE_URL}/approved-events`, {
+                const response = await fetch(`approved-events`, {
                     credentials: 'include'
                 });
                 if (!response.ok) {
@@ -582,7 +582,7 @@
 
         async function fetchPendingEvents() {
             try {
-                const response = await fetch(`${API_BASE_URL}/pending-events`, {
+                const response = await fetch(`/pending-events`, {
                     credentials: 'include'
                 });
                 if (!response.ok) {
