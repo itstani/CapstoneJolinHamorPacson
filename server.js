@@ -81,8 +81,33 @@ async function connectToDatabase() {
   });
   await client.connect();
   return client.db(dbName);
+  try {
+    if (!database) {
+      await client.connect()
+      console.log("Connected successfully to MongoDB")
+      database = client.db(dbName)
+      activityLogsCollection = database.collection("activityLogs")
+    }
+    return database
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw error
+  }
 }
 
+async function connectToDatabase() {
+  try {
+    if (!global.mongoClient) {
+      await client.connect()
+      global.mongoClient = client
+      console.log("Connected successfully to MongoDB Atlas")
+    }
+    return client.db(dbName)
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw error
+  }
+}
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -115,13 +140,11 @@ app.use(
   }),
 )
 
-app.use(cors({
-  origin: process.env.NODE_ENV === "production" 
-    ? "https://capstone-jolin-hamor-pacson.vercel.app" 
-    : "http://localhost:3000",
-  credentials: true
-}));
-
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  next()
+})
 
 app.get("/debug", async (req, res) => {
   try {
@@ -200,33 +223,6 @@ app.get("/api/test-db", async (req, res) => {
   }
 })
 
-async function checkSession() {
-  try {
-    const response = await fetch('/api/check-session', { credentials: 'include' });
-    const data = await response.json();
-    return data.isValid;
-  } catch (error) {
-    console.error('Error checking session:', error);
-    return false;
-  }
-}
-
-async function fetchNotificationsWithSessionCheck() {
-  const isSessionValid = await checkSession();
-  if (isSessionValid) {
-    await fetchNotifications();
-  } else {
-    console.log('Session expired, redirecting to login');
-    window.location.href = '/login.html';
-  }
-}
-
-// Use fetchNotificationsWithSessionCheck instead of fetchNotifications
-document.addEventListener('DOMContentLoaded', () => {
-  fetchNotificationsWithSessionCheck();
-  setInterval(fetchNotificationsWithSessionCheck, 30000);
-});
-
 app.get("/debug-images", (req, res) => {
   const imagesPath = path.join(__dirname, "images")
   const fs = require("fs")
@@ -278,6 +274,15 @@ app.use(cors({
     : "http://localhost:3000",
   credentials: true
 }));
+app.use(
+  session({
+    secret: "N3$Pxm/mXm1eYY",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: app.get("env") === "production" },
+  }),
+)
+
 app.use(
   cors({
     origin:
@@ -539,28 +544,55 @@ app.post("/api/login", async (req, res) => {
       message: "Email/username and password are required"
     });
   }
+})
+// Add CORS middleware
+app.use((req, res, next) => {
+  res.header(
+    "Access-Control-Allow-Origin",
+    process.env.NODE_ENV === "production" ? "https://capstone-jolin-hamor-pacson.vercel.app" : "http://localhost:3000",
+  )
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  res.header("Access-Control-Allow-Credentials", "true")
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end()
+  }
+  next()
+})
+
+app.post("/api/login", async (req, res) => {
+  const { login, password } = req.body
 
   try {
     console.log("Attempting to connect to database...");
-    const db = await connectToDatabase();
     console.log("Connected to database successfully");
 
     const usersCollection = db.collection("acc");
+    if (!login || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      })
+    }
+
+    const db = await connectToDatabase()
 
     console.log("Searching for user...");
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } }
-      ]
-    });
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
+      ],
+    })
 
     if (!user) {
       console.log("User not found");
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
-      });
+        message: "Invalid credentials",
+      })
     }
 
     console.log("User found, comparing passwords...");
@@ -568,38 +600,44 @@ app.post("/api/login", async (req, res) => {
     
     if (!isValidPassword) {
       console.log("Invalid password");
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials"
-      });
+    const isPasswordValid = await bcrypt.compare(password, user.password)
     }
 
-    console.log("Password valid, creating session...");
-    req.session.user = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role
-    };
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      })
+    
+
+      console.log("Password valid, creating session...");
+      req.session.user = {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      }
+    }
 
     console.log("Login successful for user:", user.username);
+    // Log successful login
+    await logActivity("login", `User ${user.username} logged in successfully`)
 
     res.json({
       success: true,
       username: user.username,
       email: user.email,
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html"
-    });
-
+      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+    })
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error)
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
       error: error.message
     });
   }
-});
+})
 
 
 async function logActivity(action, details) {
@@ -892,26 +930,18 @@ app.get("/approved-events", async (req, res) => {
   try {
     const db = await connectToDatabase()
     const aeventsCollection = db.collection("aevents")
-    const eventpaymentsCollection = db.collection("eventpayments")
 
     const approvedEvents = await aeventsCollection.find().toArray()
-    const eventPayments = await eventpaymentsCollection.find().toArray()
 
-    // Create a map of paid events for faster lookup
-    const paidEventsMap = new Map(eventPayments.map((payment) => [payment.eventName, true]))
+    console.log("Approved events:", JSON.stringify(approvedEvents))
 
-    // Add payment status to each event
-    const eventsWithPaymentStatus = approvedEvents.map((event) => ({
-      ...event,
-      isPaid: paidEventsMap.has(event.eventName),
-    }))
-
-    res.json({ success: true, events: eventsWithPaymentStatus })
+    res.json({ success: true, events: approvedEvents })
   } catch (error) {
     console.error("Error fetching approved events:", error)
     res.status(500).json({
       success: false,
       message: "Error fetching approved events",
+      events: [],
     })
   }
 })
@@ -1017,6 +1047,8 @@ app.post("/update-payment-status", async (req, res) => {
     })
   }
 })
+
+
 
 // Add this after your existing createNotification function
 async function createNotification(userEmail, type, message, relatedId) {
@@ -1504,20 +1536,26 @@ app.get("/api/event/:eventId", async (req, res) => {
   }
 })
 
-app.get('/api/notifications', async (req, res) => {
+app.get("/api/notifications", async (req, res) => {
   try {
-    if (!req.session.user || !req.session.user.email) {
+    console.log("Session in notifications endpoint:", req.session)
+
+    // Check if the user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
+      console.log("User not authenticated in notifications endpoint")
       return res.status(401).json({
         success: false,
         error: "User not authenticated",
         notifications: [],
         unreadCount: 0,
-      });
+      })
     }
 
-    const userEmail = req.session.user.email;
-    const db = await connectToDatabase();
-    const notificationsCollection = db.collection("notifications");
+    const userEmail = req.session.user.email
+    console.log("Fetching notifications for:", userEmail)
+
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
 
     const notifications = await notificationsCollection
       .find({
@@ -1526,23 +1564,26 @@ app.get('/api/notifications', async (req, res) => {
       })
       .sort({ timestamp: -1 })
       .limit(10)
-      .toArray();
+      .toArray()
+
+    console.log(`Found ${notifications.length} notifications for ${userEmail}`)
+    console.log("Notifications:", JSON.stringify(notifications))
 
     res.json({
       success: true,
       notifications: notifications,
       unreadCount: notifications.length,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    console.error("Error fetching notifications:", error)
     res.status(500).json({
       success: false,
       error: "Internal server error",
       notifications: [],
       unreadCount: 0,
-    });
+    })
   }
-});
+})
 
 app.post("/api/markNotificationsAsRead", async (req, res) => {
   try {
@@ -1810,7 +1851,20 @@ async function startServer() {
 }
 
 // email otp--------------------------------------
-app.use(cors())
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://capstone-jolin-hamor-pacson.vercel.app"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+)
+
+app.options("*", cors())
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
 app.use(bodyParser.json())
 
 //generate otp
@@ -1878,3 +1932,11 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
   });
 });
+app.use((req, res, next) => {
+  const oldJson = res.json
+  res.json = (data) => {
+    console.log("Response data:", JSON.stringify(data))
+    oldJson.apply(res, arguments)
+  }
+  next()
+})

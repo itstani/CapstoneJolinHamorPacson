@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "builds": [
@@ -6,11 +7,11 @@
       "use": "@vercel/node"
     },
     {
-      "src": "Webpages/**",
+      "src": "images/**",
       "use": "@vercel/static"
     },
     {
-      "src": "images/**",
+      "src": "Webpages/**",
       "use": "@vercel/static"
     },
     {
@@ -32,7 +33,7 @@
       "dest": "/CSS/$1"
     },
     {
-      "src": "/(.*)\\.html",
+      "src": "/Webpages/(.*)\\.html",
       "dest": "/Webpages/$1.html"
     },
     {

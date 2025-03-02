@@ -633,53 +633,53 @@
     <div class="side-bar">
         <div class="Home">
             <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-                <img src="/images/house.png" alt="Home" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="/images/house.png" alt="Home" onerror="handleImageError(this)" />
             </button>
             <p>Home</p>
         </div>
         
         <div class="Calendar">
             <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
-                <img src="/images/Calendar.png" alt="calendar" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+                <img src="/images/Calendar.png" alt="Calendar" onerror="handleImageError(this)" />
             </button>
             <p>Calendar</p>
         </div>
         
         <div class="Profile">
-            <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
-                <img src="/images/profileicon.png" alt="Profile" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p>Profile</p>
-        </div>
-        
-        <div class="button">
-            <button type="button" id="logoutButton">Logout</button>
-            <p>Logout</p>
-        </div>
+          <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
+              <img src="/images/profileicon.png" alt="Profile" onerror="handleImageError(this)" />
+          </button>
+          <p>Profile</p>
+      </div>
+      
+      <div class="button">
+          <button type="button" id="logoutButton">Logout</button>
+          <p>Logout</p>
+      </div>
+  </div>
+    
+  <div class="Welcome">
+    <h1>Welcome home!</h1>
+    <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="handleImageError(this)" />
+  </div>
+
+  <div class="reserve">
+    <p class="reservetext1">What would you like to do?</p>
+    
+    <div class="reserve-item">
+        <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
+            <img src="/images/pool.png" alt="Pool" onerror="handleImageError(this)" />
+        </button>
+        <p class="reservetext">Reserve for an Outing or an event?</p>
     </div>
     
-    <div class="Welcome">
-        <h1>Welcome home!</h1>
-        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
+    <div class="reserve-item">
+        <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
+            <img src="/images/Admin.png" alt="Admin" onerror="handleImageError(this)" />
+        </button>
+        <p class="raisetext">Raise your concern to an admin</p>
     </div>
-    
-    <div class="reserve">
-        <p class="reservetext1">What would you like to do?</p>
-        
-        <div class="reserve-item">
-            <button type="button" class="poolbutton" id="poolbutton" name="poolbutton" aria-label="pool" onclick="window.location.href='addevent.html'">
-                <img src="/images/pool.png" alt="Pool" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p class="reservetext">Reserve for an Outing or an event?</p>
-        </div>
-        
-        <div class="reserve-item">
-            <button type="button" class="adminbutton" id="adminbutton" name="adminbutton" aria-label="admin">
-                <img src="/images/admin.png" alt="Admin" onerror="this.onerror=null; this.src='/images/placeholder.png';" />
-            </button>
-            <p class="raisetext">Raise your concern to an admin</p>
-        </div>
-    </div>
+  </div>
  
     <div id="adminPopup" class="popup">
       <div class="popup-content">
@@ -705,17 +705,13 @@
 
                         <button type="submit" id="sendButton">Send</button>
                       </form>
-                         
-
-                          
-                      
                   </div>
               </form>
           </div>
       </div>
   </div>
   <div class="notification-icon" id="notificationIcon">
-    <img src="/images/bell.png" alt="Notifications" />
+    <img src="/images/bell.png" alt="Notifications" onerror="handleImageError(this)" />
     <span class="notification-count" id="notificationCount">0</span>
   </div>
 
@@ -731,6 +727,8 @@
   </div>
   </body>
   <script>
+
+    
     function showNotification(message) {
     const notificationContent = document.getElementById('notificationContent');
     notificationContent.textContent = message;
@@ -865,13 +863,17 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
                   notificationCount.textContent = notifications.length;
                   updateNotificationList();
               }
- 
+              const MAX_RETRIES = 3;
+              const RETRY_DELAY = 2000;
+      let retryCount = 0;
+      const clearNotificationsButton = document.getElementById('clear-notifications');
+      const errorMessage = document.getElementById('error-message');
               let notifications = [];
       const notificationIcon = document.getElementById('notificationIcon');
       const notificationModal = document.getElementById('notificationModal');
       const closeModal = document.getElementById('closeModal');
-      const notificationList = document.getElementById('notificationList');
-      const notificationCount = document.getElementById('notificationCount');
+      const notificationCount = document.getElementById('notification-count');
+    const notificationList = document.getElementById('notification-list');
       const clearSelectedBtn = document.getElementById('clearSelectedBtn');
       const clearAllBtn = document.getElementById('clearAllBtn');
 
@@ -884,53 +886,89 @@ document.getElementById('logoutButton').addEventListener('click', async () => {
         notificationModal.style.display = 'none';
       });
 
+      
       async function fetchNotifications() {
-  try {
-    const response = await fetch('/api/notifications', {
-      credentials: 'include'
-    });
+        try {
+            console.log("Attempting to fetch notifications...", retryCount);
+            const response = await fetch('/api/notifications', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
 
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-      const data = await response.json();
-      if (data.success) {
-        notifications = data.notifications || [];
-        notificationCount.textContent = data.unreadCount || '0';
-        updateNotificationList();
-        updateClearButtons();
-      } else if (data.error === 'User not authenticated') {
-        console.log('Session expired, redirecting to login');
-        window.location.href = '/login.html';
-      } else {
-        console.error('Failed to fetch notifications:', data.error);
-        handleNoNotifications();
-      }
-    } else {
-      console.error('Received non-JSON response:', await response.text());
-      window.location.href = '/login.html'; // Redirect to login if we get HTML
+            console.log("Fetch response received:", response);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            console.log("Response text:", responseText);
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error("Error parsing JSON:", parseError);
+                throw new Error("Invalid JSON response");
+            }
+            
+            if (data.success) {
+                notifications = data.notifications || [];
+                notificationCount.textContent = data.unreadCount || '0';
+                updateNotificationList();
+                retryCount = 0; // Reset retry count on successful fetch
+            } else {
+                throw new Error(data.error || 'Failed to fetch notifications');
+            }
+        } catch (error) {
+            console.error('Detailed error in fetchNotifications:', error);
+            
+            if (error instanceof TypeError && error.message.includes('NetworkError')) {
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    console.log(`Retrying fetch (${retryCount}/${MAX_RETRIES})...`);
+                    setTimeout(fetchNotifications, RETRY_DELAY);
+                } else {
+                    showErrorMessage('Network error occurred. Please check your internet connection and try again.');
+                    handleNoNotifications();
+                }
+            } else {
+                showErrorMessage('Failed to fetch notifications. Please try again later.');
+                handleNoNotifications();
+            }
+        }
     }
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    handleNoNotifications();
-  }
+
+function fetchNotificationsWithRetry() {
+    fetchNotifications().catch(error => {
+        console.error('Error in notification fetch:', error);
+        if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            setTimeout(fetchNotificationsWithRetry, RETRY_DELAY);
+        } else {
+            showErrorMessage('Unable to connect to the server. Please refresh the page.');
+            retryCount = 0;
+        }
+    });
 }
+
 
 function handleNoNotifications() {
-  notifications = [];
-  notificationCount.textContent = '0';
-  updateNotificationList();
-  updateClearButtons();
+    notifications = [];
+    notificationCount.textContent = '0';
+    updateNotificationList();
+    updateClearButtons();
 }
 
-      function updateNotificationList() {
+function updateNotificationList() {
         notificationList.innerHTML = '';
-
         if (notifications.length === 0) {
-          const noNotificationsDiv = document.createElement('div');
-          noNotificationsDiv.className = 'no-notifications';
-          noNotificationsDiv.textContent = 'No notifications';
-          notificationList.appendChild(noNotificationsDiv);
-          return;
+            handleNoNotifications();
+            return;
         }
 
         notifications.forEach(notification => {
@@ -1104,19 +1142,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = message;
+    errorDiv.style.color = 'red';
+    errorDiv.style.padding = '10px';
+    errorDiv.style.marginTop = '10px';
+    errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+    errorDiv.style.border = '1px solid red';
+    errorDiv.style.borderRadius = '5px';
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000); // Remove after 5 seconds
+}
+
+// Initialize notifications
+document.addEventListener('DOMContentLoaded', () => {
+    fetchNotifications();
+    // Fetch notifications every 30 seconds
+    setInterval(() => {
+        retryCount = 0; // Reset retry count before each scheduled fetch
+        fetchNotifications();
+    }, 30000);
+});
+
 function handleImageError(img) {
-            console.error('Failed to load image:', img.src);
-            img.src = '/images/placeholder.png';
-        }
-        
-        // Add event listeners for image error handling
-        document.addEventListener('DOMContentLoaded', function() {
-            const images = document.querySelectorAll('img');
-            images.forEach(img => {
-                img.addEventListener('error', function() {
-                    handleImageError(this);
-                });
-            });
-        });
+    console.error('Failed to load image:', img.src);
+    
+    // If the image is already using the fallback path, use a data URI placeholder
+    if (img.src.includes('/images/')) {
+        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNhYWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgZm91bmQ8L3RleHQ+PC9zdmc+';
+        return;
+    }
+    
+    // Try the /images/ path first
+    const imageName = img.src.split('/').pop();
+    img.src = `/images/${imageName}`;
+}
+
+
+fetchNotifications();
+  // Set up periodic fetching (e.g., every 30 seconds)
+  setInterval(fetchNotifications, 30000);
+
   </script>
 </html>
