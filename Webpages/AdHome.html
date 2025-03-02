@@ -527,7 +527,7 @@
           aria-label="home"
           onclick="window.location.href='AdHome.html'"
         >
-          <img src="images/house.png" />
+          <img src="/images/house.png" />
         </button>
         <p>Home</p>
       </div>
@@ -539,7 +539,7 @@
           aria-label="Documents"
           onclick="window.location.href='hotable.html'"
         >
-          <img src="images/Documents.png" />
+          <img src="/images/Documents.png" />
         </button>
         <p>Homeowner status</p>
       </div>
@@ -551,7 +551,7 @@
           aria-label="analytics"
           onclick="window.location.href='analytics.html'"
         >
-          <img src="images/Data.png" />
+          <img src="/images/Data.png" />
         </button>
         <p>analytics</p>
       </div>
@@ -563,7 +563,7 @@
           aria-label="Calendar"
           onclick="window.location.href='admincalender.html'"
         >
-          <img src="images/Calendar.png" />
+          <img src="/images/Calendar.png" />
         </button>
         <p>Calendar</p>
       </div>
@@ -980,7 +980,7 @@
         if (amenity) {
           imageElement.onerror = function () {
             console.error("Failed to load image:", this.src);
-            this.src = "images/placeholder.jpg";
+            this.src = "/images/placeholder.jpg";
           };
 
           imageElement.src = amenity.imagePath;
@@ -990,7 +990,7 @@
           console.log("Displaying amenity:", amenity);
         } else {
           console.error("No amenity to display");
-          imageElement.src = "images/placeholder.jpg";
+          imageElement.src = "/images/placeholder.jpg";
           imageElement.alt = "No amenity available";
           nameElement.textContent = "No amenity currently reserved";
         }
