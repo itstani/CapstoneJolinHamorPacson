@@ -59,13 +59,6 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
-  maxPoolSize: 10,
-  minPoolSize: 5,
-  retryWrites: true,
-  retryReads: true,
-  w: "majority",
-  connectTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
 })
 
 let database
@@ -90,27 +83,13 @@ const corsOptions = {
 async function connectToDatabase() {
   try {
     await client.connect()
-    console.log("Connected successfully to MongoDB")
-    return client.db(dbName)
+    console.log("Connected successfully to server")
+    return client.db("avidadb") // Replace with your database name
   } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw error
+    console.error("Error connecting to database:", error)
+    throw error // Re-throw the error to be handled by the calling function
   }
 }
-
- async function connectToDatabase() {
-  try {
-    if (!global.mongoClient) {
-      await client.connect()
-      global.mongoClient = client
-      console.log("Connected successfully to MongoDB Atlas")
-    }
-    return client.db(dbName)
-  } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw error
-  }
-} 
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
