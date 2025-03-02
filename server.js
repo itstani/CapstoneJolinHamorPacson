@@ -71,7 +71,7 @@ const client = new MongoClient(uri, {
 let database
 let activityLogsCollection
 
-async function connectToDatabase() {
+/* async function connectToDatabase() {
   const client = new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
@@ -79,23 +79,17 @@ async function connectToDatabase() {
       deprecationErrors: true,
     }
   });
+  try {
   await client.connect();
   return client.db(dbName);
-  try {
-    if (!database) {
-      await client.connect()
-      console.log("Connected successfully to MongoDB")
-      database = client.db(dbName)
-      activityLogsCollection = database.collection("activityLogs")
-    }
-    return database
   } catch (error) {
     console.error("MongoDB connection error:", error)
     throw error
   }
-}
+  
+} */
 
-async function connectToDatabase() {
+ async function connectToDatabase() {
   try {
     if (!global.mongoClient) {
       await client.connect()
@@ -107,7 +101,7 @@ async function connectToDatabase() {
     console.error("MongoDB connection error:", error)
     throw error
   }
-}
+} 
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -531,7 +525,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "Webpages/login.html"))
 })
 
-// Update the login endpoint
+/* // Update the login endpoint
 app.post("/api/login", async (req, res) => {
   console.log("Login attempt received:", req.body);
 
@@ -544,7 +538,7 @@ app.post("/api/login", async (req, res) => {
       message: "Email/username and password are required"
     });
   }
-})
+}) */
 // Add CORS middleware
 app.use((req, res, next) => {
   res.header(
@@ -564,6 +558,7 @@ app.use((req, res, next) => {
 
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body
+  const db = await connectToDatabase()
 
   try {
     console.log("Attempting to connect to database...");
@@ -577,7 +572,7 @@ app.post("/api/login", async (req, res) => {
       })
     }
 
-    const db = await connectToDatabase()
+    
 
     console.log("Searching for user...");
     const user = await usersCollection.findOne({
@@ -598,26 +593,6 @@ app.post("/api/login", async (req, res) => {
     console.log("User found, comparing passwords...");
     const isValidPassword = await bcrypt.compare(password, user.password);
     
-    if (!isValidPassword) {
-      console.log("Invalid password");
-    const isPasswordValid = await bcrypt.compare(password, user.password)
-    }
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      })
-    
-
-      console.log("Password valid, creating session...");
-      req.session.user = {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      }
-    }
 
     console.log("Login successful for user:", user.username);
     // Log successful login
@@ -1358,17 +1333,6 @@ app.get("/getRecentActivity", async (req, res) => {
   }
 })
 
-async function logActivity(action, details) {
-  try {
-    await activityLogsCollection.insertOne({
-      action,
-      details,
-      timestamp: new Date(),
-    })
-  } catch (error) {
-    console.error("Error logging activity:", error)
-  }
-}
 
 app.get("/getUpcomingEvents", async (req, res) => {
   try {
