@@ -71,47 +71,21 @@ const client = new MongoClient(uri, {
 let database
 let activityLogsCollection
 
-app.use((req, res, next) => {
-  const allowedOrigins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500","https://avidasetting.onrender.com"]
-  const origin = req.headers.origin
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error("Not allowed by CORS"))
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 204,
+}
 
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin)
-  } else {
-    res.header("Access-Control-Allow-Origin", "*")
-  }
 
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-  res.header("Access-Control-Allow-Credentials", "true")
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end()
-  }
-
-  next()
-})
-
-app.use((req, res, next) => {
-  const allowedOrigins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
-  const origin = req.headers.origin
-
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin)
-  } else {
-    res.header("Access-Control-Allow-Origin", "*")
-  }
-
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-  res.header("Access-Control-Allow-Credentials", "true")
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end()
-  }
-
-  next()
-})
 
 async function connectToDatabase() {
   try {
@@ -951,6 +925,8 @@ app.get("/approved-events", async (req, res) => {
     })
   }
 })
+
+
 
 // Add new function to check and delete unpaid events
 async function checkAndDeleteUnpaidEvents() {
