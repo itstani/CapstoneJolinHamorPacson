@@ -71,23 +71,58 @@ const client = new MongoClient(uri, {
 let database
 let activityLogsCollection
 
-/* async function connectToDatabase() {
-  const client = new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
+app.use((req, res, next) => {
+  const allowedOrigins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
+  const origin = req.headers.origin
+
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin)
+  } else {
+    res.header("Access-Control-Allow-Origin", "*")
+  }
+
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+  res.header("Access-Control-Allow-Credentials", "true")
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end()
+  }
+
+  next()
+})
+
+app.use((req, res, next) => {
+  const allowedOrigins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
+  const origin = req.headers.origin
+
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin)
+  } else {
+    res.header("Access-Control-Allow-Origin", "*")
+  }
+
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+  res.header("Access-Control-Allow-Credentials", "true")
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end()
+  }
+
+  next()
+})
+
+async function connectToDatabase() {
   try {
-  await client.connect();
-  return client.db(dbName);
+    await client.connect()
+    console.log("Connected successfully to MongoDB")
+    return client.db(dbName)
   } catch (error) {
     console.error("MongoDB connection error:", error)
     throw error
   }
-  
-} */
+}
 
  async function connectToDatabase() {
   try {
@@ -905,11 +940,7 @@ app.get("/approved-events", async (req, res) => {
   try {
     const db = await connectToDatabase()
     const aeventsCollection = db.collection("aevents")
-
     const approvedEvents = await aeventsCollection.find().toArray()
-
-    console.log("Approved events:", JSON.stringify(approvedEvents))
-
     res.json({ success: true, events: approvedEvents })
   } catch (error) {
     console.error("Error fetching approved events:", error)
