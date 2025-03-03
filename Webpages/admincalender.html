@@ -407,32 +407,142 @@
     </div>
 
     <script>
-        const monthDisplay = document.getElementById('monthDisplay');
-        const daysGrid = document.querySelector('.days-grid');
-        const daysOfWeekContainer = document.querySelector('.days-of-week');
-        const eventList = document.getElementById('eventList');
-        const modal = document.getElementById('eventDetails');
-        const modalContent = document.getElementById('modalContent');
-        let currentMonth = new Date().getMonth();
-        let currentYear = new Date().getFullYear();
-        let eventsByDate = {};
-        let currentEvents = [];
+       // Your existing variables
+    const monthDisplay = document.getElementById('monthDisplay');
+    const daysGrid = document.querySelector('.days-grid');
+    const daysOfWeekContainer = document.querySelector('.days-of-week');
+    const eventList = document.getElementById('eventList');
+    const modal = document.getElementById('eventDetails');
+    const modalContent = document.getElementById('modalContent');
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let eventsByDate = {};
+    let currentEvents = [];
 
-        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        function renderDaysOfWeek() {
-            daysOfWeekContainer.innerHTML = daysOfWeek.map(day => `<div>${day}</div>`).join('');
+    // Initialize the calendar with Promise.all for concurrent API calls
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            console.log('Initializing calendar...');
+            renderDaysOfWeek();
+            
+            // Use Promise.all to fetch both data sources concurrently
+            const [pendingData, approvedData] = await Promise.all([
+                fetchPendingEvents(),
+                fetchApprovedEvents()
+            ]);
+            
+            // Process pending events
+            if (pendingData && pendingData.success) {
+                currentEvents = pendingData.events || [];
+                displayEventList();
+            } else {
+                console.error('Failed to load pending events:', pendingData?.message || 'Unknown error');
+                eventList.innerHTML = '<h2 class="eventlistheader">Pending Events</h2><p>Failed to load pending events</p>';
+            }
+            
+            // Process approved events
+            if (approvedData && approvedData.success) {
+                processApprovedEvents(approvedData.events || []);
+                renderCalendar();
+            } else {
+                console.error('Failed to load approved events:', approvedData?.message || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error loading events:', error);
+            eventList.innerHTML = '<h2 class="eventlistheader">Pending Events</h2><p>Error loading events: ' + error.message + '</p>';
         }
+    });
 
+    // Process approved events into the calendar format
+    function processApprovedEvents(events) {
+        eventsByDate = events.reduce((acc, event) => {
+            const formattedDate = event.eventDate;
+            acc[formattedDate] = acc[formattedDate] || [];
+            acc[formattedDate].push({
+                name: event.eventName,
+                time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                amenity: event.amenity,
+                isPaid: event.isPaid // This comes from the server's payment status check
+            });
+            return acc;
+        }, {});
+    }
 
-        function formatTime(time) {
-            const [hour, minute] = time.split(':');
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const adjustedHour = hour % 12 || 12;
-            return `${adjustedHour}:${minute} ${period}`;
+    // Improved fetch functions with proper headers and error handling
+    async function fetchPendingEvents() {
+        try {
+            const response = await fetch('/api/pending-events', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new TypeError("Response was not JSON");
+            }
+
+            const data = await response.json();
+            console.log('Pending events data:', data);
+            return data;
+        } catch (error) {
+            console.error('Error fetching pending events:', error);
+            throw error;
         }
+    }
 
-        function renderCalendar() {
+    async function fetchApprovedEvents() {
+        try {
+            const response = await fetch('/api/approved-events', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new TypeError("Response was not JSON");
+            }
+
+            const data = await response.json();
+            console.log('Approved events data:', data);
+            return data;
+        } catch (error) {
+            console.error('Error fetching approved events:', error);
+            throw error;
+        }
+    }
+
+    // Your existing functions
+    function renderDaysOfWeek() {
+        daysOfWeekContainer.innerHTML = daysOfWeek.map(day => `<div>${day}</div>`).join('');
+    }
+
+    function formatTime(time) {
+        if (!time) return 'N/A';
+        const [hour, minute] = time.split(':');
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const adjustedHour = hour % 12 || 12;
+        return `${adjustedHour}:${minute} ${period}`;
+    }
+
+    function renderCalendar() {
         const date = new Date(currentYear, currentMonth, 1);
         monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -467,16 +577,16 @@
         addDayClickEvents();
     }
 
-        function addDayClickEvents() {
-            document.querySelectorAll('.day:not(.empty)').forEach(day => {
-                day.addEventListener('click', () => {
-                    const date = day.getAttribute('data-date');
-                    displayEventDetails(date);
-                });
+    function addDayClickEvents() {
+        document.querySelectorAll('.day:not(.empty)').forEach(day => {
+            day.addEventListener('click', () => {
+                const date = day.getAttribute('data-date');
+                displayEventDetails(date);
             });
-        }
+        });
+    }
 
-        function displayEventDetails(date) {
+    function displayEventDetails(date) {
         const events = eventsByDate[date] || [];
         modalContent.innerHTML = `
             <h3>Events on ${date}</h3>
@@ -495,165 +605,177 @@
         modal.style.display = 'block';
     }
 
-        function closeModal() {
-            modal.style.display = 'none';
-        }
-
-        async function fetchPendingEvents() {
-        try {
-            const response = await fetch(`/pending-events`, {
-                credentials: 'include'
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const text = await response.text(); // Get the response as text
-            console.log("Raw pending events response:", text); // Log the raw response
-            
-            if (text.trim() === '') {
-                console.log("Empty response received for pending events");
-                return;
-            }
-            
-            try {
-                const data = JSON.parse(text);
-                if (data.success) {
-                    currentEvents = data.events;
-                    displayEventList();
-                } else {
-                    console.error("Failed to fetch pending events:", data.message);
-                }
-            } catch (parseError) {
-                console.error("Error parsing JSON:", parseError);
-                console.log("Response that failed to parse:", text);
-            }
-        } catch (error) {
-            console.error("Error fetching pending events:", error);
-        }
+    function closeModal() {
+        modal.style.display = 'none';
     }
 
-        function displayEventList() {
-            const listContent = currentEvents.map((event, index) => `
-                <div class="event-list-item" onclick="displayPendingEventDetails(${index})">
-                    ${event.eventName} - ${event.eventDate}
-                </div>
-            `).join('');
+    function displayEventList() {
+        if (!currentEvents || currentEvents.length === 0) {
             eventList.innerHTML = `
                 <h2 class="eventlistheader">Pending Events</h2>
-                ${listContent}
+                <p>No pending events found.</p>
             `;
-        }
-        async function displayPendingEventDetails(index) {
-            const event = currentEvents[index];
-            modalContent.innerHTML = `
-                <div class="modal-flex">
-                    <div class="event-details">
-                        <h2>${event.eventName}</h2>
-                        <p><strong>Date:</strong> ${event.eventDate}</p>
-                        <p><strong>Time:</strong> ${event.startTime} - ${event.endTime}</p>
-                        <p><strong>Amenity:</strong> ${event.amenity}</p>
-                        <p><strong>Host:</strong> ${event.HomeownerName}</p>
-                        <p><strong>Email:</strong> ${event.userEmail}</p>
-                        <p><strong>Guests:</strong> ${event.guests}</p>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button class="approve-btn" onclick="approveEvent('${event.eventName}')">Approve</button>
-                    <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">Deny</button>
-                </div>
-                <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
-            `;
-            modal.style.display = 'block';
+            return;
         }
 
+        const listContent = currentEvents.map((event, index) => `
+            <div class="event-list-item" onclick="displayPendingEventDetails(${index})">
+                ${event.eventName} - ${event.eventDate}
+            </div>
+        `).join('');
+        
+        eventList.innerHTML = `
+            <h2 class="eventlistheader">Pending Events</h2>
+            ${listContent}
+        `;
+    }
 
+    async function displayPendingEventDetails(index) {
+        const event = currentEvents[index];
+        modalContent.innerHTML = `
+            <div class="modal-flex">
+                <div class="event-details">
+                    <h2>${event.eventName}</h2>
+                    <p><strong>Date:</strong> ${event.eventDate}</p>
+                    <p><strong>Time:</strong> ${event.startTime} - ${event.endTime}</p>
+                    <p><strong>Amenity:</strong> ${event.amenity}</p>
+                    <p><strong>Host:</strong> ${event.HomeownerName || 'N/A'}</p>
+                    <p><strong>Email:</strong> ${event.userEmail || 'N/A'}</p>
+                    <p><strong>Guests:</strong> ${event.guests ? (typeof event.guests === 'object' ? event.guests.number : event.guests) : 'N/A'}</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="approve-btn" onclick="approveEvent('${event.eventName}')">Approve</button>
+                <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">Deny</button>
+            </div>
+            <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
+        `;
+        modal.style.display = 'block';
+    }
 
-        async function fetchApprovedEvents() {
+    function showDisapprovalReason(eventName) {
+        const reasonTextarea = document.getElementById('disapprovalReason');
+        reasonTextarea.style.display = 'block';
+        reasonTextarea.focus();
+        reasonTextarea.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitDisapproval(eventName, reasonTextarea.value);
+            }
+        };
+    }
+
+    async function approveEvent(eventName) {
         try {
-            const response = await fetch(`/approved-events`, {
-                credentials: 'include'
+            const response = await fetch(`/approveEvent/${encodeURIComponent(eventName)}`, {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
             });
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const text = await response.text(); // Get the response as text
-            console.log("Raw approved events response:", text); // Log the raw response
             
-            if (text.trim() === '') {
-                console.log("Empty response received for approved events");
-                return;
-            }
-            
-            try {
-                const data = JSON.parse(text);
-                if (data.success) {
-                    eventsByDate = data.events.reduce((acc, event) => {
-                        const formattedDate = event.eventDate;
-                        acc[formattedDate] = acc[formattedDate] || [];
-                        acc[formattedDate].push({
-                            name: event.eventName,
-                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
-                            amenity: event.amenity,
-                            isPaid: event.isPaid
-                        });
-                        return acc;
-                    }, {});
-                    renderCalendar();
-                } else {
-                    console.error("Failed to fetch events:", data.message);
+            const data = await response.json();
+            if (data.success) {
+                alert('Event approved successfully');
+                closeModal();
+                
+                // Refresh data after approval
+                const [pendingData, approvedData] = await Promise.all([
+                    fetchPendingEvents(),
+                    fetchApprovedEvents()
+                ]);
+                
+                if (pendingData && pendingData.success) {
+                    currentEvents = pendingData.events || [];
+                    displayEventList();
                 }
-            } catch (parseError) {
-                console.error("Error parsing JSON:", parseError);
-                console.log("Response that failed to parse:", text);
+                
+                if (approvedData && approvedData.success) {
+                    processApprovedEvents(approvedData.events || []);
+                    renderCalendar();
+                }
+            } else {
+                alert('Failed to approve event: ' + data.message);
             }
         } catch (error) {
-            console.error("Error fetching approved events:", error);
+            console.error("Error approving event:", error);
+            alert('An error occurred while approving the event: ' + error.message);
         }
     }
 
-
-
-
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            currentMonth = (currentMonth - 1 + 12) % 12;
-            if (currentMonth === 11) currentYear--;
-            renderCalendar();
-        });
-
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            currentMonth = (currentMonth + 1) % 12;
-            if (currentMonth === 0) currentYear++;
-            renderCalendar();
-        });
-
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                closeModal();
+    async function submitDisapproval(eventName, reason) {
+        if (!reason || reason.trim() === '') {
+            alert('Please provide a reason for disapproval');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/disapprove-event', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ eventName, reason })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('Event disapproved successfully');
                 closeModal();
+                
+                // Refresh pending events after disapproval
+                const pendingData = await fetchPendingEvents();
+                if (pendingData && pendingData.success) {
+                    currentEvents = pendingData.events || [];
+                    displayEventList();
+                }
+            } else {
+                alert('Failed to disapprove event: ' + data.message);
             }
-        });
+        } catch (error) {
+            console.error("Error disapproving event:", error);
+            alert('An error occurred while disapproving the event: ' + error.message);
+        }
+    }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderDaysOfWeek();
-            await fetchApprovedEvents();
-            renderCalendar();
-            await fetchPendingEvents();
-        });
+    // Navigation button event listeners
+    document.getElementById('prevMonth').addEventListener('click', () => {
+        currentMonth = (currentMonth - 1 + 12) % 12;
+        if (currentMonth === 11) currentYear--;
+        renderCalendar();
+    });
 
-        async function initializeCalendar() {
-    renderDaysOfWeek();
-    await fetchApprovedEvents();
-    renderCalendar();
-    await fetchPendingEvents();
+    document.getElementById('nextMonth').addEventListener('click', () => {
+        currentMonth = (currentMonth + 1) % 12;
+        if (currentMonth === 0) currentYear++;
+        renderCalendar();
+    });
 
-}
+    // Modal event listeners
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
 
-document.addEventListener('DOMContentLoaded', initializeCalendar);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
     </script>
 </body>
 </html>
+

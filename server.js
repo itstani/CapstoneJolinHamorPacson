@@ -1,19 +1,3 @@
-function getDateRange(filter) {
-  const now = new Date()
-  switch (filter) {
-    case "week":
-      return new Date(now.setDate(now.getDate() - 7))
-    case "1 month":
-      return new Date(now.setMonth(now.getMonth() - 1))
-    case "6 months":
-      return new Date(now.setMonth(now.getMonth() - 6))
-    case "year":
-      return new Date(now.setFullYear(now.getFullYear() - 1))
-    default:
-      return new Date(0) // Beginning of time
-  }
-}
-
 require("dotenv").config()
 const express = require("express")
 const bodyParser = require("body-parser")
@@ -29,16 +13,65 @@ const schedule = require("node-schedule")
 const officegen = require("officegen")
 
 const app = express()
-const port = 3000
+const port = process.env.PORT || 3000
 const dbName = process.env.DB_NAME || "avidadb"
 const uri = process.env.MONGODB_URI
 
+// === Middleware Configuration (place this after initial requires) ===
+// 1. Basic middleware
 app.use(express.json())
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+
+// 2. CORS configuration - single declaration
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://capstone-jolin-hamor-pacson.vercel.app"
+        : "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  }),
+)
+
+// 3. Debug logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  console.log("Request Headers:", req.headers)
+
+  // Set proper headers for API requests
+  if (req.path.startsWith("/api") || req.headers.accept?.includes("application/json")) {
+    res.setHeader("Content-Type", "application/json")
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+    res.setHeader("Pragma", "no-cache")
+  }
+
+  next()
+})
+
+// 4. Database connection middleware
+/* app.use(async (req, res, next) => {
+  try {
+    req.db = await connectToDatabase()
+    next()
+  } catch (error) {
+    next(error)
+  }
+}) */
+
+// Remove all other app.use(session(...)) declarations and keep only this one
 app.use(
   session({
-    secret: "N3$Pxm/mXm1eYY",
+    secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
   }),
 )
 
@@ -64,6 +97,8 @@ const client = new MongoClient(uri, {
 let database
 let activityLogsCollection
 
+const allowedOrigins = ["https://capstone-jolin-hamor-pacson.vercel.app", "http://localhost:3000"]
+
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -78,8 +113,6 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 }
 
-
-
 async function connectToDatabase() {
   try {
     await client.connect()
@@ -91,42 +124,9 @@ async function connectToDatabase() {
   }
 }
 
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
-app.use(express.static(path.join(__dirname)))
+// Add debug logging to track request flow:
 
 // Specific static file handling with logging
-app.use("/images", (req, res, next) => {
-  const imagePath = path.join(__dirname, "images", req.path)
-  console.log("Image request:", {
-    path: req.path,
-    fullPath: imagePath,
-    exists: fs.existsSync(imagePath),
-  })
-
-  res.sendFile(imagePath, (err) => {
-    if (err) {
-      console.error("Error serving image:", err)
-      next(err)
-    }
-  })
-})
-
-app.use(
-  "/images",
-  express.static(path.join(__dirname, "images"), {
-    setHeaders: (res) => {
-      res.setHeader("Cache-Control", "public, max-age=31536000")
-      res.setHeader("Access-Control-Allow-Origin", "*")
-    },
-  }),
-)
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-  next()
-})
 
 app.get("/debug", async (req, res) => {
   try {
@@ -224,96 +224,16 @@ app.get("/debug-images", (req, res) => {
   }
 })
 
-app.use(
-  "/CSS",
-  express.static(path.join(__dirname, "CSS"), {
-    setHeaders: (res, path) => {
-      res.set("Cache-Control", "public, max-age=31536000")
-    },
-  }),
-)
-
 // Add explicit favicon handling
 app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "images", "favicon.ico"))
 })
-app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
-app.use(cors())
-app.use(session({
-  secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
-app.use(cors({
-  origin: process.env.NODE_ENV === "production" 
-    ? "https://capstone-jolin-hamor-pacson.vercel.app" 
-    : "http://localhost:3000",
-  credentials: true
-}));
-app.use(
-  session({
-    secret: "N3$Pxm/mXm1eYY",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: app.get("env") === "production" },
-  }),
-)
-
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://capstone-jolin-hamor-pacson.vercel.app"
-        : "http://localhost:3000",
-    credentials: true,
-  }),
-)
-
-// Example route
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Webpages/login.html"))
-})
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
-})
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  }),
-)
 
 // Middleware to attach the database
-app.use(async (req, res, next) => {
-  try {
-    req.db = await connectToDatabase()
-    next()
-  } catch (error) {
-    next(error)
-  }
-})
 
 connectToDatabase().catch(console.error)
 
 // Debug middleware to log all requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
-  next()
-})
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -509,10 +429,6 @@ app.get("/api/generate-report", async (req, res) => {
   }
 })
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Webpages/login.html"))
-})
-
 /* // Update the login endpoint
 app.post("/api/login", async (req, res) => {
   console.log("Login attempt received:", req.body);
@@ -528,31 +444,16 @@ app.post("/api/login", async (req, res) => {
   }
 }) */
 // Add CORS middleware
-app.use((req, res, next) => {
-  res.header(
-    "Access-Control-Allow-Origin",
-    process.env.NODE_ENV === "production" ? "https://capstone-jolin-hamor-pacson.vercel.app" : "http://localhost:3000",
-  )
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-  res.header("Access-Control-Allow-Credentials", "true")
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).end()
-  }
-  next()
-})
 
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body
   const db = await connectToDatabase()
 
   try {
-    console.log("Attempting to connect to database...");
-    console.log("Connected to database successfully");
+    console.log("Attempting to connect to database...")
+    console.log("Connected to database successfully")
 
-    const usersCollection = db.collection("acc");
+    const usersCollection = db.collection("acc")
     if (!login || !password) {
       return res.status(400).json({
         success: false,
@@ -560,9 +461,7 @@ app.post("/api/login", async (req, res) => {
       })
     }
 
-    
-
-    console.log("Searching for user...");
+    console.log("Searching for user...")
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
@@ -571,18 +470,17 @@ app.post("/api/login", async (req, res) => {
     })
 
     if (!user) {
-      console.log("User not found");
+      console.log("User not found")
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       })
     }
 
-    console.log("User found, comparing passwords...");
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    
+    console.log("User found, comparing passwords...")
+    const isValidPassword = await bcrypt.compare(password, user.password)
 
-    console.log("Login successful for user:", user.username);
+    console.log("Login successful for user:", user.username)
     // Log successful login
     await logActivity("login", `User ${user.username} logged in successfully`)
 
@@ -597,11 +495,10 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
 })
-
 
 async function logActivity(action, details) {
   try {
@@ -871,8 +768,8 @@ app.get("/profile", async (req, res) => {
     const homeownerUser = await homeownersCollection.findOne({ email })
 
     if (accUser && homeownerUser) {
+      // In the profile route, change:
       return res.json({
-        success: true,
         success: true,
         username: req.session.user.username,
         email: req.session.user.email,
@@ -889,23 +786,76 @@ app.get("/profile", async (req, res) => {
   }
 })
 
-app.get("/approved-events", async (req, res) => {
+// Update the pending-events endpoint - place this BEFORE any static file middleware
+app.get("/api/pending-events", async (req, res) => {
+  console.log("Pending events request received")
+  console.log("Headers:", req.headers)
+
+  // Validate Accept header
+  if (!req.headers.accept?.includes("application/json")) {
+    console.log("Invalid Accept header")
+    return res.status(406).json({
+      success: false,
+      message: "This endpoint requires Accept: application/json header",
+    })
+  }
+
+  try {
+    const db = await connectToDatabase()
+    console.log("Database connected")
+
+    const eventsCollection = db.collection("events")
+    const pendingEvents = await eventsCollection.find({ status: "pending" }).toArray()
+    console.log("Found pending events:", pendingEvents.length)
+
+    // Set headers explicitly
+    res.setHeader("Content-Type", "application/json")
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+    res.setHeader("Pragma", "no-cache")
+
+    return res.json({
+      success: true,
+      events: pendingEvents || [],
+    })
+  } catch (error) {
+    console.error("Error fetching pending events:", error)
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching events",
+      events: [],
+    })
+  }
+})
+
+// Update the approved-events endpoint similarly
+app.get("/api/approved-events", async (req, res) => {
+  console.log("Approved events request headers:", req.headers) // Debug logging
+
   try {
     const db = await connectToDatabase()
     const aeventsCollection = db.collection("aevents")
+
+    // Set headers explicitly
+    res.setHeader("Content-Type", "application/json")
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+    res.setHeader("Pragma", "no-cache")
+
     const approvedEvents = await aeventsCollection.find().toArray()
-    res.json({ success: true, events: approvedEvents })
+
+    // Return a properly formatted JSON response
+    return res.json({
+      success: true,
+      events: approvedEvents || [],
+    })
   } catch (error) {
     console.error("Error fetching approved events:", error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching approved events",
       events: [],
     })
   }
 })
-
-
 
 // Add new function to check and delete unpaid events
 async function checkAndDeleteUnpaidEvents() {
@@ -976,6 +926,14 @@ app.post("/update-payment-status", async (req, res) => {
     if (isPaid) {
       // Add to eventpayments collection
       await eventpaymentsCollection.insertOne({
+        success: false,
+        message: "Event not found",
+      })
+    }
+
+    if (isPaid) {
+      // Add to eventpayments collection
+      await eventpaymentsCollection.insertOne({
         eventName,
         paidAt: new Date(),
         eventId: event._id,
@@ -1008,8 +966,6 @@ app.post("/update-payment-status", async (req, res) => {
     })
   }
 })
-
-
 
 // Add this after your existing createNotification function
 async function createNotification(userEmail, type, message, relatedId) {
@@ -1091,18 +1047,6 @@ app.put("/updateHomeowner/:email", async (req, res) => {
   } catch (error) {
     console.error("Error updating homeowner:", error)
     res.status(500).json({ success: false, error: "Failed to update homeowner" })
-  }
-})
-
-app.get("/pending-events", async (req, res) => {
-  try {
-    const db = await connectToDatabase()
-    const eventsCollection = db.collection("events")
-    const pendingEvents = await eventsCollection.find({ status: "pending" }).toArray()
-    res.json({ success: true, events: pendingEvents })
-  } catch (error) {
-    console.error("Error fetching pending events:", error)
-    res.status(500).json({ success: false, message: "Error fetching events" })
   }
 })
 
@@ -1318,7 +1262,6 @@ app.get("/getRecentActivity", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch recent activity" })
   }
 })
-
 
 app.get("/getUpcomingEvents", async (req, res) => {
   try {
@@ -1572,7 +1515,7 @@ app.post("/api/markNotificationsAsRead", async (req, res) => {
   }
 })
 
-async function createNotification(userEmail, type, message, relatedId) {
+/* async function createNotification(userEmail, type, message, relatedId) {
   const db = await connectToDatabase()
   const notificationsCollection = db.collection("notifications")
 
@@ -1586,7 +1529,7 @@ async function createNotification(userEmail, type, message, relatedId) {
   }
 
   await notificationsCollection.insertOne(notification)
-}
+} */
 
 app.post("/api/clearAllNotifications", async (req, res) => {
   try {
@@ -1800,6 +1743,14 @@ async function startServer() {
   }
 }
 
+// Add this after other middleware and before routes
+app.use("/api", (req, res, next) => {
+  res.setHeader("Content-Type", "application/json")
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
+  res.setHeader("Pragma", "no-cache")
+  next()
+})
+
 app.options("*", cors())
 
 app.use(express.json())
@@ -1845,33 +1796,29 @@ app.use((err, req, res, next) => {
   })
 })
 
+// Update the error handling middleware
+/* app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err)
+  res.status(500).json({
+    success: false,
+    message: "An unexpected error occurred",
+    error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+    timestamp: new Date().toISOString(),
+  })
+}) */
+
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err)
   res.status(500).json({
-    error: "Internal server error",
-    message: process.env.NODE_ENV === "development" ? err.message : "An unexpected error occurred",
-    timestamp: new Date().toISOString(),
-  })
-})
-
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Not Found",
-    message: `Route ${req.method} ${req.path} not found`,
-    timestamp: new Date().toISOString(),
+    success: false,
+    message: "An unexpected error occurred",
+    error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
   })
 })
 
 module.exports = app
 
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'An unexpected error occurred',
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
-  });
-});
 app.use((req, res, next) => {
   const oldJson = res.json
   res.json = (data) => {
@@ -1880,3 +1827,48 @@ app.use((req, res, next) => {
   }
   next()
 })
+
+// === Static File Serving (place this at the end of the file) ===
+// Make sure this comes AFTER all API routes
+const staticMiddleware = express.static(path.join(__dirname))
+
+// Custom middleware to handle API requests before serving static files
+app.use((req, res, next) => {
+  // If it's an API request or specifically wants JSON, skip static serving
+  if (req.path.startsWith("/api") || req.headers.accept?.includes("application/json")) {
+    return next()
+  }
+  return staticMiddleware(req, res, next)
+})
+
+// Serve static files AFTER API routes
+app.use(express.static(path.join(__dirname)))
+app.use("/images", express.static(path.join(__dirname, "images")))
+app.use("/CSS", express.static(path.join(__dirname, "CSS")))
+app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
+
+// This should be the very last route
+app.get("*", (req, res) => {
+  // Check if the request wants JSON
+  if (req.headers.accept?.includes("application/json")) {
+    return res.status(404).json({ success: false, message: "API endpoint not found" })
+  }
+  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
+})
+
+function getDateRange(filter) {
+  const now = new Date()
+  switch (filter) {
+    case "week":
+      return new Date(now.setDate(now.getDate() - 7))
+    case "1 month":
+      return new Date(now.setMonth(now.getMonth() - 1))
+    case "6 months":
+      return new Date(now.setMonth(now.getMonth() - 6))
+    case "year":
+      return new Date(now.setFullYear(now.getFullYear() - 1))
+    default:
+      return new Date(0) // Beginning of time
+  }
+}
+
