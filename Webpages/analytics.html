@@ -177,19 +177,19 @@
     <div class="side-bar">
         <div class="Home">
             <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
-                <img src="images/house.png" alt="Home">
+                <img src="/images/house.png" alt="Home">
             </button>
             <p>Home</p>
         </div>
         <div class="homeownerstatus">
             <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
-                <img src="images/Documents.png" alt="Documents">
+                <img src="/images/Documents.png" alt="Documents">
             </button>
             <p>Homeowner status</p>
         </div>
         <div class="Calendar">
             <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
-                <img src="images/Calendar.png" alt="Calendar">
+                <img src="/images/Calendar.png" alt="Calendar">
             </button>
             <p>Calendar</p>
         </div>
@@ -198,7 +198,7 @@
     <div class="mainarea">
         <div class="Welcome">
             <h1>Analytics</h1>
-            <img src="images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
+            <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo">
         </div>
         <div class="action-container">
             <button id="generateReportBtn">Generate Last Month's Report</button>
@@ -400,6 +400,25 @@
                 updateCharts(e.target.value);
             });
             document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+        });
+
+        document
+        .getElementById("logoutButton")
+        .addEventListener("click", async () => {
+          try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
+            } else {
+              showCustomAlert("Logout failed. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert(
+              "An error occurred during logout. Please try again."
+            );
+          }
         });
     </script>
 </body>

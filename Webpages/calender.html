@@ -82,7 +82,8 @@
             padding: 20px;
             max-width: calc(100% - 110px);
             color: #AF2630;
-        }
+            }
+
 
         .calendar header {
             display: flex;
@@ -126,7 +127,7 @@
 
         .day:hover {
             transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
         }
 
         .day:nth-child(7n+1) { background-color: #F4CCCC; }
@@ -135,6 +136,12 @@
         .day.empty {
             border: none;
             background-color: transparent;
+        }
+        .month {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2em;
+            font-weight: bold;
         }
 
         .event-bar {
@@ -226,11 +233,11 @@
                 grid-template-columns: repeat(7, 1fr);
                 font-weight: bold;
                 text-align: center;
-                padding: 10px 0;
+                padding: 2ch 0;
                 background-color: #AF2630;
                 color: white;
-                border-radius: 10px;
-                margin-bottom: 10px;
+                border-radius: 2px;
+                margin-bottom: 2px;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             }
 
@@ -323,6 +330,16 @@
             height: auto;
             display: block;
             object-fit: contain;
+
+        }
+
+        .filter-dropdown {
+            margin-bottom: 20px;
+        }
+
+        .filter-dropdown select {
+            padding: 5px;
+            font-size: 16px;
         }
 
     </style>
@@ -335,14 +352,14 @@
     <div class="side-bar">
         <div class="Home">
         <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-          <img src="images/house.png" alt="Home" />
+          <img src="/images/house.png" alt="Home" />
         </button>
         <p>Home</p>
       </div>
 
       <div class="Profile">
         <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
-          <img src="images/profileicon.png" alt="Profile" />
+          <img src="/images/profileicon.png" alt="Profile" />
         </button>
         <p>Profile</p>
       </div>
@@ -351,6 +368,12 @@
     <div class="calendar">
         <header>
             <h1 id="monthDisplay">Month</h1>
+            <div class="filter-dropdown"></div>
+                <select id="eventFilter">
+                    <option value="all">All Events</option>
+                    <option value="user">My Events</option>
+                </select>
+            </div>
         </header>
         <div class="days-of-week">
             <!-- Days of the week will be dynamically populated -->
@@ -377,25 +400,32 @@
     <script>
         const monthDisplay = document.getElementById('monthDisplay');
         const daysGrid = document.querySelector('.days-grid');
+        const eventFilter = document.getElementById('eventFilter');
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
         const modal = document.getElementById('eventDetails');
         let eventsByDate = {};
-        
+        let userEmail = '';
 
-        // Days of the week
         const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        // Render the days of the week
         function renderDaysOfWeek() {
             const daysOfWeekContainer = document.querySelector('.days-of-week');
             daysOfWeekContainer.innerHTML = daysOfWeek.map(day => `<div>${day}</div>`).join('');
         }
 
+        function formatTime(time) {
+            if (!time) return 'N/A';
+            const [hours, minutes] = time.split(':');
+            const hour = parseInt(hours, 10);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const formattedHour = hour % 12 || 12;
+            return `${formattedHour}:${minutes} ${ampm}`;
+        }
 
         async function fetchApprovedEvents() {
             try {
-                const response = await fetch('/approved-events', {
+                const response = await fetch('/api/approved-events', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
@@ -408,30 +438,27 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const responseText = await response.text();
-                console.log("Response text:", responseText);
-
-                let data;
-                try {
-                    data = JSON.parse(responseText);
-                } catch (parseError) {
-                    console.error("Error parsing JSON:", parseError);
-                    throw new Error("Invalid JSON response");
-                }
+                const data = await response.json();
 
                 if (data.success) {
+                    const twoMonthsAgo = new Date();
+                    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
                     eventsByDate = data.events.reduce((acc, event) => {
-                        const formattedDate = event.eventDate;
-                        acc[formattedDate] = acc[formattedDate] || [];
-                        acc[formattedDate].push({
-                            name: event.eventName,
-                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
-                            amenity: event.amenity
-                        });
+                        const eventDate = new Date(event.eventDate);
+                        if (eventDate >= twoMonthsAgo) {
+                            const formattedDate = event.eventDate;
+                            acc[formattedDate] = acc[formattedDate] || [];
+                            acc[formattedDate].push({
+                                name: event.eventName,
+                                time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                                amenity: event.amenity,
+                                userEmail: event.userEmail
+                            });
+                        }
                         return acc;
                     }, {});
 
-                    console.log("EventsByDate structure:", eventsByDate);
                     renderCalendar();
                 } else {
                     console.error("Failed to fetch events:", data.message);
@@ -442,155 +469,125 @@
         }
 
         function renderCalendar() {
-            if (!daysGrid) {
-                console.error("Days grid element not found");
-                return;
-            }
-            daysGrid.innerHTML = '';
+        const date = new Date(currentYear, currentMonth, 1);
+        monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-            const firstDay = new Date(currentYear, currentMonth, 1);
-            const lastDay = new Date(currentYear, currentMonth + 1, 0);
-            const daysInMonth = lastDay.getDate();
+        daysGrid.innerHTML = '';
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const startDay = date.getDay();
 
-            monthDisplay.textContent = `${firstDay.toLocaleString('default', { month: 'long' })} ${currentYear}`;
-
-            let dayOfWeek = firstDay.getDay();
-
-            for (let i = 0; i < dayOfWeek; i++) {
-                const emptyDay = document.createElement('div');
-                emptyDay.classList.add('day', 'empty');
-                daysGrid.appendChild(emptyDay);
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayElement = document.createElement('div');
-                dayElement.classList.add('day');
-                dayElement.textContent = day;
-
-                const date = new Date(currentYear, currentMonth, day);
-                const formattedDate = date.toISOString().split('T')[0];
-
-                if (eventsByDate[formattedDate]) {
-                    eventsByDate[formattedDate].forEach(event => {
-                        const eventBar = document.createElement('div');
-                        eventBar.classList.add('event-bar');
-                        eventBar.textContent = event.name;
-                        dayElement.appendChild(eventBar);
-                    });
-                }
-
-                dayElement.addEventListener('click', () => displayEventDetails(formattedDate));
-                daysGrid.appendChild(dayElement);
-            }
+        // Add empty days for the start of the month
+        for (let i = 0; i < startDay; i++) {
+            daysGrid.innerHTML += '<div class="day empty"></div>';
         }
 
-fetchApprovedEvents();
+        // Add days with events
+        for (let i = 1; i <= daysInMonth; i++) {
+            const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const events = eventsByDate[currentDate] || [];
+            const eventHTML = events.map(event => `
+                <div class="event-bar ${!event.isPaid ? 'unpaid-event' : ''}" 
+                     title="${event.name} - ${event.time}">
+                    ${event.time}
+                </div>
+            `).join('');
 
-        // Format date to YYYY-MM-DD
-        function formatDate(date) {
-            const [month, day, year] = date.split('-'); // Assuming 'MM-DD-YYYY'
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        }
-
-        // Format time to 12-hour format
-        function formatTime(timeStr) {
-            const [hours, minutes] = timeStr.split(':');
-            const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
-            const formattedHours = (parseInt(hours) % 12) || 12;
-            return `${formattedHours}:${minutes} ${ampm}`;
-        }
-
-
-        // Render the calendar grid
-        function renderCalendar() {
-    const calendar = document.getElementById('calendar');
-    calendar.innerHTML = ''; // Clear existing calendar
-
-    // Sample data (replace with your actual data)
-    const today = new Date();
-    const month = today.getMonth();
-    const year = today.getFullYear();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-
-    let date = firstDay;
-    let dayOfWeek = firstDay.getDay();
-
-
-    let table = document.createElement('table');
-    let headerRow = table.insertRow();
-    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
-        let th = document.createElement('th');
-        th.textContent = day;
-        headerRow.appendChild(th);
-    });
-
-    let weekRow = table.insertRow();
-    for (let i = 0; i < dayOfWeek; i++) {
-        let td = document.createElement('td');
-        weekRow.appendChild(td);
-    }
-
-    while (date <= lastDay) {
-        let day = date.getDate();
-        let formattedDate = date.toISOString().slice(0, 10);
-        let td = document.createElement('td');
-        td.textContent = day;
-
-        if (eventsByDate[formattedDate]) {
-            eventsByDate[formattedDate].forEach(event => {
-                let eventDiv = document.createElement('div');
-                eventDiv.className = 'event';
-                eventDiv.innerHTML = `<strong>${event.name}</strong><br>${event.time}<br>${event.amenity}`;
-                td.appendChild(eventDiv);
-            });
-        }
-        weekRow.appendChild(td);
-        dayOfWeek++;
-        if (dayOfWeek === 7) {
-            weekRow = table.insertRow();
-            dayOfWeek = 0;
-        }
-        date.setDate(day + 1);
-    }
-
-    calendar.appendChild(table);
-}
-
-
-
-
-        // Add click event listeners to days
-        function addDayClickEvents() {
-            const days = document.querySelectorAll('.day:not(.empty)');
-            days.forEach(day => {
-                day.addEventListener('click', () => {
-                    // Add your event handling logic here
-                    console.log('Day clicked:', day.textContent);
-                });
-            });
-        }
-
-        // Display event details in a popup
-        function displayEventDetails(date) {
-            const events = eventsByDate[date] || [];
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = `
-                <h3>Events on ${date}</h3>
-                ${events.length
-                    ? events.map(event => `
-                        <p><strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong></p>
-                    `).join('')
-                    : '<p>No events for this day.</p>'}
+            daysGrid.innerHTML += `
+                <div class="day" data-date="${currentDate}">
+                    ${i}
+                    ${eventHTML}
+                </div>
             `;
-            modal.style.display = 'block';
         }
+
+        addDayClickEvents();
+    }
+
+    function addDayClickEvents() {
+        document.querySelectorAll('.day:not(.empty)').forEach(day => {
+            day.addEventListener('click', () => {
+                const date = day.getAttribute('data-date');
+                displayEventDetails(date);
+            });
+        });
+    }
+
+        function filterEvents(events) {
+            const filterValue = eventFilter.value;
+            if (filterValue === 'all') {
+                return events;
+            } else {
+                return events.filter(event => event.userEmail === userEmail);
+            }
+        }
+
+        function displayEventDetails(date) {
+        const events = eventsByDate[date] || [];
+        modalContent.innerHTML = `
+            <h3>Events on ${date}</h3>
+            ${events.length
+                ? events.map(event => `
+                    <p>
+                        <strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong>
+                        <br>
+                        <span style="color: ${event.isPaid ? '#AF2630' : '#FFB6C1'}">
+                            Status: ${event.isPaid ? 'Paid' : 'Payment Pending'}
+                        </span>
+                    </p>
+                `).join('')
+                : '<p>No events for this day.</p>'}
+        `;
+        modal.style.display = 'block';
+    }
 
         function closeModal() {
             modal.style.display = 'none';
         }
+
+        async function fetchUserEmail() {
+            try {
+                const response = await fetch('/api/user-info', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    return data.email;
+                } else {
+                    throw new Error('Failed to fetch user email');
+                }
+            } catch (error) {
+                console.error('Error fetching user email:', error);
+                return null;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                renderDaysOfWeek();
+                userEmail = await fetchUserEmail();
+                if (!userEmail) {
+                    console.error('User email not found. User might not be logged in.');
+                    // You might want to redirect to login page or show an error message
+                }
+                await fetchApprovedEvents();
+                renderCalendar();
+
+                // Add event listener for filter changes
+                eventFilter.addEventListener('change', renderCalendar);
+            } catch (error) {
+                console.error('Error initializing calendar:', error);
+            }
+        });
 
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentMonth = (currentMonth - 1 + 12) % 12;
@@ -604,17 +601,12 @@ fetchApprovedEvents();
             renderCalendar();
         });
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderDaysOfWeek();
-            await fetchApprovedEvents();
-        });
 
         window.onclick = (event) => {
             if (event.target === modal) {
                 closeModal();
             }
         };
-
             </script>
 </body>
 </html>

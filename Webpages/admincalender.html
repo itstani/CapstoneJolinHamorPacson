@@ -187,6 +187,45 @@
         background-color: #FFB6C1; /* Light pink for unpaid events */
         color: #AF2630; /* Darker text for better contrast */
     }
+    .custom-alert {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1001; /* Ensure it's above the modal */
+      }
+
+      .custom-alert-content {
+        text-align: center;
+      }
+
+      .custom-alert-header {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #af2630;
+      }
+
+      .custom-alert-body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .custom-alert button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
  
 
         /* Navigation Buttons */
@@ -400,6 +439,15 @@
             <div id="modalContent"></div>
         </div>
     </div>
+    <div id="customAlert" class="custom-alert">
+        <div class="custom-alert-content">
+          <div class="custom-alert-header">Notice</div>
+          <div class="custom-alert-body">
+            <p id="customAlertMessage"></p>
+            <button onclick="closeCustomAlert()">OK</button>
+          </div>
+        </div>
+      </div>
 
     <div id="eventList" class="event-list">
         <h2 class="eventlistheader">Pending Events</h2>
@@ -454,6 +502,17 @@
             eventList.innerHTML = '<h2 class="eventlistheader">Pending Events</h2><p>Error loading events: ' + error.message + '</p>';
         }
     });
+    function showCustomAlert(message) {
+        const alertElement = document.getElementById("customAlert");
+        const messageElement = document.getElementById("customAlertMessage");
+        messageElement.textContent = message;
+        alertElement.style.display = "block";
+      }
+
+      function closeCustomAlert() {
+        const alertElement = document.getElementById("customAlert");
+        alertElement.style.display = "none";
+      }
 
     // Process approved events into the calendar format
     function processApprovedEvents(events) {
@@ -749,6 +808,25 @@
             alert('An error occurred while disapproving the event: ' + error.message);
         }
     }
+
+    document
+        .getElementById("logoutButton")
+        .addEventListener("click", async () => {
+          try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
+            } else {
+              showCustomAlert("Logout failed. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert(
+              "An error occurred during logout. Please try again."
+            );
+          }
+        });
 
     // Navigation button event listeners
     document.getElementById('prevMonth').addEventListener('click', () => {

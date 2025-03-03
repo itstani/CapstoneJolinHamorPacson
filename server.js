@@ -429,20 +429,6 @@ app.get("/api/generate-report", async (req, res) => {
   }
 })
 
-/* // Update the login endpoint
-app.post("/api/login", async (req, res) => {
-  console.log("Login attempt received:", req.body);
-
-  const { login, password } = req.body;
-
-  if (!login || !password) {
-    console.log("Missing login or password");
-    return res.status(400).json({
-      success: false,
-      message: "Email/username and password are required"
-    });
-  }
-}) */
 // Add CORS middleware
 
 app.post("/api/login", async (req, res) => {
@@ -789,23 +775,17 @@ app.get("/profile", async (req, res) => {
 // Update the pending-events endpoint - place this BEFORE any static file middleware
 app.get("/api/pending-events", async (req, res) => {
   console.log("Pending events request received")
-  console.log("Headers:", req.headers)
-
-  // Validate Accept header
-  if (!req.headers.accept?.includes("application/json")) {
-    console.log("Invalid Accept header")
-    return res.status(406).json({
-      success: false,
-      message: "This endpoint requires Accept: application/json header",
-    })
-  }
 
   try {
     const db = await connectToDatabase()
     console.log("Database connected")
 
     const eventsCollection = db.collection("events")
-    const pendingEvents = await eventsCollection.find({ status: "pending" }).toArray()
+    // If you're using a status field to determine pending events
+    const pendingEvents = await eventsCollection.find({ status: { $ne: "approved" } }).toArray()
+    // If you don't have a status field, just get all events from the events collection
+    // const pendingEvents = await eventsCollection.find({}).toArray()
+
     console.log("Found pending events:", pendingEvents.length)
 
     // Set headers explicitly
@@ -822,6 +802,7 @@ app.get("/api/pending-events", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching events",
+      error: error.message,
       events: [],
     })
   }
@@ -829,7 +810,7 @@ app.get("/api/pending-events", async (req, res) => {
 
 // Update the approved-events endpoint similarly
 app.get("/api/approved-events", async (req, res) => {
-  console.log("Approved events request headers:", req.headers) // Debug logging
+  console.log("Approved events request headers:", req.headers)
 
   try {
     const db = await connectToDatabase()
@@ -840,24 +821,43 @@ app.get("/api/approved-events", async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
     res.setHeader("Pragma", "no-cache")
 
-    const approvedEvents = await aeventsCollection.find().toArray()
+    const twoMonthsAgo = new Date()
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
+
+    const approvedEvents = await aeventsCollection
+      .find({
+        eventDate: { $gte: twoMonthsAgo.toISOString().split("T")[0] },
+      })
+      .toArray()
+
+    // Check payment status for each event
+    const eventpaymentsCollection = db.collection("eventpayments")
+    const payments = await eventpaymentsCollection.find().toArray()
+    const paidEventsMap = new Map(payments.map((payment) => [payment.eventName, true]))
+
+    // Add isPaid flag and userEmail to each event
+    const eventsWithPaymentStatus = approvedEvents.map((event) => ({
+      ...event,
+      isPaid: paidEventsMap.has(event.eventName),
+      userEmail: event.userEmail || "unknown@example.com", // Fallback if userEmail is not set
+    }))
 
     // Return a properly formatted JSON response
     return res.json({
       success: true,
-      events: approvedEvents || [],
+      events: eventsWithPaymentStatus || [],
     })
   } catch (error) {
     console.error("Error fetching approved events:", error)
     return res.status(500).json({
       success: false,
       message: "Error fetching approved events",
+      error: error.message,
       events: [],
     })
   }
 })
 
-// Add new function to check and delete unpaid events
 async function checkAndDeleteUnpaidEvents() {
   try {
     const db = await connectToDatabase()
@@ -1003,32 +1003,51 @@ async function run() {
     console.error("Error connecting to MongoDB:", error)
   }
 }
+
+async function run() {
+  try {
+    await connectToDatabase()
+
+    console.log("Pinged your deployment. You successfully connected to MongoDB!")
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error)
+  }
+}
+
 run().catch(console.dir)
 
 //get data from acc collection to display in homeowner table hotable.html
+
 app.get("/getHomeowners", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const collection = db.collection("homeowners")
+
     const homeowners = await collection.find().toArray()
+
     res.json(homeowners)
   } catch (error) {
     console.error("Error fetching data:", error)
+
     res.status(500).json({ error: "Failed to fetch data" })
   }
 })
 
 app.put("/updateHomeowner/:email", async (req, res) => {
   const { email } = req.params
+
   const updateData = req.body
 
   try {
     const db = await connectToDatabase()
 
     const database = getClient().db("avidadb")
+
     const collection = database.collection("homeowners")
 
     // Retrieve the homeowner's document to get the last name
+
     const homeowner = await collection.findOne({ email: email })
 
     if (!homeowner) {
@@ -1039,38 +1058,50 @@ app.put("/updateHomeowner/:email", async (req, res) => {
 
     if (result.modifiedCount > 0) {
       const lastName = homeowner.lastName // Assuming 'lastName' is the field storing the last name
+
       await logActivity("homeownerUpdate", `Homeowner with Last Name ${lastName} updated`) // Log activity
+
       res.json({ success: true, message: "Homeowner updated successfully" })
     } else {
       res.json({ success: false, message: "No document matched the query" })
     }
   } catch (error) {
     console.error("Error updating homeowner:", error)
+
     res.status(500).json({ success: false, error: "Failed to update homeowner" })
   }
 })
 
 // Update the existing approve event route
+
 app.put("/approveEvent/:eventName", async (req, res) => {
   const { eventName } = req.params
 
   try {
     const db = await connectToDatabase()
+
     const eventsCollection = db.collection("events")
+
     const aeventsCollection = db.collection("aevents")
 
     const event = await eventsCollection.findOne({ eventName })
 
     if (event) {
       const approvedAt = new Date()
+
       const approvedEvent = await aeventsCollection.insertOne({ ...event, status: "approved", approvedAt })
+
       await eventsCollection.deleteOne({ eventName })
 
       // Create a notification for the event approval
+
       await createNotification(
         event.userEmail,
+
         "event",
+
         `Your event "${event.eventName}" has been approved. Please proceed with the payment.`,
+
         approvedEvent.insertedId,
       )
 
@@ -1080,6 +1111,7 @@ app.put("/approveEvent/:eventName", async (req, res) => {
     }
   } catch (error) {
     console.error("Error approving event:", error)
+
     res.status(500).json({ success: false, message: "Server error while approving event." })
   }
 })
@@ -1089,32 +1121,43 @@ app.post("/disapprove-event", async (req, res) => {
 
   try {
     const db = await connectToDatabase()
+
     const eventpaymentsCollection = db.collection("eventpayments")
+
     const eventsCollection = db.collection("events")
+
     const deventsCollection = db.collection("devents") // Disapproved events collection
 
     // Fetch event from the events collection
+
     const event = await eventsCollection.findOne({ eventName })
 
     if (event) {
       // Move event to devents collection
+
       await deventsCollection.insertOne({ ...event, disapprovalReason: reason })
 
       // Remove from events collection
+
       await eventsCollection.deleteOne({ eventName })
 
       // Update status to 'disapproved' in eventpayments collection with reason
+
       await eventpaymentsCollection.updateOne(
         { eventName },
+
         { $set: { status: "disapproved", disapprovalReason: reason } },
       )
+
       await logActivity("eventDisapproval", `Event ${eventName} disapproved. Reason: ${reason}`) // Log activity
+
       res.json({ success: true, message: "Event disapproved and moved to disapproved events." })
     } else {
       res.status(404).json({ success: false, message: "Event not found in events collection." })
     }
   } catch (error) {
     console.error("Error disapproving event:", error)
+
     res.status(500).json({ success: false, message: "Server error while disapproving event." })
   }
 })
@@ -1124,26 +1167,34 @@ app.get("/receipt-image", async (req, res) => {
 
   try {
     const eventpaymentsCollection = req.db.collection("eventpayments")
+
     const eventsCollection = req.db.collection("events")
 
     // Fetch from `eventpayments` collection
+
     const paymentEvent = await eventpaymentsCollection.findOne({ eventName, eventDate })
 
     // Fetch from `events` collection
+
     const eventDetails = await eventsCollection.findOne({ eventName, eventDate })
 
     if (paymentEvent) {
       // Combine startTime and endTime if they exist
+
       const combinedTime =
         eventDetails?.startTime && eventDetails?.endTime ? `${eventDetails.startTime} - ${eventDetails.endTime}` : null
 
       res.json({
         success: true,
+
         receiptImage: paymentEvent.receiptImage || null,
+
         paymentDetails: paymentEvent,
+
         eventDetails: eventDetails
           ? {
               ...eventDetails,
+
               combinedTime, // Add the combined time to the event details
             }
           : null,
@@ -1151,11 +1202,13 @@ app.get("/receipt-image", async (req, res) => {
     } else {
       res.json({
         success: false,
+
         message: "Receipt image or event details not found",
       })
     }
   } catch (error) {
     console.error("Error fetching receipt image or event details:", error)
+
     res.status(500).json({ success: false, message: "Server error" })
   }
 })
@@ -1167,6 +1220,7 @@ app.get("/eventshow", async (req, res) => {
     const eventsCollection = req.db.collection("events")
 
     // Fetch from `events` collection
+
     const eventDetails = await eventsCollection.findOne({ eventName, eventDate })
 
     if (eventDetails) {
@@ -1176,11 +1230,13 @@ app.get("/eventshow", async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching event details:", error)
+
     res.status(500).json({ success: false, message: "Server error" })
   }
 })
 
 //Submit Concern
+
 app.post("/addconcern", async (req, res) => {
   const { username, email, subject, message } = req.body
 
@@ -1189,42 +1245,58 @@ app.post("/addconcern", async (req, res) => {
 
     const concern = {
       username,
+
       email,
+
       subject,
+
       message,
+
       createdAt,
+
       status: "new", // Add this line
     }
 
     const db = getClient().db("avidadb")
+
     await db.collection("Concerns").insertOne(concern)
 
     res.json({ success: true })
   } catch (error) {
     console.error("Error adding concern:", error)
+
     res.json({ success: false, message: error.message })
   }
 })
 
 //Concern Table
+
 app.get("/getConcerns", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const collection = db.collection("Concerns")
+
     const page = Number.parseInt(req.query.page) || 1
+
     const limit = 5
+
     const skip = (page - 1) * limit
 
     const totalConcerns = await collection.countDocuments()
+
     const concerns = await collection.find().sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
 
     res.json({
       concerns,
+
       currentPage: page,
+
       totalPages: Math.ceil(totalConcerns / limit),
     })
   } catch (error) {
     console.error("Error fetching concerns:", error)
+
     res.status(500).json({ error: "Failed to fetch concerns" })
   }
 })
@@ -1232,33 +1304,47 @@ app.get("/getConcerns", async (req, res) => {
 process.on("SIGINT", async () => {
   if (global.client) {
     await global.client.close()
+
     console.log("MongoDB connection closed.")
   }
+
   process.exit(0)
 })
 
 module.exports = app
+
 app.get("/getRecentActivity", async (req, res) => {
   try {
     const page = Number.parseInt(req.query.page) || 1
+
     const limit = 5
+
     const skip = (page - 1) * limit
 
     const totalActivities = await activityLogsCollection.countDocuments()
+
     const recentActivity = await activityLogsCollection
+
       .find({})
+
       .sort({ timestamp: -1 })
+
       .skip(skip)
+
       .limit(limit)
+
       .toArray()
 
     res.json({
       activities: recentActivity,
+
       totalPages: Math.ceil(totalActivities / limit),
+
       currentPage: page,
     })
   } catch (error) {
     console.error("Error fetching recent activity:", error)
+
     res.status(500).json({ error: "Failed to fetch recent activity" })
   }
 })
@@ -1266,36 +1352,49 @@ app.get("/getRecentActivity", async (req, res) => {
 app.get("/getUpcomingEvents", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const eventsCollection = db.collection("aevents")
 
     const page = Number.parseInt(req.query.page) || 1
+
     const limit = 5
+
     const skip = (page - 1) * limit
 
     // Get the current date
+
     const currentDate = new Date()
 
     // Find events that are upcoming (event date is greater than or equal to the current date)
+
     const totalEvents = await eventsCollection.countDocuments({
       eventDate: { $gte: currentDate.toISOString().split("T")[0] },
     })
 
     const upcomingEvents = await eventsCollection
+
       .find({
         eventDate: { $gte: currentDate.toISOString().split("T")[0] },
       })
+
       .sort({ eventDate: 1 })
+
       .skip(skip)
+
       .limit(limit)
+
       .toArray()
 
     res.json({
       events: upcomingEvents,
+
       currentPage: page,
+
       totalPages: Math.ceil(totalEvents / limit),
     })
   } catch (error) {
     console.error("Error fetching upcoming events:", error)
+
     res.status(500).json({ error: "Failed to fetch upcoming events" })
   }
 })
@@ -1303,27 +1402,36 @@ app.get("/getUpcomingEvents", async (req, res) => {
 app.get("/getCurrentlyReservedAmenities", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const reservationsCollection = db.collection("aevents")
 
     // Get the current date in YYYY-MM-DD format
+
     const currentDate = new Date().toISOString().split("T")[0]
 
     // Find reservations for today
+
     const reservations = await reservationsCollection
+
       .find({
         eventDate: currentDate,
+
         status: "approved",
       })
+
       .toArray()
 
     console.log("Reservations found:", reservations) // Debug log
 
     // Extract unique amenities from today's reservations
+
     const uniqueAmenities = [...new Set(reservations.map((r) => r.amenity))]
 
     // Create an array of amenity objects with image paths
+
     const amenities = uniqueAmenities.map((amenity) => ({
       name: amenity,
+
       imagePath: getAmenityImagePath(amenity),
     }))
 
@@ -1332,18 +1440,24 @@ app.get("/getCurrentlyReservedAmenities", async (req, res) => {
     res.json(amenities)
   } catch (error) {
     console.error("Error fetching currently reserved amenities:", error)
+
     res.status(500).json({ error: "Failed to fetch currently reserved amenities" })
   }
 })
+
 // Helper function to get the image path for each amenity
+
 function getAmenityImagePath(amenityName) {
   switch (amenityName.toLowerCase()) {
     case "clubhouse":
       return "images/clubhouseimg.jpg"
+
     case "court":
       return "images/Courtimg.jpg"
+
     case "pool":
       return "images/poolimg.png"
+
     default:
       return "images/placeholder.jpg"
   }
@@ -1352,34 +1466,42 @@ function getAmenityImagePath(amenityName) {
 app.post("/resolveConcern/:id", async (req, res) => {
   try {
     const { id } = req.params
+
     const db = await connectToDatabase()
+
     const concernsCollection = db.collection("Concerns")
 
     const result = await concernsCollection.deleteOne({ _id: new ObjectId(id) })
 
     if (result.deletedCount === 1) {
       await logActivity("concernResolved", `Concern with ID ${id} resolved and deleted`)
+
       res.json({ success: true, message: "Concern resolved successfully" })
     } else {
       res.json({ success: false, message: "Concern not found" })
     }
   } catch (error) {
     console.error("Error resolving concern:", error)
+
     res.status(500).json({ success: false, message: "Server error" })
   }
 })
 
 app.put("/updateConcernStatus/:id", async (req, res) => {
   const { id } = req.params
+
   const { status } = req.body
 
   try {
     const db = await connectToDatabase()
+
     const concernsCollection = db.collection("Concerns")
 
     const updatedAt = new Date()
+
     const result = await concernsCollection.updateOne(
       { _id: new ObjectId(id) },
+
       { $set: { status: status, updatedAt } },
     )
 
@@ -1387,14 +1509,19 @@ app.put("/updateConcernStatus/:id", async (req, res) => {
       await logActivity("concernStatusUpdate", `Concern status updated to ${status}`)
 
       // Fetch the updated concern to get the user's email
+
       const updatedConcern = await concernsCollection.findOne({ _id: new ObjectId(id) })
 
       // Create a notification for the concern status update
+
       if (updatedConcern) {
         await createNotification(
           updatedConcern.email,
+
           "concern",
+
           `Your concern "${updatedConcern.subject}" has been ${status}.`,
+
           updatedConcern._id,
         )
       }
@@ -1405,6 +1532,7 @@ app.put("/updateConcernStatus/:id", async (req, res) => {
     }
   } catch (error) {
     console.error("Error updating concern status:", error)
+
     res.status(500).json({ success: false, message: "Server error" })
   }
 })
@@ -1414,6 +1542,7 @@ app.get("/api/event/:eventId", async (req, res) => {
 
   try {
     const db = await connectToDatabase()
+
     const aeventsCollection = db.collection("aevents")
 
     const event = await aeventsCollection.findOne({ _id: new ObjectId(eventId) })
@@ -1425,6 +1554,7 @@ app.get("/api/event/:eventId", async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching event details:", error)
+
     res.status(500).json({ success: false, message: "Server error while fetching event details" })
   }
 })
@@ -1434,45 +1564,64 @@ app.get("/api/notifications", async (req, res) => {
     console.log("Session in notifications endpoint:", req.session)
 
     // Check if the user is authenticated
+
     if (!req.session || !req.session.user || !req.session.user.email) {
       console.log("User not authenticated in notifications endpoint")
+
       return res.status(401).json({
         success: false,
+
         error: "User not authenticated",
+
         notifications: [],
+
         unreadCount: 0,
       })
     }
 
     const userEmail = req.session.user.email
+
     console.log("Fetching notifications for:", userEmail)
 
     const db = await connectToDatabase()
+
     const notificationsCollection = db.collection("notifications")
 
     const notifications = await notificationsCollection
+
       .find({
         userEmail: userEmail,
+
         read: false,
       })
+
       .sort({ timestamp: -1 })
+
       .limit(10)
+
       .toArray()
 
     console.log(`Found ${notifications.length} notifications for ${userEmail}`)
+
     console.log("Notifications:", JSON.stringify(notifications))
 
     res.json({
       success: true,
+
       notifications: notifications,
+
       unreadCount: notifications.length,
     })
   } catch (error) {
     console.error("Error fetching notifications:", error)
+
     res.status(500).json({
       success: false,
+
       error: "Internal server error",
+
       notifications: [],
+
       unreadCount: 0,
     })
   }
@@ -1481,54 +1630,73 @@ app.get("/api/notifications", async (req, res) => {
 app.post("/api/markNotificationsAsRead", async (req, res) => {
   try {
     const userEmail = req.session?.user?.email
+
     const { notificationIds } = req.body
 
     if (!userEmail) {
       return res.status(401).json({
         success: false,
+
         error: "User not authenticated",
       })
     }
 
     const db = await connectToDatabase()
+
     const notificationsCollection = db.collection("notifications")
 
     const result = await notificationsCollection.updateMany(
       {
         _id: { $in: notificationIds.map((id) => new ObjectId(id)) },
+
         userEmail: userEmail,
       },
+
       { $set: { read: true } },
     )
 
     res.json({
       success: true,
+
       message: "Notifications marked as read",
+
       modifiedCount: result.modifiedCount,
     })
   } catch (error) {
     console.error("Error marking notifications as read:", error)
+
     res.status(500).json({
       success: false,
+
       error: "Internal server error",
     })
   }
 })
 
 /* async function createNotification(userEmail, type, message, relatedId) {
+
   const db = await connectToDatabase()
+
   const notificationsCollection = db.collection("notifications")
 
   const notification = {
+
     userEmail,
+
     type,
+
     message,
+
     relatedId,
+
     timestamp: new Date(),
+
     read: false,
+
   }
 
   await notificationsCollection.insertOne(notification)
+
 } */
 
 app.post("/api/clearAllNotifications", async (req, res) => {
@@ -1538,24 +1706,30 @@ app.post("/api/clearAllNotifications", async (req, res) => {
     if (!userEmail) {
       return res.status(401).json({
         success: false,
+
         error: "User not authenticated",
       })
     }
 
     const db = await connectToDatabase()
+
     const notificationsCollection = db.collection("notifications")
 
     const result = await notificationsCollection.deleteMany({ userEmail: userEmail })
 
     res.json({
       success: true,
+
       message: "All notifications cleared",
+
       deletedCount: result.deletedCount,
     })
   } catch (error) {
     console.error("Error clearing notifications:", error)
+
     res.status(500).json({
       success: false,
+
       error: "Internal server error",
     })
   }
@@ -1572,17 +1746,25 @@ app.get("/getUserDetails", async (req, res) => {
 
   try {
     const db = await connectToDatabase()
+
     const collection = db.collection("acc")
+
     const user = await collection.findOne({ email })
 
     if (user) {
       res.json({
         success: true,
+
         username: user.username,
+
         lastname: user.lastname,
+
         email: user.email,
+
         address: user.address || "", //default if no val
+
         phone: user.phone || "",
+
         landline: user.landline || "",
       })
     } else {
@@ -1590,6 +1772,7 @@ app.get("/getUserDetails", async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching data:", error)
+
     res.status(500).json({ success: false, message: "Error fetching user details" })
   }
 })
@@ -1601,21 +1784,29 @@ app.post("/updateUserDetails", async (req, res) => {
 
   try {
     const db = await connectToDatabase()
+
     const usersCollection = db.collection("acc")
 
     const updateData = {
       username,
+
       lastname,
+
       address,
+
       phone,
+
       landline,
     }
 
     //update pass pag may naka iunput
+
     if (newPassword) {
       const hashedPassword = await bcrypt.hash(newPassword, 10)
+
       updateData.password = hashedPassword
     }
+
     const result = await usersCollection.updateOne({ email }, { $set: updateData })
 
     if (result.modifiedCount > 0) {
@@ -1625,108 +1816,145 @@ app.post("/updateUserDetails", async (req, res) => {
     }
   } catch (error) {
     console.error("Error updating user details:", error)
+
     res.status(500).json({ success: false, message: "Internal server error" })
   }
 })
 
 // CONCERN REPLY-----------------------------------------------
+
 // Handle form submission
+
 app.post("/sendReply", upload.single("attachment"), async (req, res) => {
   const { subject, message, concernId } = req.body // Added concernId
+
   const attachment = req.file ? req.file.filename : null
 
   // Validate inputs
+
   if (!subject || !message || !concernId) {
     // Added validation for concernId
+
     return res.status(400).json({ success: false, message: "Subject, message, and concernId are required" })
   }
 
   try {
     const db = await connectToDatabase()
+
     const concernsCollection = db.collection("Concerns")
 
     // Update the concern document with the reply
+
     await concernsCollection.updateOne(
       { _id: new ObjectId(concernId) },
+
       {
         $push: { replies: { reply: message, attachment, timestamp: new Date() } },
+
         $set: { status: "replied" }, // Set status to 'replied'
       },
     )
 
     // Log the reply activity
+
     await logActivity("replySent", `Reply to concern: ${subject}`)
 
     // Send a success response
+
     res.json({ success: true })
   } catch (error) {
     console.error("Error saving reply:", error)
+
     res.status(500).json({ success: false, message: "Failed to save reply" })
   }
 })
 
 // Analytics: Amenity Reservation Frequency
+
 app.get("/api/analytics/amenity-frequency", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const aeventsCollection = db.collection("aevents")
+
     const dateFilter = getDateRange(req.query.filter)
 
     const result = await aeventsCollection
+
       .aggregate([
         { $match: { eventDate: { $gte: dateFilter.toISOString().split("T")[0] } } },
+
         { $group: { _id: "$amenity", count: { $sum: 1 } } },
+
         { $sort: { count: -1 } },
       ])
+
       .toArray()
 
     res.json(result)
   } catch (error) {
     console.error("Error fetching amenity frequency:", error)
+
     res.status(500).json({ error: "Failed to fetch amenity frequency" })
   }
 })
 
 // Analytics: Popular Reservation Days
+
 app.get("/api/analytics/popular-days", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const aeventsCollection = db.collection("aevents")
+
     const dateFilter = getDateRange(req.query.filter)
 
     const result = await aeventsCollection
+
       .aggregate([
         { $match: { eventDate: { $gte: dateFilter.toISOString().split("T")[0] } } },
+
         { $group: { _id: { $dayOfWeek: { $toDate: "$eventDate" } }, count: { $sum: 1 } } },
+
         { $sort: { count: -1 } },
       ])
+
       .toArray()
 
     res.json(result)
   } catch (error) {
     console.error("Error fetching popular reservation days:", error)
+
     res.status(500).json({ error: "Failed to fetch popular reservation days" })
   }
 })
 
 // Analytics: Frequent Event Types
+
 app.get("/api/analytics/event-types", async (req, res) => {
   try {
     const db = await connectToDatabase()
+
     const aeventsCollection = db.collection("aevents")
+
     const dateFilter = getDateRange(req.query.filter)
 
     const result = await aeventsCollection
+
       .aggregate([
         { $match: { eventDate: { $gte: dateFilter.toISOString().split("T")[0] } } },
+
         { $group: { _id: "$eventType", count: { $sum: 1 } } },
+
         { $sort: { count: -1 } },
       ])
+
       .toArray()
 
     res.json(result)
   } catch (error) {
     console.error("Error fetching event types:", error)
+
     res.status(500).json({ error: "Failed to fetch event types" })
   }
 })
@@ -1734,85 +1962,117 @@ app.get("/api/analytics/event-types", async (req, res) => {
 async function startServer() {
   try {
     await connectToDatabase()
+
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`)
     })
   } catch (error) {
     console.error("Failed to start server:", error)
+
     process.exit(1)
   }
 }
 
 // Add this after other middleware and before routes
+
 app.use("/api", (req, res, next) => {
   res.setHeader("Content-Type", "application/json")
+
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
+
   res.setHeader("Pragma", "no-cache")
+
   next()
 })
 
 app.options("*", cors())
 
 app.use(express.json())
+
 app.use(express.urlencoded({ extended: true }))
 
 app.use(bodyParser.json())
 
 //generate otp
+
 const generateOTP = () => {
   return Math.floor(1000 + Math.random() * 9000) //4 otp
 }
 
 //otp sending
+
 app.post("/send-otp", (req, res) => {
   const userEmail = req.body.email
+
   const otp = generateOTP()
 
   // Assuming you have configured transporter (nodemailer) elsewhere
+
   const mailOptions = {
     from: "test@mail", // Replace with your email address
+
     to: userEmail,
+
     subject: "Your OTP Code",
+
     text: `Your OTP code is: ${otp}`,
   }
 
   // transporter.sendMail(mailOptions, (error, info) => { ... }); // Uncomment and implement if you have nodemailer setup
+
   res.json({ success: true, message: "OTP sent successfully", otp }) // Send OTP in response for testing
 })
 
 app.listen(port, (err) => {
   if (err) {
     console.error("Failed to start server:", err.message)
+
     process.exit(1)
   }
+
   console.log(`Server is running on http://localhost:${port}`)
 })
 
 app.use((err, req, res, next) => {
   console.error(err.stack)
+
   res.status(500).json({
     error: "Internal Server Error",
+
     message: process.env.NODE_ENV === "development" ? err.message : undefined,
   })
 })
 
 // Update the error handling middleware
+
 /* app.use((err, req, res, next) => {
+
   console.error("Unhandled error:", err)
+
   res.status(500).json({
+
     success: false,
+
     message: "An unexpected error occurred",
+
     error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+
     timestamp: new Date().toISOString(),
+
   })
+
 }) */
 
 // Error handling middleware
+
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err)
+
   res.status(500).json({
     success: false,
+
     message: "An unexpected error occurred",
+
     error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
   })
 })
@@ -1821,52 +2081,72 @@ module.exports = app
 
 app.use((req, res, next) => {
   const oldJson = res.json
+
   res.json = (data) => {
     console.log("Response data:", JSON.stringify(data))
+
     oldJson.apply(res, arguments)
   }
+
   next()
 })
 
 // === Static File Serving (place this at the end of the file) ===
+
 // Make sure this comes AFTER all API routes
+
 const staticMiddleware = express.static(path.join(__dirname))
 
 // Custom middleware to handle API requests before serving static files
+
 app.use((req, res, next) => {
   // If it's an API request or specifically wants JSON, skip static serving
+
   if (req.path.startsWith("/api") || req.headers.accept?.includes("application/json")) {
     return next()
   }
+
   return staticMiddleware(req, res, next)
 })
 
 // Serve static files AFTER API routes
+
 app.use(express.static(path.join(__dirname)))
+
 app.use("/images", express.static(path.join(__dirname, "images")))
+
 app.use("/CSS", express.static(path.join(__dirname, "CSS")))
+
 app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
 
 // This should be the very last route
+
 app.get("*", (req, res) => {
   // Check if the request wants JSON
+
   if (req.headers.accept?.includes("application/json")) {
     return res.status(404).json({ success: false, message: "API endpoint not found" })
   }
+
   res.sendFile(path.join(__dirname, "Webpages", "login.html"))
 })
 
 function getDateRange(filter) {
   const now = new Date()
+
   switch (filter) {
     case "week":
       return new Date(now.setDate(now.getDate() - 7))
+
     case "1 month":
       return new Date(now.setMonth(now.getMonth() - 1))
+
     case "6 months":
       return new Date(now.setMonth(now.getMonth() - 6))
+
     case "year":
       return new Date(now.setFullYear(now.getFullYear() - 1))
+
     default:
       return new Date(0) // Beginning of time
   }

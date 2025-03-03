@@ -299,6 +299,45 @@
 .popup button:hover {
     background-color: #68161b;
 }
+.custom-alert {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1001; /* Ensure it's above the modal */
+      }
+
+      .custom-alert-content {
+        text-align: center;
+      }
+
+      .custom-alert-header {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #af2630;
+      }
+
+      .custom-alert-body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .custom-alert button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
 
        
     </style>
@@ -315,17 +354,17 @@
     
     <div class="top-bar">Dashboard</div>
     <div class="side-bar">
-        <div><img src="images/house.png" alt="Home" onclick="navigate('AdHome.html')"><p>Home</p></div>
-        <div><img src="images/Documents.png" alt="Status" onclick="navigate('hotable.html')"><p>Status</p></div>
-        <div><img src="images/Data.png" alt="Analytics"><p>Analytics</p></div>
-        <div><img src="images/Calendar.png" alt="Calendar" onclick="navigate('admincalender.html')"><p>Calendar</p></div>
+        <div><img src="/images/house.png" alt="Home" onclick="navigate('AdHome.html')"><p>Home</p></div>
+        <div><img src="/images/Documents.png" alt="Status" onclick="navigate('hotable.html')"><p>Status</p></div>
+        <div><img src="/images/Data.png" alt="Analytics" onclick="navigate('Analytics.html')" ><p>Analytics</p></div>
+        <div><img src="/images/Calendar.png" alt="Calendar" onclick="navigate('admincalender.html')"><p>Calendar</p></div>
     </div>
     <div class="content">
         <div class="welcome">
             <h1>Homeowners</h1>
             <div class="search-bar">
                 <input type="text" id="searchInput" placeholder="Search homeowners..." oninput="filterTable()">
-                <img src="images/searchicon.png" alt="Search">
+                <img src="/images/searchicon.png" alt="Search">
             </div>
         </div>
         <div class="table-container">
@@ -368,6 +407,15 @@
           </table>
           <button id="saveChangesButton" onclick="saveChanges()">Save Changes</button>
       </div>
+      <div id="customAlert" class="custom-alert">
+        <div class="custom-alert-content">
+          <div class="custom-alert-header">Notice</div>
+          <div class="custom-alert-body">
+            <p id="customAlertMessage"></p>
+            <button onclick="closeCustomAlert()">OK</button>
+          </div>
+        </div>
+      </div>
     </div>
     
     <script>
@@ -384,7 +432,7 @@ async function submitTemporaryPassword() {
     const newPassword = document.getElementById('tempPassword').value;
 
     if (!newPassword) {
-        alert("Please enter a new password.");
+        showCustomAlert("Please enter a new password.");
         return;
     }
 
@@ -401,10 +449,10 @@ async function submitTemporaryPassword() {
 
     const data = await response.json();
     if (data.message === 'Password updated successfully.') {
-        alert('Password updated successfully.');
+        showCustomAlertalert('Password updated successfully.');
         closeResetPasswordPopup();
     } else {
-        alert('Failed to update password.');
+        showCustomAlert('Failed to update password.');
     }
 }
 
@@ -442,7 +490,7 @@ function closeResetPasswordPopup() {
                 });
             } catch (error) {
                 console.error('Error loading homeowners:', error);
-                alert('Failed to load homeowners. Please try again.');
+                showCustomAlert('Failed to load homeowners. Please try again.');
             }
         }
 
@@ -499,7 +547,7 @@ function closeResetPasswordPopup() {
             const editTableBody = document.getElementById('editTableBody');
             const row = editTableBody.querySelector('tr');
             if (!row) {
-                alert('No data to save!');
+                showCustomAlert('No data to save!');
                 return;
             }
 
@@ -528,17 +576,28 @@ function closeResetPasswordPopup() {
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Homeowner updated successfully!');
+                    showCustomAlert('Homeowner updated successfully!');
                     cancelEdit(); // Clear the edit table
                     loadHomeowners(); // Refresh the main table
                 } else {
-                    alert('Failed to update homeowner: ' + result.message);
+                    showCustomAlert('Failed to update homeowner: ' + result.message);
                 }
             } catch (error) {
                 console.error('Error saving changes:', error);
-                alert('An error occurred while saving changes. Please try again.');
+                showCustomAlert('An error occurred while saving changes. Please try again.');
             }
         }
+        function showCustomAlert(message) {
+        const alertElement = document.getElementById("customAlert");
+        const messageElement = document.getElementById("customAlertMessage");
+        messageElement.textContent = message;
+        alertElement.style.display = "block";
+      }
+
+      function closeCustomAlert() {
+        const alertElement = document.getElementById("customAlert");
+        alertElement.style.display = "none";
+      }
 
 
         // Filter table rows
