@@ -224,10 +224,6 @@ app.get("/debug-images", (req, res) => {
   }
 })
 
-// Add explicit favicon handling
-app.get("/favicon.ico", (req, res) => {
-  res.sendFile(path.join(__dirname, "images", "favicon.ico"))
-})
 
 // Middleware to attach the database
 
@@ -466,7 +462,16 @@ app.post("/api/login", async (req, res) => {
     console.log("User found, comparing passwords...")
     const isValidPassword = await bcrypt.compare(password, user.password)
 
+    // After successful login verification and before sending the response
     console.log("Login successful for user:", user.username)
+
+    // Set user data in session
+    req.session.user = {
+      username: user.username,
+      email: user.email,
+      role: user.role || "homeowner",
+    }
+
     // Log successful login
     await logActivity("login", `User ${user.username} logged in successfully`)
 
