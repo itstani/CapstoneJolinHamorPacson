@@ -973,22 +973,91 @@ app.post("/update-payment-status", async (req, res) => {
 })
 
 // Add this after your existing createNotification function
-async function createNotification(userEmail, type, message, relatedId) {
-  try {
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    await notificationsCollection.insertOne({
-      userEmail,
-      type,
-      message,
-      relatedId,
-      timestamp: new Date(),
-      read: false,
-    })
-  } catch (error) {
-    console.error("Error creating notification:", error)
+function proceedToPayment(notification) {
+  // Check if notification has a relatedId
+  if (!notification.relatedId) {
+    alert('Error: Missing event ID. Please contact support.');
+    return;
   }
+  
+  const eventId = notification.relatedId;
+  console.log("Proceeding to payment for event ID:", eventId);
+  
+  // Show loading indicator
+  const loadingDiv = document.createElement('div');
+  loadingDiv.textContent = 'Loading event details...';
+  loadingDiv.style.position = 'fixed';
+  loadingDiv.style.top = '50%';
+  loadingDiv.style.left = '50%';
+  loadingDiv.style.transform = 'translate(-50%, -50%)';
+  loadingDiv.style.padding = '20px';
+  loadingDiv.style.background = 'white';
+  loadingDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
+  loadingDiv.style.borderRadius = '5px';
+  loadingDiv.style.zIndex = '9999';
+  document.body.appendChild(loadingDiv);
+  
+  // First try to get debug info about this notification
+  fetch(`/api/debug/notification-by-related/${eventId}`)
+    .then(response => response.json())
+    .then(debugData => {
+      console.log("Debug data for notification:", debugData);
+      
+      // Now try to fetch the event
+      return fetch(`/api/event/${eventId}`);
+    })
+    .then(response => {
+      if (!response.ok) {
+        // If event not found by ID, try to find by name
+        if (response.status === 404 && notification.eventName) {
+          console.log("Event not found by ID, trying by name:", notification.eventName);
+          return fetch(`/api/event/${encodeURIComponent(notification.eventName)}`);
+        }
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(eventData => {
+      document.body.removeChild(loadingDiv); // Remove loading indicator
+      
+      if (eventData.success) {
+        console.log("Event data received:", eventData.event);
+        // Store the event data in sessionStorage
+        sessionStorage.setItem('eventData', JSON.stringify(eventData.event));
+        // Redirect to the payment page
+        window.location.href = 'payment.html';
+      } else {
+        console.error("API returned error:", eventData);
+        throw new Error(eventData.message || 'Unknown error');
+      }
+    })
+    .catch(error => {
+      if (document.body.contains(loadingDiv)) {
+        document.body.removeChild(loadingDiv); // Remove loading indicator if still present
+      }
+      console.error('Error fetching event details:', error);
+      
+      // Offer alternative options
+      const useManualEntry = confirm(
+        'Failed to fetch event details automatically. Would you like to enter event details manually?\n\n' +
+        'Error: ' + error.message
+      );
+      
+      if (useManualEntry) {
+        // Create a minimal event object with data from the notification
+        const minimalEvent = {
+          userEmail: notification.userEmail || '',
+          eventName: notification.eventName || 'Unknown Event',
+          eventDate: notification.eventDate || new Date().toISOString().split('T')[0],
+          startTime: notification.startTime || '09:00',
+          endTime: notification.endTime || '12:00',
+          amenity: notification.amenity || 'Unknown',
+        };
+        
+        sessionStorage.setItem('eventData', JSON.stringify(minimalEvent));
+        window.location.href = 'payment.html';
+      }
+    });
 }
 
 app.post("/logout", (req, res) => {
@@ -1080,46 +1149,70 @@ app.put("/updateHomeowner/:email", async (req, res) => {
 // Update the existing approve event route
 
 app.put("/approveEvent/:eventName", async (req, res) => {
-  const { eventName } = req.params
+  const { eventName } = req.params;
 
   try {
-    const db = await connectToDatabase()
+    console.log(`Attempting to approve event: ${eventName}`);
+    
+    const db = await connectToDatabase();
+    const eventsCollection = db.collection("events");
+    const aeventsCollection = db.collection("aevents");
 
-    const eventsCollection = db.collection("events")
-
-    const aeventsCollection = db.collection("aevents")
-
-    const event = await eventsCollection.findOne({ eventName })
+    // Find the event in the pending events collection
+    const event = await eventsCollection.findOne({ eventName });
 
     if (event) {
-      const approvedAt = new Date()
+      console.log(`Found event to approve: ${eventName}`);
+      
+      const approvedAt = new Date();
+      
+      // Insert the event into approved events collection
+      const result = await aeventsCollection.insertOne({ 
+        ...event, 
+        status: "approved", 
+        approvedAt 
+      });
 
-      const approvedEvent = await aeventsCollection.insertOne({ ...event, status: "approved", approvedAt })
+      // Get the inserted ID
+      const insertedId = result.insertedId;
+      console.log(`Event approved with ID: ${insertedId}`);
+      
+      // Delete from pending events
+      await eventsCollection.deleteOne({ eventName });
+      console.log(`Removed event from pending collection: ${eventName}`);
 
-      await eventsCollection.deleteOne({ eventName })
-
-      // Create a notification for the event approval
-
+      // Create a notification with the correct ID
       await createNotification(
         event.userEmail,
-
-        "event",
-
+        "payment_required",  // Changed type to be more specific
         `Your event "${event.eventName}" has been approved. Please proceed with the payment.`,
+        insertedId  // Pass the actual MongoDB ObjectId
+      );
 
-        approvedEvent.insertedId,
-      )
+      // Log the activity
+      await logActivity(
+        "eventApproval", 
+        `Event "${eventName}" was approved by admin. User ${event.userEmail} notified for payment.`
+      );
 
-      res.json({ success: true, message: "Event approved. User notified for payment." })
+      res.json({ 
+        success: true, 
+        message: "Event approved. User notified for payment.",
+        eventId: insertedId
+      });
     } else {
-      res.status(404).json({ success: false, message: "Event not found." })
+      console.log(`Event not found: ${eventName}`);
+      res.status(404).json({ success: false, message: "Event not found." });
     }
   } catch (error) {
-    console.error("Error approving event:", error)
-
-    res.status(500).json({ success: false, message: "Server error while approving event." })
+    console.error("Error approving event:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error while approving event.",
+      error: error.message
+    });
   }
-})
+});
 
 app.post("/disapprove-event", async (req, res) => {
   const { eventName, reason } = req.body
@@ -1541,28 +1634,127 @@ app.put("/updateConcernStatus/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" })
   }
 })
+app.get("/api/user-events/:userEmail", async (req, res) => {
+  const { userEmail } = req.params
+
+  try {
+    console.log("Fetching events for user:", userEmail)
+
+    const db = await connectToDatabase()
+    const aeventsCollection = db.collection("aevents")
+
+    // Find all events for this user
+    const events = await aeventsCollection.find({ userEmail }).toArray()
+
+    if (events && events.length > 0) {
+      console.log(`Found ${events.length} events for user ${userEmail}`)
+      res.json({ success: true, events })
+    } else {
+      console.log(`No events found for user ${userEmail}`)
+      res.status(404).json({
+        success: false,
+        message: "No events found for this user",
+      })
+    }
+  } catch (error) {
+    console.error("Error fetching user events:", error)
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching user events",
+      error: error.message,
+    })
+  }
+})
 
 app.get("/api/event/:eventId", async (req, res) => {
   const { eventId } = req.params
 
   try {
+    console.log("Fetching event with ID:", eventId)
+
     const db = await connectToDatabase()
+    console.log("Connected to database:", db.databaseName)
 
     const aeventsCollection = db.collection("aevents")
+    const notificationsCollection = db.collection("notifications")
 
-    const event = await aeventsCollection.findOne({ _id: new ObjectId(eventId) })
+    // Try multiple approaches to find the event
+    let event = null
+
+    // First try: Direct ObjectId lookup
+    try {
+      const objectId = new ObjectId(eventId)
+      event = await aeventsCollection.findOne({ _id: objectId })
+      console.log("ObjectId lookup result:", event ? "Found" : "Not found")
+    } catch (err) {
+      console.log("Invalid ObjectId format, trying string comparison")
+    }
+
+    // Second try: String comparison with _id
+    if (!event) {
+      const allEvents = await aeventsCollection.find({}).limit(20).toArray()
+      event = allEvents.find((e) => e._id.toString() === eventId)
+      console.log("String _id comparison result:", event ? "Found" : "Not found")
+    }
+
+    // Third try: Look by eventName
+    if (!event) {
+      event = await aeventsCollection.findOne({ eventName: eventId })
+      console.log("eventName lookup result:", event ? "Found" : "Not found")
+    }
+
+    // Fourth try: Find the notification and get user email
+    if (!event) {
+      console.log("Trying to find notification with relatedId:", eventId)
+      const notification = await notificationsCollection.findOne({ relatedId: eventId })
+
+      if (notification && notification.userEmail) {
+        console.log("Found notification for user:", notification.userEmail)
+
+        // Get the most recent event for this user
+        const userEvents = await aeventsCollection
+          .find({ userEmail: notification.userEmail })
+          .sort({ _id: -1 })
+          .limit(1)
+          .toArray()
+
+        if (userEvents.length > 0) {
+          event = userEvents[0]
+          console.log("Found most recent event for user:", event.eventName)
+        }
+      }
+    }
 
     if (event) {
+      console.log("Event found:", event)
       res.json({ success: true, event })
     } else {
-      res.status(404).json({ success: false, message: "Event not found" })
+      // If all attempts fail, dump some debug info
+      const sampleEvents = await aeventsCollection.find({}).limit(3).toArray()
+      console.log(
+        "Sample events in database:",
+        sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
+      )
+
+      res.status(404).json({
+        success: false,
+        message: "Event not found",
+        debug: {
+          requestedId: eventId,
+          sampleEvents: sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
+        },
+      })
     }
   } catch (error) {
     console.error("Error fetching event details:", error)
-
-    res.status(500).json({ success: false, message: "Server error while fetching event details" })
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching event details",
+      error: error.message,
+    })
   }
 })
+
 
 app.get("/api/notifications", async (req, res) => {
   try {
@@ -1678,31 +1870,67 @@ app.post("/api/markNotificationsAsRead", async (req, res) => {
   }
 })
 
-/* async function createNotification(userEmail, type, message, relatedId) {
+function updateNotificationList() {
+  const notificationList = document.getElementById('notificationList');
+  if (!notificationList) {
+    console.error('Notification list element not found');
+    return;
+  }
+  
+  notificationList.innerHTML = ''; // Clear existing list
 
-  const db = await connectToDatabase()
-
-  const notificationsCollection = db.collection("notifications")
-
-  const notification = {
-
-    userEmail,
-
-    type,
-
-    message,
-
-    relatedId,
-
-    timestamp: new Date(),
-
-    read: false,
-
+  if (!notifications || notifications.length === 0) {
+    const noNotifications = document.createElement('div');
+    noNotifications.classList.add('no-notifications');
+    noNotifications.textContent = 'No new notifications';
+    notificationList.appendChild(noNotifications);
+    return;
   }
 
-  await notificationsCollection.insertOne(notification)
+  notifications.forEach((notification) => {
+    const notificationItem = document.createElement('div');
+    notificationItem.classList.add('notification-item');
 
-} */
+    // Create checkbox
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'notification-checkbox';
+    checkbox.dataset.id = notification._id;
+
+    // Create content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'notification-content';
+
+    // Create message element
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'notification-message';
+    messageDiv.textContent = notification.message;
+
+    // Create timestamp element
+    const timestampDiv = document.createElement('div');
+    timestampDiv.className = 'notification-timestamp';
+    timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
+
+    // Add message and timestamp to content wrapper
+    contentWrapper.appendChild(messageDiv);
+    contentWrapper.appendChild(timestampDiv);
+
+    // Add elements to notification item
+    notificationItem.appendChild(checkbox);
+    notificationItem.appendChild(contentWrapper);
+
+    // If it's an event notification that requires payment, add the proceed button
+    if (notification.type === 'event_deleted' || notification.type === 'payment_required') {
+      const proceedButton = document.createElement('button');
+      proceedButton.className = 'proceed-to-payment-btn';
+      proceedButton.textContent = 'Proceed to Payment';
+      proceedButton.onclick = () => proceedToPayment(notification);
+      notificationItem.appendChild(proceedButton);
+    }
+
+    notificationList.appendChild(notificationItem);
+  });
+}
 
 app.post("/api/clearAllNotifications", async (req, res) => {
   try {
