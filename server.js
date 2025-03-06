@@ -972,6 +972,30 @@ app.post("/update-payment-status", async (req, res) => {
   }
 })
 
+async function createNotification(userEmail, type, message, relatedId, subject, amenity) {
+  try {
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
+
+    const notification = {
+      userEmail,
+      type,
+      message,
+      relatedId,
+      subject,
+      amenity,
+      timestamp: new Date(),
+      read: false,
+    }
+
+    await notificationsCollection.insertOne(notification)
+    return true
+  } catch (error) {
+    console.error("Error creating notification:", error)
+    return false
+  }
+}
+
 // Add this after your existing createNotification function
 function proceedToPayment(notification) {
   // Check if notification has a relatedId
@@ -1148,115 +1172,199 @@ app.put("/updateHomeowner/:email", async (req, res) => {
 
 // Update the existing approve event route
 
-app.put("/approveEvent/:eventName", async (req, res) => {
-  const { eventName } = req.params;
+app.get("/api/event/:eventId", async (req, res) => {
+  const { eventId } = req.params
 
   try {
-    console.log(`Attempting to approve event: ${eventName}`);
-    
-    const db = await connectToDatabase();
-    const eventsCollection = db.collection("events");
-    const aeventsCollection = db.collection("aevents");
+    console.log("Fetching event with ID:", eventId)
 
-    // Find the event in the pending events collection
-    const event = await eventsCollection.findOne({ eventName });
+    const db = await connectToDatabase()
+    console.log("Connected to database:", db.databaseName)
+
+    const aeventsCollection = db.collection("aevents")
+    const notificationsCollection = db.collection("notifications")
+
+    // Try multiple approaches to find the event
+    let event = null
+
+    // First try: Direct ObjectId lookup
+    try {
+      const objectId = new ObjectId(eventId)
+      event = await aeventsCollection.findOne({ _id: objectId })
+      console.log("ObjectId lookup result:", event ? "Found" : "Not found")
+    } catch (err) {
+      console.log("Invalid ObjectId format, trying string comparison")
+    }
+
+    // Second try: String comparison with _id
+    if (!event) {
+      const allEvents = await aeventsCollection.find({}).limit(50).toArray() // Increased limit to search more events
+      event = allEvents.find((e) => e._id.toString() === eventId)
+      console.log("String _id comparison result:", event ? "Found" : "Not found")
+
+      // Also try partial string match
+      if (!event) {
+        event = allEvents.find(
+          (e) =>
+            e._id.toString().includes(eventId) ||
+            (eventId.length > 5 && e._id.toString().includes(eventId.substring(0, 5))),
+        )
+        console.log("Partial _id match result:", event ? "Found" : "Not found")
+      }
+    }
+
+    // Third try: Look by eventName
+    if (!event) {
+      event = await aeventsCollection.findOne({ eventName: eventId })
+      console.log("eventName lookup result:", event ? "Found" : "Not found")
+    }
+
+    // Fourth try: Find the notification and get user email
+    if (!event) {
+      console.log("Trying to find notification with relatedId:", eventId)
+      const notification = await notificationsCollection.findOne({
+        $or: [{ relatedId: eventId }, { _id: eventId }],
+      })
+
+      if (notification && notification.userEmail) {
+        console.log("Found notification for user:", notification.userEmail)
+
+        // Get the most recent event for this user
+        const userEvents = await aeventsCollection
+          .find({ userEmail: notification.userEmail })
+          .sort({ _id: -1 })
+          .limit(5) // Get the 5 most recent events
+          .toArray()
+
+        if (userEvents.length > 0) {
+          event = userEvents[0]
+          console.log("Found most recent event for user:", event.eventName)
+        }
+      }
+    }
+
+    // Fifth try: Get all notifications for this user and check related events
+    if (!event) {
+      // Find all notifications for this user
+      const notifications = await notificationsCollection.find({}).limit(100).toArray()
+
+      // Find the notification that matches the event ID
+      const targetNotification = notifications.find(
+        (n) => n.relatedId === eventId || n.message.includes("Birthday ni zeke") || n.message.includes(eventId),
+      )
+
+      if (targetNotification && targetNotification.userEmail) {
+        console.log("Found notification with matching message:", targetNotification.message)
+
+        // Get the most recent event for this user
+        const userEvents = await aeventsCollection
+          .find({ userEmail: targetNotification.userEmail })
+          .sort({ _id: -1 })
+          .limit(5)
+          .toArray()
+
+        if (userEvents.length > 0) {
+          event = userEvents[0]
+          console.log("Found event through notification message match:", event.eventName)
+        }
+      }
+    }
 
     if (event) {
-      console.log(`Found event to approve: ${eventName}`);
-      
-      const approvedAt = new Date();
-      
-      // Insert the event into approved events collection
-      const result = await aeventsCollection.insertOne({ 
-        ...event, 
-        status: "approved", 
-        approvedAt 
-      });
-
-      // Get the inserted ID
-      const insertedId = result.insertedId;
-      console.log(`Event approved with ID: ${insertedId}`);
-      
-      // Delete from pending events
-      await eventsCollection.deleteOne({ eventName });
-      console.log(`Removed event from pending collection: ${eventName}`);
-
-      // Create a notification with the correct ID
-      await createNotification(
-        event.userEmail,
-        "payment_required",  // Changed type to be more specific
-        `Your event "${event.eventName}" has been approved. Please proceed with the payment.`,
-        insertedId  // Pass the actual MongoDB ObjectId
-      );
-
-      // Log the activity
-      await logActivity(
-        "eventApproval", 
-        `Event "${eventName}" was approved by admin. User ${event.userEmail} notified for payment.`
-      );
-
-      res.json({ 
-        success: true, 
-        message: "Event approved. User notified for payment.",
-        eventId: insertedId
-      });
+      console.log("Event found:", event)
+      res.json({ success: true, event })
     } else {
-      console.log(`Event not found: ${eventName}`);
-      res.status(404).json({ success: false, message: "Event not found." });
+      // If all attempts fail, dump some debug info
+      const sampleEvents = await aeventsCollection.find({}).limit(5).toArray()
+      console.log(
+        "Sample events in database:",
+        sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
+      )
+
+      res.status(404).json({
+        success: false,
+        message: "Event not found after multiple lookup attempts",
+        debug: {
+          requestedId: eventId,
+          sampleEvents: sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
+        },
+      })
     }
   } catch (error) {
-    console.error("Error approving event:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Server error while approving event.",
-      error: error.message
-    });
+    console.error("Error fetching event details:", error)
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching event details",
+      error: error.message,
+    })
   }
-});
+})
 
-app.post("/disapprove-event", async (req, res) => {
-  const { eventName, reason } = req.body
+app.post("/api/approve-event", async (req, res) => {
+  const { eventName } = req.body
+
+  if (!eventName) {
+    return res.status(400).json({
+      success: false,
+      message: "Event name is required",
+    })
+  }
 
   try {
     const db = await connectToDatabase()
-
-    const eventpaymentsCollection = db.collection("eventpayments")
-
     const eventsCollection = db.collection("events")
+    const aeventsCollection = db.collection("aevents")
+    const notificationsCollection = db.collection("notifications")
 
-    const deventsCollection = db.collection("devents") // Disapproved events collection
-
-    // Fetch event from the events collection
-
+    // Find the event in the events collection
     const event = await eventsCollection.findOne({ eventName })
 
-    if (event) {
-      // Move event to devents collection
-
-      await deventsCollection.insertOne({ ...event, disapprovalReason: reason })
-
-      // Remove from events collection
-
-      await eventsCollection.deleteOne({ eventName })
-
-      // Update status to 'disapproved' in eventpayments collection with reason
-
-      await eventpaymentsCollection.updateOne(
-        { eventName },
-
-        { $set: { status: "disapproved", disapprovalReason: reason } },
-      )
-
-      await logActivity("eventDisapproval", `Event ${eventName} disapproved. Reason: ${reason}`) // Log activity
-
-      res.json({ success: true, message: "Event disapproved and moved to disapproved events." })
-    } else {
-      res.status(404).json({ success: false, message: "Event not found in events collection." })
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      })
     }
-  } catch (error) {
-    console.error("Error disapproving event:", error)
 
-    res.status(500).json({ success: false, message: "Server error while disapproving event." })
+    // Add approval timestamp and move to approved events collection
+    const approvedEvent = {
+      ...event,
+      approvedAt: new Date(),
+      status: "approved",
+    }
+
+    // Insert into approved events collection
+    await aeventsCollection.insertOne(approvedEvent)
+
+    // Remove from pending events collection
+    await eventsCollection.deleteOne({ eventName })
+
+    // Create notification for the user
+    if (event.userEmail) {
+      await createNotification(
+        event.userEmail,
+        "payment_required",
+        `Your event "${eventName}" has been approved. Please proceed with the payment.`,
+        approvedEvent._id.toString(),
+        `${eventName} on ${event.eventDate} ${event.startTime}-${event.endTime}`,
+        event.amenity,
+      )
+    }
+
+    // Log the activity
+    await logActivity("eventApproval", `Event ${eventName} approved`)
+
+    res.json({
+      success: true,
+      message: "Event approved successfully",
+    })
+  } catch (error) {
+    console.error("Error approving event:", error)
+    res.status(500).json({
+      success: false,
+      message: "Server error while approving event",
+      error: error.message,
+    })
   }
 })
 
@@ -1665,7 +1773,6 @@ app.get("/api/user-events/:userEmail", async (req, res) => {
     })
   }
 })
-
 app.get("/api/event/:eventId", async (req, res) => {
   const { eventId } = req.params
 
@@ -1755,7 +1862,6 @@ app.get("/api/event/:eventId", async (req, res) => {
   }
 })
 
-
 app.get("/api/notifications", async (req, res) => {
   try {
     console.log("Session in notifications endpoint:", req.session)
@@ -1821,6 +1927,36 @@ app.get("/api/notifications", async (req, res) => {
 
       unreadCount: 0,
     })
+  }
+})
+
+app.post("/api/updateNotificationAfterPayment", async (req, res) => {
+  const { notificationId, eventId, eventName, eventDate, startTime, endTime } = req.body
+
+  try {
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
+
+    // Delete the payment notification
+    await notificationsCollection.deleteOne({ _id: new ObjectId(notificationId) })
+
+    // Create a new notification
+    const newNotification = {
+      userEmail: req.session.user.email,
+      message: `Your payment for "${eventName}" has been processed successfully.`,
+      subject: `${eventName} on ${eventDate} ${startTime}-${endTime}`,
+      type: "payment_confirmed",
+      relatedId: eventId,
+      timestamp: new Date(),
+      read: false,
+    }
+
+    await notificationsCollection.insertOne(newNotification)
+
+    res.json({ success: true, message: "Notification updated successfully" })
+  } catch (error) {
+    console.error("Error updating notification:", error)
+    res.status(500).json({ success: false, message: "Error updating notification", error: error.message })
   }
 })
 

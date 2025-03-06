@@ -13,272 +13,302 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-      }/* test *//*test*/
+        min-height: 100vh;
+      }
       .payment-container {
         background-color: #ffffff;
         border-radius: 10px;
         padding: 20px;
         max-width: 400px;
+        width: 100%;
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         color: #333;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
       }
       h2 {
         color: #af2630;
         text-align: center;
+        margin-bottom: 20px;
       }
-      .detail,
-      .payment-method {
-        margin-top: 15px;
+      .detail {
+        margin: 15px 0;
       }
       .detail p {
-        margin: 5px 0;
+        margin: 10px 0;
+        display: flex;
+        justify-content: space-between;
+      }
+      .detail p strong {
+        margin-right: 10px;
+      }
+      .payment-method {
+        margin: 20px 0;
+      }
+      .payment-method h3 {
+        color: #af2630;
+        margin-bottom: 10px;
       }
       .payment-method label {
         display: block;
-        margin: 8px 0;
-      }
-      .confirm-button,
-      .upload-button {
-        display: block;
-        width: 100%;
-        background-color: #c44c57;
-        color: white;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        font-size: 16px;
+        margin: 10px 0;
         cursor: pointer;
-        transition: background-color 0.3s;
-        text-align: center;
       }
-      .confirm-button:hover,
-      .upload-button:hover {
-        background-color: #b93e4b;
+      .payment-method input[type="radio"] {
+        margin-right: 10px;
       }
       .qr-container {
-        margin-top: 20px;
+        margin: 20px 0;
         text-align: center;
       }
       .qr-container img {
         max-width: 150px;
         height: auto;
       }
-
-      /* Modal Styles */
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
+      .file-upload {
+        margin: 20px 0;
+      }
+      .file-upload input[type="file"] {
         width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
       }
-      .modal-content {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        max-width: 300px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      .total-amount {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin: 20px 0;
+        text-align: right;
       }
-      .close-button {
-        background-color: #c44c57;
+      .proceed-button {
+        background-color: #af2630;
         color: white;
         border: none;
-        padding: 10px;
-        margin-top: 15px;
+        padding: 12px 20px;
+        width: 100%;
         border-radius: 5px;
+        font-size: 16px;
         cursor: pointer;
-        font-size: 14px;
+        transition: background-color 0.3s;
       }
-      .close-button:hover {
-        background-color: #b93e4b;
+      .proceed-button:hover {
+        background-color: #8f1d25;
       }
-      @media (max-width: 600px) {
-    .calendar {
-        font-size: 0.8rem;
-    }
-    .days-grid {
-        grid-template-columns: repeat(7, 1fr);
-    }
-    .day {
-        height: 50px;
-    }
-}
-
+      .proceed-button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+      .error-message {
+        color: #af2630;
+        margin-top: 10px;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
     <div class="payment-container">
       <h2>Finalize Your Payment</h2>
       <div class="detail">
-          <p><strong>User Email:</strong> <span id="userEmail"></span></p>
-          <p><strong>Event Name:</strong> <span id="eventName"></span></p>
-          <p><strong>Event Date:</strong> <span id="eventDate"></span></p>
-          <p><strong>Start Time:</strong> <span id="eventStartTime"></span></p>
-          <p><strong>End Time:</strong> <span id="eventEndTime"></span></p> 
-          <p><strong>Amenity:</strong> <span id="eventAmenity"></span></p>
-          <p><strong>Base Amount:</strong> ₱<span id="baseAmount">0</span></p> 
-          <p><strong>Final Amount:</strong> ₱<span id="finalAmount">0</span></p>
+        <p><strong>User Email:</strong> <span id="userEmail"></span></p>
+        <p><strong>Event Name:</strong> <span id="eventName"></span></p>
+        <p><strong>Event Date:</strong> <span id="eventDate"></span></p>
+        <p><strong>Start Time:</strong> <span id="eventStartTime"></span></p>
+        <p><strong>End Time:</strong> <span id="eventEndTime"></span></p>
+        <p><strong>Amenity:</strong> <span id="eventAmenity"></span></p>
+        <p><strong>Base Amount:</strong> ₱<span id="baseAmount">0</span></p>
+        <p><strong>Final Amount:</strong> ₱<span id="finalAmount">0</span></p>
       </div>
 
       <div class="payment-method">
-          <h3>Choose Payment Method:</h3>
-          <label><input type="radio" name="paymentMethod" value="gcash" /> GCash (+₱15)</label>
-          <label><input type="radio" name="paymentMethod" value="card" /> Credit Card</label>
-          <label><input type="radio" name="paymentMethod" value="cash" /> Cash</label>
+        <h3>Choose Payment Method:</h3>
+        <label>
+          <input type="radio" name="paymentMethod" value="gcash" />
+          GCash (+₱15)
+        </label>
+        <label>
+          <input type="radio" name="paymentMethod" value="card" />
+          Credit Card
+        </label>
+        <label>
+          <input type="radio" name="paymentMethod" value="cash" />
+          Cash
+        </label>
       </div>
 
       <div class="qr-container">
-          <h3>QR Code:</h3>
-          <img src="/images/exqrcode.png" alt="QR Code" />
+        <h3>QR Code:</h3>
+        <img src="/images/exqrcode.png" alt="QR Code" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNhYWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5RUiBDb2RlPC90ZXh0Pjwvc3ZnPg=='" />
       </div>
 
       <form id="paymentForm" action="/upload-receipt" method="POST" enctype="multipart/form-data">
-          <input type="file" name="receipt" id="receiptUpload" accept="image/*" required>
-          <p><strong>Total Amount:</strong> ₱<span id="totalAmount">0</span></p>
-          <input type="hidden" id="finalAmountInput" name="finalAmount" value="0">
-          <input type="hidden" name="userEmail" id="userEmailInput">
-          <input type="hidden" name="eventName" id="eventNameInput">
-          <input type="hidden" name="eventDate" id="eventDateInput">
-          <input type="hidden" name="startTime" id="startTimeInput">
-          <input type="hidden" name="endTime" id="endTimeInput">
-          <button type="submit" id="proceedButton" disabled>Proceed</button>
+        <div class="file-upload">
+          <input type="file" name="receipt" id="receiptUpload" accept="image/*" required />
+        </div>
+        
+        <p class="total-amount">
+          <strong>Total Amount:</strong> ₱<span id="totalAmount">0</span>
+        </p>
+        
+        <input type="hidden" id="finalAmountInput" name="finalAmount" value="0" />
+        <input type="hidden" name="userEmail" id="userEmailInput" />
+        <input type="hidden" name="eventName" id="eventNameInput" />
+        <input type="hidden" name="eventDate" id="eventDateInput" />
+        <input type="hidden" name="startTime" id="startTimeInput" />
+        <input type="hidden" name="endTime" id="endTimeInput" />
+        <input type="hidden" name="notificationId" id="notificationIdInput" />
+        <input type="hidden" name="eventId" id="eventIdInput" />
+        
+        <button type="submit" id="proceedButton" class="proceed-button" disabled>
+          Proceed
+        </button>
       </form>
-  </div>
+    </div>
 
-  <div class="modal" id="paymentModal">
-      <div class="modal-content">
-          <h3 id="paymentMethodMessage"></h3>
-          <p>Thank you, please wait while Avida confirms the payment and settles your reservation.</p>
-          <button class="close-button" id="closeModalButton" onclick="window.location.href='HoHome.html'">Close</button>
-      </div>
-  </div>
-
-  <script>
+    <script>
       document.addEventListener('DOMContentLoaded', function() {
-          const eventData = JSON.parse(sessionStorage.getItem("eventData"));
-          const detailsContainer = document.querySelector(".detail");
-          const baseAmountDisplay = document.getElementById("baseAmount");
-          const finalAmountDisplay = document.getElementById("finalAmount");
-          const totalAmountDisplay = document.getElementById("totalAmount");
-          const finalAmountInput = document.getElementById("finalAmountInput");
-          const proceedButton = document.getElementById("proceedButton");
-          const paymentForm = document.getElementById("paymentForm");
-          const receiptUpload = document.getElementById("receiptUpload");
-          const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
-          const modal = document.getElementById("paymentModal");
-          const closeModalButton = document.getElementById("closeModalButton");
+        // Get event data from sessionStorage
+        const eventData = JSON.parse(sessionStorage.getItem('eventData') || '{}');
+        const notificationData = JSON.parse(sessionStorage.getItem('notificationData') || '{}');
+        console.log('Event data to use:', eventData);
+        console.log('Notification data to use:', notificationData);
 
-          let baseAmount = 0;
+        if (!eventData || !eventData.eventName) {
+          // Display error message if no event data
+          const container = document.querySelector('.payment-container');
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'error-message';
+          errorDiv.innerHTML = `
+            <h3>Error: Missing Event Information</h3>
+            <p>We couldn't find the event details needed for payment.</p>
+            <p>Please go back and try again.</p>
+            <button onclick="window.location.href='HoHome.html'" class="proceed-button" style="margin-top: 10px;">
+              Back to Home
+            </button>
+          `;
+          container.innerHTML = '';
+          container.appendChild(errorDiv);
+          return;
+        }
 
-          if (eventData) {
-              document.getElementById("userEmail").textContent = eventData.userEmail;
-              document.getElementById("eventName").textContent = eventData.eventName;
-              document.getElementById("eventDate").textContent = eventData.eventDate;
-              document.getElementById("eventStartTime").textContent = eventData.startTime;
-              document.getElementById("eventEndTime").textContent = eventData.endTime;
-              document.getElementById("eventAmenity").textContent = eventData.amenity;
+        // Calculate base amount based on amenity and duration
+        const baseAmount = calculateBaseAmount(eventData.amenity, eventData.startTime, eventData.endTime);
+        
+        // Populate form fields
+        document.getElementById('userEmail').textContent = eventData.userEmail || 'N/A';
+        document.getElementById('eventName').textContent = eventData.eventName || 'N/A';
+        document.getElementById('eventDate').textContent = eventData.eventDate || 'N/A';
+        document.getElementById('eventStartTime').textContent = eventData.startTime || 'N/A';
+        document.getElementById('eventEndTime').textContent = eventData.endTime || 'N/A';
+        document.getElementById('eventAmenity').textContent = eventData.amenity || 'N/A';
+        document.getElementById('baseAmount').textContent = baseAmount.toFixed(2);
+        document.getElementById('finalAmount').textContent = baseAmount.toFixed(2);
+        document.getElementById('totalAmount').textContent = baseAmount.toFixed(2);
 
-              const startTime = new Date(`1970-01-01T${eventData.startTime}Z`);
-              const endTime = new Date(`1970-01-01T${eventData.endTime}Z`);
-              const duration = (endTime - startTime) / (1000 * 60 * 60); // Convert ms to hours
+        // Set hidden input values
+        document.getElementById('finalAmountInput').value = baseAmount;
+        document.getElementById('userEmailInput').value = eventData.userEmail || '';
+        document.getElementById('eventNameInput').value = eventData.eventName || '';
+        document.getElementById('eventDateInput').value = eventData.eventDate || '';
+        document.getElementById('startTimeInput').value = eventData.startTime || '';
+        document.getElementById('endTimeInput').value = eventData.endTime || '';
+        document.getElementById('notificationIdInput').value = notificationData._id || '';
+        document.getElementById('eventIdInput').value = eventData._id || '';
 
-              let rate = 0;
-              if (eventData.amenity.toLowerCase() === "clubhouse") {
-                  rate = 1000; // Rate per hour for clubhouse
-              } else if (eventData.amenity.toLowerCase() === "pool") {
-                  rate = 500; // Example rate for pool
-              } else if (eventData.amenity.toLowerCase() === "gym") {
-                  rate = 300; // Example rate for gym
-              }
-
-              baseAmount = rate * duration;
-              baseAmountDisplay.textContent = baseAmount.toFixed(2);
-              updateTotalAmount();
-
-              // Update the hidden inputs with event data
-              document.getElementById("userEmailInput").value = eventData.userEmail;
-              document.getElementById("eventNameInput").value = eventData.eventName;
-              document.getElementById("eventDateInput").value = eventData.eventDate;
-              document.getElementById("startTimeInput").value = eventData.startTime;
-              document.getElementById("endTimeInput").value = eventData.endTime;
-          } else {
-              detailsContainer.innerHTML = `<p style="color: red;">Error: No event data found.</p>`;
-              console.error("No event data found.");
-          }
-
-            function updateTotalAmount() {
-                let totalAmount = baseAmount;
-                const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
-
-                finalAmountDisplay.textContent = totalAmount.toFixed(2);
-                totalAmountDisplay.textContent = totalAmount.toFixed(2);
-                finalAmountInput.value = totalAmount.toFixed(2);
-            }
-
-            paymentMethods.forEach(method => {
-                method.addEventListener('change', updateTotalAmount);
-            });
-
-            receiptUpload.addEventListener("change", function () {
-                proceedButton.disabled = !this.files || this.files.length === 0;
-            });
-
-            paymentForm.addEventListener("submit", async function (event) {
-                event.preventDefault();
-                
-                const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
-                if (!selectedMethod) {
-                    alert("Please select a payment method.");
-                    return;
-                }
-
-                const formData = new FormData(this);
-                formData.append('paymentMethod', selectedMethod.value);
-                
-                try {
-                    const response = await fetch('/upload-receipt', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        const modal = document.getElementById("paymentModal");
-                        const paymentMethodMessage = document.getElementById("paymentMethodMessage");
-                        paymentMethodMessage.innerText = `Pay your ${selectedMethod.value.toUpperCase()} here`;
-                        modal.style.display = "flex";
-                    } else {
-                        throw new Error(data.message || 'Payment processing failed');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert("An error occurred. Please try again. " + error.message);
-                }
-            });
-            updateTotalAmount();
-
-            closeModalButton.addEventListener("click", function() {
-                // Clear the event data from sessionStorage after successful payment
-                sessionStorage.removeItem("eventData");
-                window.location.href = 'HoHome.html';
-            });
+        // Handle payment method selection
+        const paymentMethods = document.getElementsByName('paymentMethod');
+        paymentMethods.forEach(method => {
+          method.addEventListener('change', function() {
+            const gcashFee = this.value === 'gcash' ? 15 : 0;
+            const totalAmount = baseAmount + gcashFee;
+            document.getElementById('finalAmount').textContent = totalAmount.toFixed(2);
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+            document.getElementById('finalAmountInput').value = totalAmount;
+          });
         });
+
+        // Handle file upload
+        const receiptUpload = document.getElementById('receiptUpload');
+        const proceedButton = document.getElementById('proceedButton');
+
+        receiptUpload.addEventListener('change', function() {
+          proceedButton.disabled = !this.files.length || !document.querySelector('input[name="paymentMethod"]:checked');
+        });
+
+        paymentMethods.forEach(method => {
+          method.addEventListener('change', function() {
+            proceedButton.disabled = !receiptUpload.files.length;
+          });
+        });
+
+        // Handle form submission
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(this);
+          try {
+            // First upload the receipt
+            const response = await fetch('/upload-receipt', {
+              method: 'POST',
+              body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+              // Then update the notification
+              const notificationUpdateData = {
+                notificationId: notificationData._id,
+                eventId: eventData._id,
+                eventName: eventData.eventName,
+                eventDate: eventData.eventDate,
+                startTime: eventData.startTime,
+                endTime: eventData.endTime
+              };
+              
+              const notificationResponse = await fetch('/api/updateNotificationAfterPayment', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(notificationUpdateData)
+              });
+              
+              const notificationResult = await notificationResponse.json();
+              
+              if (notificationResult.success) {
+                alert('Payment processed successfully!');
+                sessionStorage.removeItem('eventData'); // Clear the event data
+                sessionStorage.removeItem('notificationData'); // Clear the notification data
+                window.location.href = 'HoHome.html';
+              } else {
+                alert('Payment processed but notification update failed. Please check your notifications.');
+                window.location.href = 'HoHome.html';
+              }
+            } else {
+              alert('Error processing payment. Please try again.');
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            alert('Error processing payment. Please try again.');
+          }
+        });
+      });
+
+      // Function to calculate base amount
+      function calculateBaseAmount(amenity, startTime, endTime) {
+        // Convert times to hours for calculation
+        const start = new Date(`2000-01-01 ${startTime}`);
+        const end = new Date(`2000-01-01 ${endTime}`);
+        const hours = (end - start) / (1000 * 60 * 60);
+
+        // Base rates per hour for different amenities
+        const rates = {
+          'Clubhouse': 500,
+          'Pool': 300,
+          'Court': 200
+        };
+
+        const baseRate = rates[amenity] || 300; // Default to 300 if amenity not found
+        return baseRate * hours;
+      }
     </script>
-</body>
+  </body>
 </html>
 

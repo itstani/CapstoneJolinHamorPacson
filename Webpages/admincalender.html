@@ -456,7 +456,7 @@
 
     <script>
        // Your existing variables
-    const monthDisplay = document.getElementById('monthDisplay');
+       const monthDisplay = document.getElementById('monthDisplay');
     const daysGrid = document.querySelector('.days-grid');
     const daysOfWeekContainer = document.querySelector('.days-of-week');
     const eventList = document.getElementById('eventList');
@@ -502,6 +502,7 @@
             eventList.innerHTML = '<h2 class="eventlistheader">Pending Events</h2><p>Error loading events: ' + error.message + '</p>';
         }
     });
+
     function showCustomAlert(message) {
         const alertElement = document.getElementById("customAlert");
         const messageElement = document.getElementById("customAlertMessage");
@@ -558,6 +559,7 @@
             throw error;
         }
     }
+
 
     async function fetchApprovedEvents() {
         try {
@@ -726,45 +728,53 @@
 
     async function approveEvent(eventName) {
         try {
-            const response = await fetch(`/approveEvent/${encodeURIComponent(eventName)}`, {
-                method: 'PUT',
+            // Show loading indicator
+            showCustomAlert("Processing approval...");
+        
+            // Use the correct API endpoint path
+            const response = await fetch(`/api/approve-event`, {
+                method: 'POST',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
-                credentials: 'same-origin'
+                credentials: 'same-origin',
+                body: JSON.stringify({ eventName })
             });
-            
+        
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+        
             const data = await response.json();
             if (data.success) {
-                alert('Event approved successfully');
+                closeCustomAlert();
+                showCustomAlert('Event approved successfully');
                 closeModal();
-                
+            
                 // Refresh data after approval
                 const [pendingData, approvedData] = await Promise.all([
                     fetchPendingEvents(),
                     fetchApprovedEvents()
                 ]);
-                
+            
                 if (pendingData && pendingData.success) {
                     currentEvents = pendingData.events || [];
                     displayEventList();
                 }
-                
+            
                 if (approvedData && approvedData.success) {
                     processApprovedEvents(approvedData.events || []);
                     renderCalendar();
                 }
             } else {
-                alert('Failed to approve event: ' + data.message);
+                closeCustomAlert();
+                showCustomAlert('Failed to approve event: ' + data.message);
             }
         } catch (error) {
             console.error("Error approving event:", error);
-            alert('An error occurred while approving the event: ' + error.message);
+            closeCustomAlert();
+            showCustomAlert('An error occurred while approving the event: ' + error.message);
         }
     }
 

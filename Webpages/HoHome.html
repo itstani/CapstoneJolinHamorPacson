@@ -11,12 +11,11 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
     <style>
-
       * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       /* Reserve Section in Columns */
       .reserve {
         display: flex;
@@ -77,13 +76,11 @@
         padding-top: 20px;
       }
       .button {
-      margin-top: auto;
-      margin-bottom: 20px; /* Adjust this as needed */
-      width: 100%;
-      text-align: center;
- 
- 
-    }
+        margin-top: auto;
+        margin-bottom: 20px; /* Adjust this as needed */
+        width: 100%;
+        text-align: center;
+      }
  
       /* Responsive adjustments for smaller screens */
       @media (max-width: 600px) {
@@ -106,537 +103,572 @@
       }
  
       .popup {
-    display: none; /* Hidden by default */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-    justify-content: center;
-    align-items: center;
-    font-family: sans-serif;
+        display: none; /* Hidden by default */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1001;
+        justify-content: center;
+        align-items: center;
+        font-family: sans-serif;
+      }
+
+      .popup-content {
+        background-color: #ffffff; 
+        color: #000000; 
+        padding: 20px;
+        border: 2px solid #af2630; 
+        border-radius: 8px;
+        width: 900px;
+        height: auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+        font-family: sans-serif;
+        position: relative; 
+      }
+
+      .popup-top-bar {
+        background-color: #af2630; 
+        color: #ffffff; 
+        padding: 10px;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        border-top-left-radius: 8px; 
+        border-top-right-radius: 8px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+      }
+
+      .popup-content-inner {
+        margin-top: 60px; 
+      }
+
+      .popup-content label {
+        display: block;
+        margin: 10px 0 5px;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      .popup-content input[type="text"],
+      .popup-content textarea {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+        font-size: 20px;
+      }
+
+      .popup-content textarea {
+        resize: none;
+      }
+
+      .popup-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; 
+      }
+
+      #closePopup {
+        background-color: #fff;
+        color: #af2630;
+        border: 2px solid #af2630;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 20px;
+        transition: all 0.3s ease;
+        margin-right: auto; 
+      }
+
+      #closePopup:hover {
+        background-color: #d9d9d9;
+        border-color: #d9d9d9;
+      }
+
+      #sendButton {
+        background-color: #fff;
+        color: #af2630;
+        border: 2px solid #af2630;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 20px;
+        transition: all 0.3s ease;
+      }
+
+      #sendButton:hover {
+        background-color: #d9d9d9;
+        border-color: #d9d9d9;
+      }
+
+      .file-container {
+        align-self: flex-end;  
+        margin-top: 10px;
+      }
+      
+      /* Notification Icon Styles */
+      .notification-icon {
+position: fixed;
+top: 7px;
+right: 16px;
+
+background: rgb(195, 67, 67);
+
+border-radius: 50%;
+
+width: 40px;
+
+height: 40px;
+
+display: flex;
+
+align-items: center;
+
+justify-content: center;
+
+cursor: pointer;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+transition: transform 0.2s;
+z-index: 1002; /* Ensure it's above the header */
 }
 
-.popup-content {
-    background-color: #ffffff; 
-    color: #000000; 
-    padding: 20px;
-    border: 2px solid #af2630; 
-    border-radius: 8px;
-    width: 900px;
-    height: auto;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    box-sizing: border-box;
-    font-family: sans-serif;
-    position: relative; 
-}
+      .notification-icon img {
+        width: 24px;
+        height: 24px;
+      }
 
-.popup-top-bar {
-    background-color: #af2630; 
-    color: #ffffff; 
-    padding: 10px;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-    border-top-left-radius: 8px; 
-    border-top-right-radius: 8px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-}
-
-.popup-content-inner {
-    margin-top: 60px; 
-}
-
-.popup-content label {
-    display: block;
-    margin: 10px 0 5px;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.popup-content input[type="text"],
-.popup-content textarea {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 20px;
-}
-
-.popup-content textarea {
-    resize: none;
-}
-
-.popup-buttons {
-    display: flex;
-    align-items: center;
-    justify-content: space-between; 
-}
-
-
-#closePopup {
-    background-color: #fff;
-    color: #af2630;
-    border: 2px solid #af2630;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 20px;
-    transition: all 0.3s ease;
-    margin-right: auto; 
-}
-
-#closePopup:hover {
-    background-color: #d9d9d9;
-    border-color: #d9d9d9;
-}
-
-#sendButton {
-    background-color: #fff;
-    color: #af2630;
-    border: 2px solid #af2630;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 20px;
-    transition: all 0.3s ease;
-}
-
-#sendButton:hover {
-    background-color: #d9d9d9;
-    border-color: #d9d9d9;
-}
-
-.file-container {
-  align-self: flex-end;  
-  margin-top: 10px;
-}
-        
-/* Notification Modal Styles */
-.notification-container {
-            position: relative;
-            display: inline-block;
-        }
-
-.notification-modal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    width: 600px; /* Increased width */
-    max-width: 90vw;
-    max-height: 80vh; /* Reduced height */
-    overflow: hidden;
-    z-index: 1001;
-}
-
-.notification-icon {
-    position: fixed;
-    top: 7px;
-    right: 16px;
-    background: rgb(195, 67, 67);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
-    z-index: 1002; /* Ensure it's above the header */
-}
-
-
-.notification-header {
-    background-color: #AF2630;
-    color: white;
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.notification-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.close-modal {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-}
-
-.close-modal:hover {
-    opacity: 1;
-}
-
-.notification-list {
-    max-height: calc(80vh - 140px);
-    overflow-y: auto;
-    padding: 16px;
-}
-
-.notification-item {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 12px;
-    display: flex;
-    flex-direction: column; /* Stack content vertically */
-    gap: 12px;
-    align-items: flex-start;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.notification-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.notification-checkbox {
-    margin-top: 4px;
-    cursor: pointer;
-}
-
-.notification-content {
-    flex: 1;
-    min-width: 0; /* Allow text to wrap */
-}
-
-.notification-message {
-    color: #2d3436;
-    font-size: 0.95rem;
-    margin-bottom: 8px;
-    line-height: 1.4;
-    word-wrap: break-word; /* Ensure long text wraps */
-}
-
-.notification-timestamp {
-    color: #636e72;
-    font-size: 0.85rem;
-}
-
-.proceed-to-payment-btn {
-    background-color: #AF2630;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
-    margin: 8px auto; /* Center the button */
-    display: block; /* Make it a block element */
-    width: fit-content; /* Width based on content */
-}
-
-.proceed-to-payment-btn:hover {
-    background-color: #8f1d25;
-}
-
-.notification-actions {
-    padding: 16px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    border-top: 1px solid #e9ecef;
-}
-
-.clear-btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-#clearSelectedBtn {
-    background-color: white;
-    color: #AF2630;
-    border: 1px solid #AF2630;
-}
-
-#clearAllBtn {
-    background-color: #AF2630;
-    color: white;
-    border: 1px solid #AF2630;
-}
-
-.clear-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.no-notifications {
-    text-align: center;
-    padding: 32px 16px;
-    color: #636e72;
-    font-size: 0.95rem;
-}
-
-/* Notification Icon Styles */
-
-
-.notification-icon:hover {
-    transform: scale(1.05);
-}
-
-.notification-icon img {
-    width: 24px;
-    height: 24px;
-}
-
-.notification-count {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    background-color: #AF2630;
-    color: white;
-    border-radius: 12px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    min-width: 20px;
-    text-align: center;
-}
-
-.notification-modal.show {
-    display: block;
-    animation: slideIn 0.3s ease forwards;
-}
-
-
-        .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0;
-        }
-
-        .close-modal:hover {
-            opacity: 0.8;
-        }
-
-        .logoutbutton{
-            margin-top: auto;
-            margin-bottom: 30px; /* Adjust this as needed */
-            width: 100%;
-            text-align: center;
-        }
-
-        /* Mobile CSS*/
-        @media (max-width: 768px) {
-    .notification-modal {
-        width: 95vw;
+      .notification-count {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: #af2630;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      /* Notification Modal Styles */
+      .notification-modal {
+        display: none;
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        width: 350px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        z-index: 1000;
+        overflow: hidden;
         max-height: 80vh;
-    }
+        flex-direction: column;
+      }
 
-    .notification-list {
-        max-height: calc(80vh - 140px);
-    }
+      .notification-header {
+        background-color: #af2630;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-    .notification-item {
-        padding: 12px;
-    }
+      .notification-header h2 {
+        margin: 0;
+        font-size: 18px;
+      }
 
-    .notification-actions {
-        padding: 12px;
-    }
+      .close-modal {
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        position: absolute;
+        top: 10px;
+        right: 15px;
+      }
+      .logoutbutton{
 
-    .clear-btn {
-        padding: 8px 12px;
-        font-size: 0.85rem;
-    }
-}
+        margin-top: auto;
 
-        /* Animation */
-@keyframes slideIn {
-    from {
-        transform: translate(-50%, -60%);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, -50%);
-        opacity: 1;
-    }
-}
-        @media screen and (max-width: 768px) {
-            /* Sidebar becomes bottom navigation */
-            .side-bar {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                height: 70px;
-                padding: 0;
-                display: flex;
-                justify-content: space-around;
-                align-items: center;
-                background-color: #D9D9D9;
-                z-index: 1000;
-            }
+        margin-bottom: 30px; /* Adjust this as needed */
 
-            .Home, .Calendar, .Profile {
-                margin: 0;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
+        width: 100%;
 
-            .Home img, .Calendar img, .Profile img {
-                width: 30px;
-                height: 30px;
-            }
+        text-align: center;
 
-            .Home p, .Calendar p, .Profile p {
-                margin-top: 4px;
-                font-size: 12px;
-            }
-
-            /* Welcome section adjustments */
-            
-
-            /* Reserve section adjustments */
-            .reserve {
-                padding: 20px;
-                margin-bottom: 80px;
-                flex-direction: column;
-                align-items: center;
-                gap: 20px;
-            }
-
-            .reservetext1 {
-                font-size: 24px;
-                margin-bottom: 20px;
-            }
-
-            .reserve-item {
-                width: 100%;
-                max-width: 300px;
-            }
-
-            .reserve button img {
-                width: 200px;
-                height: 200px;
-            }
-
-            /* Popup improvements */
-            .popup-content {
-                width: 95%;
-                max-width: 400px;
-                margin: 10px;
-                height: auto;
-                max-height: 90vh;
-            }
-
-            .popup-content-inner {
-                margin-top: 50px;
-                padding: 10px;
-            }
-
-            /* Form inputs */
-            .popup-content input[type="text"],
-            .popup-content textarea {
-                font-size: 16px;
-                padding: 12px;
-            }
-
-            /* Notification adjustments */
-            .notification-icon {
-                top: 10px;
-                right: 10px;
-            }
-
-            .notification-modal {
-                width: 95%;
-                height: auto;
-                max-height: 90vh;
-                margin: 10px;
-            }
-
-            .notification-item {
-                padding: 12px;
-                flex-direction: column;
-            }
-
-            /* Button improvements */
-            .button {
-                position: fixed;
-                bottom: 70px;
-                left: 0;
-                width: 100%;
-                background-color: #D9D9D9;
-                padding: 10px;
-                margin: 0;
-                text-align: center;
-                z-index: 999;
-            }
-
-            /* Improve touch targets */
-            button,
-            input[type="button"],
-            input[type="submit"] {
-                min-height: 44px;
-                min-width: 44px;
-                padding: 12px;
-            }
         }
 
-        /* Tablet improvements */
-        @media screen and (min-width: 769px) and (max-width: 1024px) {
-            .reserve button img {
-                width: 250px;
-                height: 250px;
-            }
 
-            .Welcome {
-                margin-left: 90px;
-            }
 
-            .form-image-container {
-                margin-left: 90px;
-            }
+
+
+      .notification-list {
+        overflow-y: auto;
+        max-height: 60vh;
+        padding: 0;
+      }
+
+      .notification-actions {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px;
+        border-top: 1px solid #eee;
+      }
+
+      .clear-btn {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .clear-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .no-notifications {
+        padding: 20px;
+        text-align: center;
+        color: #888;
+      }
+        
+      /* Notification Item Styles */
+      .notification-item {
+        position: relative;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: flex-start;
+      }
+      
+      .notification-item:hover {
+        background-color: #f9f9f9;
+      }
+      
+      .notification-checkbox {
+        margin-right: 10px;
+        margin-top: 3px;
+      }
+      
+      .notification-content {
+        flex: 1;
+      }
+      
+      .notification-subject {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .notification-message {
+        color: #555;
+        margin-bottom: 5px;
+      }
+      
+      .notification-timestamp {
+        font-size: 0.8em;
+        color: #888;
+      }
+      
+      .payment-required {
+        color: #af2630;
+        font-weight: bold;
+        margin-top: 5px;
+      }
+      
+      /* Event Details Modal Styles */
+      .event-details-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1003;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .event-details-content {
+        background-color: white;
+        padding: 30px 20px 20px;
+        border-radius: 10px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      
+      .close-event-details {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 24px;
+        cursor: pointer;
+        color: #888;
+        background: none;
+        border: none;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+      }
+      
+      .close-event-details:hover {
+        background-color: #f5f5f5;
+      }
+      
+      .event-detail-row {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      
+      .event-detail-label {
+        font-weight: bold;
+        width: 120px;
+        flex-shrink: 0;
+        color: #333;
+      }
+      
+      .event-detail-value {
+        flex-grow: 1;
+        color: #666;
+      }
+      
+      .event-actions {
+        margin-top: 20px;
+        text-align: right;
+      }
+      
+      .payment-button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #eventDetailsTitle {
+        margin: 0 0 20px;
+        color: #333;
+        font-size: 1.5em;
+        padding-right: 30px;
+      }
+
+      /* Mobile CSS*/
+      @media (max-width: 768px) {
+        .notification-modal {
+          width: 95vw;
+          max-height: 80vh;
+          top: 10px;
+          right: 10px;
+          left: 10px;
         }
 
-        /* Touch device improvements */
-        @media (hover: none) {
-            .reserve button:hover {
-                transform: none;
-            }
-
-            .reserve button:active {
-                background-color: rgba(62, 4, 8, 0.1);
-            }
+        .notification-list {
+          max-height: calc(80vh - 140px);
         }
+
+        .notification-item {
+          padding: 12px;
+        }
+
+        .notification-actions {
+          padding: 12px;
+        }
+
+        .clear-btn {
+          padding: 8px 12px;
+          font-size: 0.85rem;
+        }
+        
+        .event-details-content {
+          width: 95%;
+          max-width: none;
+          margin: 10px;
+        }
+      }
+
+      /* Tablet improvements */
+      @media screen and (min-width: 769px) and (max-width: 1024px) {
+        .reserve button img {
+          width: 250px;
+          height: 250px;
+        }
+
+        .Welcome {
+          margin-left: 90px;
+        }
+
+        .form-image-container {
+          margin-left: 90px;
+        }
+      }
+
+      /* Touch device improvements */
+      @media (hover: none) {
+        .reserve button:hover {
+          transform: none;
+        }
+
+        .reserve button:active {
+          background-color: rgba(62, 4, 8, 0.1);
+        }
+      }
+      .top-bar {
+        z-index: 1001; /* Lower z-index than notification icon */
+      }
+      /* Animation */
+      @keyframes slideIn {
+        from {
+          transform: translate(-50%, -60%);
+          opacity: 0;
+        }
+        to {
+          transform: translate(-50%, -50%);
+          opacity: 1;
+        }
+      }
+      
+      @media screen and (max-width: 768px) {
+        /* Sidebar becomes bottom navigation */
+        .side-bar {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 70px;
+          padding: 0;
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+          background-color: #D9D9D9;
+          z-index: 1000;
+        }
+
+        .Home, .Calendar, .Profile {
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .Home img, .Calendar img, .Profile img {
+          width: 30px;
+          height: 30px;
+        }
+
+        .Home p, .Calendar p, .Profile p {
+          margin-top: 4px;
+          font-size: 12px;
+        }
+
+        /* Welcome section adjustments */
+        
+
+        /* Reserve section adjustments */
+        .reserve {
+          padding: 20px;
+          margin-bottom: 80px;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .reservetext1 {
+          font-size: 24px;
+          margin-bottom: 20px;
+        }
+
+        .reserve-item {
+          width: 100%;
+          max-width: 300px;
+        }
+
+        .reserve button img {
+          width: 200px;
+          height: 200px;
+        }
+
+        /* Popup improvements */
+        .popup-content {
+          width: 95%;
+          max-width: 400px;
+          margin: 10px;
+          height: auto;
+          max-height: 90vh;
+        }
+
+        .popup-content-inner {
+          margin-top: 50px;
+          padding: 10px;
+        }
+
+        /* Form inputs */
+        .popup-content input[type="text"],
+        .popup-content textarea {
+          font-size: 16px;
+          padding: 12px;
+        }
+
+        /* Notification adjustments */
+        .notification-icon {
+          top: 10px;
+          right: 10px;
+        }
+
+        /* Button improvements */
+        .button {
+          position: fixed;
+          bottom: 70px;
+          left: 0;
+          width: 100%;
+          background-color: #D9D9D9;
+          padding: 10px;
+          margin: 0;
+          text-align: center;
+          z-index: 999;
+        }
+
+        /* Improve touch targets */
+        button,
+        input[type="button"],
+        input[type="submit"] {
+          min-height: 44px;
+          min-width: 44px;
+          padding: 12px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -671,7 +703,6 @@
       
       <div class="logoutbutton">
           <button type="button" id="logoutButton">Logout</button>
-          <p>Logout</p>
       </div>
   </div>
     
@@ -729,14 +760,52 @@
   </div>
   
   <div class="notification-modal" id="notificationModal">
-    <span class="close-modal" id="closeModal">&times;</span>
     <div class="notification-header">
         <h2>Notifications</h2>
+        <span class="close-modal" id="closeModal">&times;</span>
     </div>
     <div class="notification-list" id="notificationList"></div>
     <div class="notification-actions">
       <button id="clearSelectedBtn" class="clear-btn">Clear Selected</button>
       <button id="clearAllBtn" class="clear-btn">Clear All</button>
+    </div>
+  </div>
+
+  <div id="eventDetailsModal" class="event-details-modal">
+    <div class="event-details-content">
+      <span class="close-event-details" id="closeEventDetails">&times;</span>
+      <h3 id="eventDetailsTitle">Event Details</h3>
+      
+      <div class="event-details-body">
+        <div class="event-detail-row">
+          <div class="event-detail-label">Event Name:</div>
+          <div class="event-detail-value" id="eventDetailsName"></div>
+        </div>
+        <div class="event-detail-row">
+          <div class="event-detail-label">Date:</div>
+          <div class="event-detail-value" id="eventDetailsDate"></div>
+        </div>
+        <div class="event-detail-row">
+          <div class="event-detail-label">Time:</div>
+          <div class="event-detail-value" id="eventDetailsTime"></div>
+        </div>
+        <div class="event-detail-row">
+          <div class="event-detail-label">Amenity:</div>
+          <div class="event-detail-value" id="eventDetailsAmenity"></div>
+        </div>
+        <div class="event-detail-row">
+          <div class="event-detail-label">Status:</div>
+          <div class="event-detail-value" id="eventDetailsStatus"></div>
+        </div>
+        <div class="event-detail-row">
+          <div class="event-detail-label">Message:</div>
+          <div class="event-detail-value" id="eventDetailsMessage"></div>
+        </div>
+      </div>
+      
+      <div class="event-actions" id="eventActions">
+        <!-- Payment button will be added here if needed -->
+      </div>
     </div>
   </div>
   </body>
@@ -745,6 +814,7 @@ let notifications = [];
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
 let retryCount = 0;
+let currentNotification = null;
 
 // Function to update the notification list in the UI - defined first since it's used by multiple functions
 function updateNotificationList() {
@@ -754,7 +824,7 @@ function updateNotificationList() {
     console.error('Notification list element not found');
     return;
   }
-  
+
   notificationList.innerHTML = ''; // Clear existing list
 
   if (!notifications || notifications.length === 0) {
@@ -768,16 +838,37 @@ function updateNotificationList() {
   notifications.forEach((notification) => {
     const notificationItem = document.createElement('div');
     notificationItem.classList.add('notification-item');
-
+    notificationItem.dataset.id = notification._id;
+    
     // Create checkbox
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.className = 'notification-checkbox';
     checkbox.dataset.id = notification._id;
+    checkbox.onclick = (e) => e.stopPropagation(); // Prevent opening modal when clicking checkbox
 
     // Create content wrapper
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'notification-content';
+    
+    // Create subject line
+    const subjectDiv = document.createElement('div');
+    subjectDiv.className = 'notification-subject';
+    
+    // Format the subject line based on notification data
+    let subject = notification.subject || '';
+    if (!subject && notification.message) {
+      // Try to extract event name and date from message if subject is not available
+      const eventNameMatch = notification.message.match(/"([^"]+)"/);
+      const eventName = eventNameMatch ? eventNameMatch[1] : 'Event';
+      
+      // Try to extract date from message or use a placeholder
+      const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
+      const date = dateMatch ? dateMatch[1] : '';
+      
+      subject = `${eventName}${date ? ' on ' + date : ''}`;
+    }
+    subjectDiv.textContent = subject;
 
     // Create message element
     const messageDiv = document.createElement('div');
@@ -789,7 +880,16 @@ function updateNotificationList() {
     timestampDiv.className = 'notification-timestamp';
     timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
 
-    // Add message and timestamp to content wrapper
+    // Add payment required indicator if needed
+    if (notification.type === 'event_deleted' || notification.type === 'payment_required') {
+      const paymentRequiredDiv = document.createElement('div');
+      paymentRequiredDiv.className = 'payment-required';
+      paymentRequiredDiv.textContent = 'Payment Required';
+      contentWrapper.appendChild(paymentRequiredDiv);
+    }
+
+    // Add subject, message and timestamp to content wrapper
+    contentWrapper.appendChild(subjectDiv);
     contentWrapper.appendChild(messageDiv);
     contentWrapper.appendChild(timestampDiv);
 
@@ -797,17 +897,95 @@ function updateNotificationList() {
     notificationItem.appendChild(checkbox);
     notificationItem.appendChild(contentWrapper);
 
-    // If it's an event notification that requires payment, add the proceed button
-    if (notification.type === 'event_deleted' || notification.type === 'payment_required') {
-      const proceedButton = document.createElement('button');
-      proceedButton.className = 'proceed-to-payment-btn';
-      proceedButton.textContent = 'Proceed to Payment';
-      proceedButton.onclick = () => proceedToPayment(notification);
-      notificationItem.appendChild(proceedButton);
-    }
+    // Add click event to show event details
+    notificationItem.addEventListener('click', (e) => {
+      if (e.target !== checkbox) {
+        showEventDetails(notification);
+      }
+    });
 
     notificationList.appendChild(notificationItem);
   });
+}
+
+function showEventDetails(notification) {
+  console.log("Showing event details for notification:", notification);
+  currentNotification = notification;
+  
+  // Close the notification modal
+  const notificationModal = document.getElementById('notificationModal');
+  if (notificationModal) {
+    notificationModal.style.display = 'none';
+  }
+  
+  // Extract event name from notification message if available
+  let eventName = '';
+  if (notification.message) {
+    const match = notification.message.match(/"([^"]+)"/);
+    if (match && match[1]) {
+      eventName = match[1];
+    }
+  }
+  
+  // Set event details in the modal
+  document.getElementById('eventDetailsTitle').textContent = 'Event Details';
+  
+  // Set event name - try multiple sources
+  document.getElementById('eventDetailsName').textContent = 
+    eventName || 
+    notification.eventName || 
+    (notification.subject ? notification.subject.split(' on ')[0] : 'N/A');
+  
+  // Try to extract date and time from subject or message
+  let eventDate = notification.eventDate || 'N/A';
+  let eventTime = notification.eventTime || 'N/A';
+  
+  if (notification.subject) {
+    const dateMatch = notification.subject.match(/on\s+(\d{4}-\d{2}-\d{2})/);
+    if (dateMatch && dateMatch[1]) {
+      eventDate = dateMatch[1];
+    }
+    
+    const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}\s*[AP]M)-(\d{1,2}:\d{2}\s*[AP]M)/i);
+    if (timeMatch && timeMatch[1] && timeMatch[2]) {
+      eventTime = `${timeMatch[1]} - ${timeMatch[2]}`;
+    }
+  }
+  
+  document.getElementById('eventDetailsDate').textContent = eventDate;
+  document.getElementById('eventDetailsTime').textContent = eventTime;
+  document.getElementById('eventDetailsAmenity').textContent = notification.amenity || 'N/A';
+  
+  // Set status based on notification type
+  let status = 'Confirmed';
+  if (notification.type === 'payment_required' || notification.type === 'event_deleted') {
+    status = 'Payment Required';
+  } else if (notification.type === 'payment_confirmed') {
+    status = 'Payment Confirmed';
+  } else if (notification.type === 'event_cancelled') {
+    status = 'Cancelled';
+  }
+  
+  document.getElementById('eventDetailsStatus').textContent = status;
+  document.getElementById('eventDetailsMessage').textContent = notification.message || '';
+  
+  // Add payment button if needed
+  const actionsDiv = document.getElementById('eventActions');
+  actionsDiv.innerHTML = '';
+  
+  if (notification.type === 'payment_required' || notification.type === 'event_deleted') {
+    const paymentButton = document.createElement('button');
+    paymentButton.className = 'payment-button';
+    paymentButton.textContent = 'Proceed to Payment';
+    paymentButton.onclick = () => proceedToPayment(notification);
+    actionsDiv.appendChild(paymentButton);
+  }
+  
+  // Show the modal
+  const eventDetailsModal = document.getElementById('eventDetailsModal');
+  if (eventDetailsModal) {
+    eventDetailsModal.style.display = 'flex';
+  }
 }
 
 // Function to update the clear buttons state
@@ -815,12 +993,12 @@ function updateClearButtons() {
   console.log("Updating clear buttons");
   const clearSelectedBtn = document.getElementById('clearSelectedBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
-  
+
   if (!clearSelectedBtn || !clearAllBtn) {
     console.error('Clear buttons not found');
     return; // Buttons not found
   }
-  
+
   if (notifications.length === 0) {
     clearSelectedBtn.disabled = true;
     clearAllBtn.disabled = true;
@@ -834,7 +1012,6 @@ function updateClearButtons() {
   }
 }
 
-// Function to handle when there are no notifications
 function handleNoNotifications() {
   console.log("Handling no notifications");
   notifications = [];
@@ -845,7 +1022,6 @@ function handleNoNotifications() {
   updateNotificationList();
   updateClearButtons();
 }
-
 // Function to show error messages
 function showErrorMessage(message) {
   console.error('Error message:', message);
@@ -857,7 +1033,7 @@ function showErrorMessage(message) {
   errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
   errorDiv.style.border = '1px solid red';
   errorDiv.style.borderRadius = '5px';
-  
+
   // Find a good place to add the error message
   const notificationList = document.getElementById('notificationList');
   if (notificationList) {
@@ -865,27 +1041,24 @@ function showErrorMessage(message) {
   } else {
     document.body.appendChild(errorDiv);
   }
-  
+
   setTimeout(() => {
     if (errorDiv.parentNode) {
       errorDiv.parentNode.removeChild(errorDiv);
     }
   }, 5000); // Remove after 5 seconds
 }
-
-// Function to proceed to payment
 function proceedToPayment(notification) {
-  console.log("Proceeding to payment", notification);
   // Check if notification has a relatedId
   if (!notification.relatedId) {
     alert('Error: Missing event ID. Please contact support.');
     return;
   }
-  
+
   const eventId = notification.relatedId;
   console.log("Proceeding to payment for event ID:", eventId);
   console.log("Full notification object:", JSON.stringify(notification));
-  
+
   // Show loading indicator
   const loadingDiv = document.createElement('div');
   loadingDiv.textContent = 'Loading event details...';
@@ -899,13 +1072,28 @@ function proceedToPayment(notification) {
   loadingDiv.style.borderRadius = '5px';
   loadingDiv.style.zIndex = '9999';
   document.body.appendChild(loadingDiv);
-  
+
+  // Extract event name from notification message if available
+  let eventName = null;
+  if (notification.message) {
+    const match = notification.message.match(/"([^"]+)"/);
+    if (match && match[1]) {
+      eventName = match[1];
+      console.log("Extracted event name from message:", eventName);
+    }
+  }
+
   // First try to fetch the event by ID
   fetch(`/api/event/${eventId}`)
     .then(response => {
       if (!response.ok) {
+        // If that fails and we have an event name, try by event name
+        if (eventName) {
+          console.log("Event not found by ID, trying by name:", eventName);
+          return fetch(`/api/event/${encodeURIComponent(eventName)}`);
+        }
         // If that fails, try to get events by user email
-        if (notification.userEmail) {
+        else if (notification.userEmail) {
           console.log("Event not found by ID, trying by user email:", notification.userEmail);
           return fetch(`/api/user-events/${encodeURIComponent(notification.userEmail)}`);
         }
@@ -933,9 +1121,17 @@ function proceedToPayment(notification) {
         
         // Store the event data in sessionStorage
         sessionStorage.setItem('eventData', JSON.stringify(eventData));
+        // Also store the notification data for reference
+        sessionStorage.setItem('notificationData', JSON.stringify(notification));
         
         // Remove loading indicator
         document.body.removeChild(loadingDiv);
+        
+        // Close the event details modal if it's open
+        const eventDetailsModal = document.getElementById('eventDetailsModal');
+        if (eventDetailsModal) {
+          eventDetailsModal.style.display = 'none';
+        }
         
         // Redirect to the payment page
         window.location.href = 'payment.html';
@@ -951,29 +1147,12 @@ function proceedToPayment(notification) {
         document.body.removeChild(loadingDiv);
       }
       
-      // Offer manual entry as a fallback
-      const useManualEntry = confirm(
-        'Failed to fetch event details automatically. Would you like to enter event details manually?\n\n' +
-        'Error: ' + error.message
-      );
-      
-      if (useManualEntry) {
-        // Create a minimal event object with data from the notification
-        const minimalEvent = {
-          userEmail: notification.userEmail || '',
-          eventName: notification.eventName || 'Unknown Event',
-          eventDate: notification.eventDate || new Date().toISOString().split('T')[0],
-          startTime: notification.startTime || '09:00',
-          endTime: notification.endTime || '12:00',
-          amenity: notification.amenity || 'Unknown',
-        };
-        
-        sessionStorage.setItem('eventData', JSON.stringify(minimalEvent));
-        window.location.href = 'payment.html';
-      }
+      // Show error message without manual entry option
+      alert(`Failed to fetch event details: ${error.message}
+
+Please contact support with this error message.`);
     });
 }
-
 // Function to clear selected notifications
 async function clearSelectedNotifications() {
   console.log("Clearing selected notifications");
@@ -1106,28 +1285,33 @@ async function fetchNotifications() {
   }
 }
 
+
 // Wait for DOM to be fully loaded before running any code
 document.addEventListener('DOMContentLoaded', function() {
   console.log("DOM fully loaded, initializing notification system");
-  
+
   try {
     // Initialize notification elements
     const notificationIcon = document.getElementById('notificationIcon');
     const notificationModal = document.getElementById('notificationModal');
     const closeModal = document.getElementById('closeModal');
+    const closeEventDetails = document.getElementById('closeEventDetails');
     const clearSelectedBtn = document.getElementById('clearSelectedBtn');
     const clearAllBtn = document.getElementById('clearAllBtn');
     const notificationCount = document.getElementById('notificationCount');
     const notificationList = document.getElementById('notificationList');
+    const eventDetailsModal = document.getElementById('eventDetailsModal');
     
     console.log("Notification elements:", {
       notificationIcon: !!notificationIcon,
       notificationModal: !!notificationModal,
       closeModal: !!closeModal,
+      closeEventDetails: !!closeEventDetails,
       clearSelectedBtn: !!clearSelectedBtn,
       clearAllBtn: !!clearAllBtn,
       notificationCount: !!notificationCount,
-      notificationList: !!notificationList
+      notificationList: !!notificationList,
+      eventDetailsModal: !!eventDetailsModal
     });
     
     // Set up event listeners
@@ -1150,6 +1334,15 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
+    if (closeEventDetails) {
+      closeEventDetails.addEventListener('click', () => {
+        console.log("Close event details clicked");
+        if (eventDetailsModal) {
+          eventDetailsModal.style.display = 'none';
+        }
+      });
+    }
+    
     if (clearSelectedBtn) {
       clearSelectedBtn.addEventListener('click', clearSelectedNotifications);
     }
@@ -1158,10 +1351,13 @@ document.addEventListener('DOMContentLoaded', function() {
       clearAllBtn.addEventListener('click', clearAllNotifications);
     }
     
-    // Close modal when clicking outside
+    // Close modals when clicking outside
     window.addEventListener('click', (event) => {
       if (notificationModal && event.target === notificationModal) {
         notificationModal.style.display = 'none';
+      }
+      if (eventDetailsModal && event.target === eventDetailsModal) {
+        eventDetailsModal.style.display = 'none';
       }
     });
     
@@ -1295,7 +1491,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     }
-    
     // Fetch notifications initially
     console.log("Initializing first notification fetch");
     fetchNotifications();
@@ -1308,7 +1503,6 @@ document.addEventListener('DOMContentLoaded', function() {
     showErrorMessage("Failed to initialize notification system. Please refresh the page.");
   }
 });
-
 // Function to handle image loading errors
 function handleImageError(img) {
   console.error('Failed to load image:', img.src);
@@ -1333,3 +1527,4 @@ window.addEventListener('error', function(event) {
 console.log("Script loaded successfully");
   </script>
 </html>
+
