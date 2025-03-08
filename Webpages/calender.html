@@ -489,40 +489,9 @@
             }
         }
 
-        function renderCalendar() {
-        const date = new Date(currentYear, currentMonth, 1);
-        monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-        daysGrid.innerHTML = '';
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const startDay = date.getDay();
-
-        // Add empty days for the start of the month
-        for (let i = 0; i < startDay; i++) {
-            daysGrid.innerHTML += '<div class="day empty"></div>';
-        }
-
-        // Add days with events
-        for (let i = 1; i <= daysInMonth; i++) {
-            const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const events = eventsByDate[currentDate] || [];
-            const eventHTML = events.map(event => `
-                <div class="event-bar ${!event.isPaid ? 'unpaid-event' : ''}" 
-                     title="${event.name} - ${event.time}">
-                    ${event.time}
-                </div>
-            `).join('');
-
-            daysGrid.innerHTML += `
-                <div class="day" data-date="${currentDate}">
-                    ${i}
-                    ${eventHTML}
-                </div>
-            `;
-        }
-
-        addDayClickEvents();
-    }
+        
+        
+        
 
     function addDayClickEvents() {
         document.querySelectorAll('.day:not(.empty)').forEach(day => {

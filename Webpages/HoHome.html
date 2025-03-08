@@ -818,7 +818,6 @@ let currentNotification = null;
 
 // Function to update the notification list in the UI - defined first since it's used by multiple functions
 function updateNotificationList() {
-  console.log("Updating notification list");
   const notificationList = document.getElementById('notificationList');
   if (!notificationList) {
     console.error('Notification list element not found');
@@ -836,6 +835,11 @@ function updateNotificationList() {
   }
 
   notifications.forEach((notification) => {
+    // Skip deleted event notifications
+    if (notification.type === 'event_deleted') {
+      return;
+    }
+
     const notificationItem = document.createElement('div');
     notificationItem.classList.add('notification-item');
     notificationItem.dataset.id = notification._id;
@@ -881,7 +885,7 @@ function updateNotificationList() {
     timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
 
     // Add payment required indicator if needed
-    if (notification.type === 'event_deleted' || notification.type === 'payment_required') {
+    if (notification.type === 'payment_required') {
       const paymentRequiredDiv = document.createElement('div');
       paymentRequiredDiv.className = 'payment-required';
       paymentRequiredDiv.textContent = 'Payment Required';
@@ -946,9 +950,10 @@ function showEventDetails(notification) {
       eventDate = dateMatch[1];
     }
     
-    const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}\s*[AP]M)-(\d{1,2}:\d{2}\s*[AP]M)/i);
+    // Updated time extraction to handle AM/PM correctly
+    const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))-(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
     if (timeMatch && timeMatch[1] && timeMatch[2]) {
-      eventTime = `${timeMatch[1]} - ${timeMatch[2]}`;
+      eventTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
     }
   }
   
@@ -987,7 +992,6 @@ function showEventDetails(notification) {
     eventDetailsModal.style.display = 'flex';
   }
 }
-
 // Function to update the clear buttons state
 function updateClearButtons() {
   console.log("Updating clear buttons");
@@ -1049,17 +1053,20 @@ function showErrorMessage(message) {
   }, 5000); // Remove after 5 seconds
 }
 function proceedToPayment(notification) {
-  // Check if notification has a relatedId
+  // Check if this is a deleted event notification
+  if (notification.type === 'event_deleted') {
+    alert('This event has been deleted and is no longer available for payment.');
+    return;
+  }
+
   if (!notification.relatedId) {
     alert('Error: Missing event ID. Please contact support.');
     return;
   }
-
+  
   const eventId = notification.relatedId;
   console.log("Proceeding to payment for event ID:", eventId);
-  console.log("Full notification object:", JSON.stringify(notification));
-
-  // Show loading indicator
+  
   const loadingDiv = document.createElement('div');
   loadingDiv.textContent = 'Loading event details...';
   loadingDiv.style.position = 'fixed';
@@ -1072,28 +1079,11 @@ function proceedToPayment(notification) {
   loadingDiv.style.borderRadius = '5px';
   loadingDiv.style.zIndex = '9999';
   document.body.appendChild(loadingDiv);
-
-  // Extract event name from notification message if available
-  let eventName = null;
-  if (notification.message) {
-    const match = notification.message.match(/"([^"]+)"/);
-    if (match && match[1]) {
-      eventName = match[1];
-      console.log("Extracted event name from message:", eventName);
-    }
-  }
-
-  // First try to fetch the event by ID
+  
   fetch(`/api/event/${eventId}`)
     .then(response => {
       if (!response.ok) {
-        // If that fails and we have an event name, try by event name
-        if (eventName) {
-          console.log("Event not found by ID, trying by name:", eventName);
-          return fetch(`/api/event/${encodeURIComponent(eventName)}`);
-        }
-        // If that fails, try to get events by user email
-        else if (notification.userEmail) {
+        if (response.status === 404 && notification.userEmail) {
           console.log("Event not found by ID, trying by user email:", notification.userEmail);
           return fetch(`/api/user-events/${encodeURIComponent(notification.userEmail)}`);
         }
@@ -1105,35 +1095,21 @@ function proceedToPayment(notification) {
       if (data.success) {
         let eventData;
         
-        // Handle response from either endpoint
         if (data.event) {
-          // Response from /api/event/:eventId
           eventData = data.event;
         } else if (data.events && data.events.length > 0) {
-          // Response from /api/user-events/:userEmail
-          // Use the most recent event
-          eventData = data.events[0];
+          // Find the matching event by ID
+          eventData = data.events.find(event => event._id.toString() === eventId);
+          if (!eventData) {
+            throw new Error("Matching event not found in user's events");
+          }
         } else {
           throw new Error("No event data found");
         }
         
         console.log("Event data to use:", eventData);
-        
-        // Store the event data in sessionStorage
         sessionStorage.setItem('eventData', JSON.stringify(eventData));
-        // Also store the notification data for reference
-        sessionStorage.setItem('notificationData', JSON.stringify(notification));
-        
-        // Remove loading indicator
         document.body.removeChild(loadingDiv);
-        
-        // Close the event details modal if it's open
-        const eventDetailsModal = document.getElementById('eventDetailsModal');
-        if (eventDetailsModal) {
-          eventDetailsModal.style.display = 'none';
-        }
-        
-        // Redirect to the payment page
         window.location.href = 'payment.html';
       } else {
         throw new Error(data.message || "Unknown error");
@@ -1142,54 +1118,29 @@ function proceedToPayment(notification) {
     .catch(error => {
       console.error('Error fetching event details:', error);
       
-      // Remove loading indicator
       if (document.body.contains(loadingDiv)) {
         document.body.removeChild(loadingDiv);
       }
       
-      // Show error message without manual entry option
-      alert(`Failed to fetch event details: ${error.message}
-
-Please contact support with this error message.`);
-    });
-}
-// Function to clear selected notifications
-async function clearSelectedNotifications() {
-  console.log("Clearing selected notifications");
-  const selectedIds = Array.from(document.querySelectorAll('.notification-checkbox:checked'))
-    .map(checkbox => checkbox.dataset.id);
-
-  if (selectedIds.length === 0) {
-    alert('No notifications selected');
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/markNotificationsAsRead', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ notificationIds: selectedIds }),
-      credentials: 'include'
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success) {
-        notifications = notifications.filter(n => !selectedIds.includes(n._id));
-        const notificationCount = document.getElementById('notificationCount');
-        if (notificationCount) {
-          notificationCount.textContent = notifications.length;
-        }
-        updateNotificationList();
-        updateClearButtons();
+      const useManualEntry = confirm(
+        'Failed to fetch event details automatically. Would you like to enter event details manually?\n\n' +
+        'Error: ' + error.message
+      );
+      
+      if (useManualEntry) {
+        const minimalEvent = {
+          userEmail: notification.userEmail || '',
+          eventName: notification.eventName || 'Unknown Event',
+          eventDate: notification.eventDate || new Date().toISOString().split('T')[0],
+          startTime: notification.startTime || '09:00',
+          endTime: notification.endTime || '12:00',
+          amenity: notification.amenity || 'Unknown',
+        };
+        
+        sessionStorage.setItem('eventData', JSON.stringify(minimalEvent));
+        window.location.href = 'payment.html';
       }
-    }
-  } catch (error) {
-    console.error('Error clearing selected notifications:', error);
-    showErrorMessage('Failed to clear notifications. Please try again.');
-  }
+    });
 }
 
 // Function to clear all notifications

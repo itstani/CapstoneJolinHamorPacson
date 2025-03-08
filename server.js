@@ -51,17 +51,6 @@ app.use((req, res, next) => {
   next()
 })
 
-// 4. Database connection middleware
-/* app.use(async (req, res, next) => {
-  try {
-    req.db = await connectToDatabase()
-    next()
-  } catch (error) {
-    next(error)
-  }
-}) */
-
-// Remove all other app.use(session(...)) declarations and keep only this one
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
@@ -111,6 +100,24 @@ const corsOptions = {
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
   credentials: true,
   optionsSuccessStatus: 204,
+}
+
+function formatTime(timeString) {
+  if (!timeString) return ""
+
+  // Remove extra spaces and ensure proper format
+  timeString = timeString.replace(/\s+/g, " ").trim()
+
+  // Split time and period
+  const [time, period] = timeString.split(" ")
+  if (!time || !period) return timeString
+
+  // Add leading zero to hour if needed
+  const [hour, minute] = time.split(":")
+  const formattedHour = hour.padStart(2, "0")
+  const formattedMinute = minute ? minute.padStart(2, "0") : "00"
+
+  return `${formattedHour}:${formattedMinute} ${period}`
 }
 
 async function connectToDatabase() {
@@ -657,25 +664,29 @@ app.post("/addevent", async (req, res) => {
 
   const { HomeownerName, eventName, eventDate, startTime, endTime, amenity, eventType, guests, homeownerStatus } =
     req.body
-  const userEmail = req.session.user.email // Get email from session
+
+  // Format the times
+  const formattedStartTime = formatTime(startTime)
+  const formattedEndTime = formatTime(endTime)
+
+  const userEmail = req.session.user.email
 
   try {
     const db = await connectToDatabase()
     const eventsCollection = db.collection("events")
 
-    // Add event to database with user's email
     const newEvent = {
       HomeownerName,
-      userEmail, // Include the user's email
+      userEmail,
       eventName,
       eventDate,
-      startTime,
-      endTime,
+      startTime: formattedStartTime,
+      endTime: formattedEndTime,
       amenity,
       eventType,
       guests: {
-        number: guests.number, // Store number of guests
-        names: guests.names, // Store guest names as an array
+        number: guests.number,
+        names: guests.names,
       },
       homeownerStatus,
       createdAt: new Date(),
@@ -1198,19 +1209,9 @@ app.get("/api/event/:eventId", async (req, res) => {
 
     // Second try: String comparison with _id
     if (!event) {
-      const allEvents = await aeventsCollection.find({}).limit(50).toArray() // Increased limit to search more events
+      const allEvents = await aeventsCollection.find({}).limit(20).toArray()
       event = allEvents.find((e) => e._id.toString() === eventId)
       console.log("String _id comparison result:", event ? "Found" : "Not found")
-
-      // Also try partial string match
-      if (!event) {
-        event = allEvents.find(
-          (e) =>
-            e._id.toString().includes(eventId) ||
-            (eventId.length > 5 && e._id.toString().includes(eventId.substring(0, 5))),
-        )
-        console.log("Partial _id match result:", event ? "Found" : "Not found")
-      }
     }
 
     // Third try: Look by eventName
@@ -1222,9 +1223,7 @@ app.get("/api/event/:eventId", async (req, res) => {
     // Fourth try: Find the notification and get user email
     if (!event) {
       console.log("Trying to find notification with relatedId:", eventId)
-      const notification = await notificationsCollection.findOne({
-        $or: [{ relatedId: eventId }, { _id: eventId }],
-      })
+      const notification = await notificationsCollection.findOne({ relatedId: eventId })
 
       if (notification && notification.userEmail) {
         console.log("Found notification for user:", notification.userEmail)
@@ -1233,7 +1232,7 @@ app.get("/api/event/:eventId", async (req, res) => {
         const userEvents = await aeventsCollection
           .find({ userEmail: notification.userEmail })
           .sort({ _id: -1 })
-          .limit(5) // Get the 5 most recent events
+          .limit(1)
           .toArray()
 
         if (userEvents.length > 0) {
@@ -1243,39 +1242,12 @@ app.get("/api/event/:eventId", async (req, res) => {
       }
     }
 
-    // Fifth try: Get all notifications for this user and check related events
-    if (!event) {
-      // Find all notifications for this user
-      const notifications = await notificationsCollection.find({}).limit(100).toArray()
-
-      // Find the notification that matches the event ID
-      const targetNotification = notifications.find(
-        (n) => n.relatedId === eventId || n.message.includes("Birthday ni zeke") || n.message.includes(eventId),
-      )
-
-      if (targetNotification && targetNotification.userEmail) {
-        console.log("Found notification with matching message:", targetNotification.message)
-
-        // Get the most recent event for this user
-        const userEvents = await aeventsCollection
-          .find({ userEmail: targetNotification.userEmail })
-          .sort({ _id: -1 })
-          .limit(5)
-          .toArray()
-
-        if (userEvents.length > 0) {
-          event = userEvents[0]
-          console.log("Found event through notification message match:", event.eventName)
-        }
-      }
-    }
-
     if (event) {
       console.log("Event found:", event)
       res.json({ success: true, event })
     } else {
       // If all attempts fail, dump some debug info
-      const sampleEvents = await aeventsCollection.find({}).limit(5).toArray()
+      const sampleEvents = await aeventsCollection.find({}).limit(3).toArray()
       console.log(
         "Sample events in database:",
         sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
@@ -1283,7 +1255,7 @@ app.get("/api/event/:eventId", async (req, res) => {
 
       res.status(404).json({
         success: false,
-        message: "Event not found after multiple lookup attempts",
+        message: "Event not found",
         debug: {
           requestedId: eventId,
           sampleEvents: sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
@@ -1314,7 +1286,6 @@ app.post("/api/approve-event", async (req, res) => {
     const db = await connectToDatabase()
     const eventsCollection = db.collection("events")
     const aeventsCollection = db.collection("aevents")
-    const notificationsCollection = db.collection("notifications")
 
     // Find the event in the events collection
     const event = await eventsCollection.findOne({ eventName })
@@ -1326,32 +1297,30 @@ app.post("/api/approve-event", async (req, res) => {
       })
     }
 
-    // Add approval timestamp and move to approved events collection
+    // Format times before moving to approved events
     const approvedEvent = {
       ...event,
+      startTime: formatTime(event.startTime),
+      endTime: formatTime(event.endTime),
       approvedAt: new Date(),
       status: "approved",
     }
 
-    // Insert into approved events collection
     await aeventsCollection.insertOne(approvedEvent)
-
-    // Remove from pending events collection
     await eventsCollection.deleteOne({ eventName })
 
-    // Create notification for the user
     if (event.userEmail) {
+      const timeRange = `${approvedEvent.startTime}-${approvedEvent.endTime}`
       await createNotification(
         event.userEmail,
         "payment_required",
         `Your event "${eventName}" has been approved. Please proceed with the payment.`,
         approvedEvent._id.toString(),
-        `${eventName} on ${event.eventDate} ${event.startTime}-${event.endTime}`,
+        `${eventName} on ${event.eventDate} ${timeRange}`,
         event.amenity,
       )
     }
 
-    // Log the activity
     await logActivity("eventApproval", `Event ${eventName} approved`)
 
     res.json({
@@ -1773,6 +1742,7 @@ app.get("/api/user-events/:userEmail", async (req, res) => {
     })
   }
 })
+
 app.get("/api/event/:eventId", async (req, res) => {
   const { eventId } = req.params
 
@@ -2067,6 +2037,27 @@ function updateNotificationList() {
     notificationList.appendChild(notificationItem);
   });
 }
+
+app.get("/api/calendar-events", async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+    const eventsCollection = db.collection("aevents") // or whichever collection stores your events
+
+    const events = await eventsCollection.find({}).toArray()
+
+    // Format the events if necessary
+    const formattedEvents = events.map((event) => ({
+      ...event,
+      startTime: formatTime(event.startTime),
+      endTime: formatTime(event.endTime),
+    }))
+
+    res.json(formattedEvents)
+  } catch (error) {
+    console.error("Error fetching calendar events:", error)
+    res.status(500).json({ error: "Failed to fetch calendar events" })
+  }
+})
 
 app.post("/api/clearAllNotifications", async (req, res) => {
   try {
