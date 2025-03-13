@@ -231,7 +231,6 @@ app.get("/debug-images", (req, res) => {
   }
 })
 
-
 // Middleware to attach the database
 
 connectToDatabase().catch(console.error)
@@ -1011,88 +1010,89 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
 function proceedToPayment(notification) {
   // Check if notification has a relatedId
   if (!notification.relatedId) {
-    alert('Error: Missing event ID. Please contact support.');
-    return;
+    alert("Error: Missing event ID. Please contact support.")
+    return
   }
-  
-  const eventId = notification.relatedId;
-  console.log("Proceeding to payment for event ID:", eventId);
-  
+
+  const eventId = notification.relatedId
+  console.log("Proceeding to payment for event ID:", eventId)
+
   // Show loading indicator
-  const loadingDiv = document.createElement('div');
-  loadingDiv.textContent = 'Loading event details...';
-  loadingDiv.style.position = 'fixed';
-  loadingDiv.style.top = '50%';
-  loadingDiv.style.left = '50%';
-  loadingDiv.style.transform = 'translate(-50%, -50%)';
-  loadingDiv.style.padding = '20px';
-  loadingDiv.style.background = 'white';
-  loadingDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
-  loadingDiv.style.borderRadius = '5px';
-  loadingDiv.style.zIndex = '9999';
-  document.body.appendChild(loadingDiv);
-  
+  const loadingDiv = document.createElement("div")
+  loadingDiv.textContent = "Loading event details..."
+  loadingDiv.style.position = "fixed"
+  loadingDiv.style.top = "50%"
+  loadingDiv.style.left = "50%"
+  loadingDiv.style.transform = "translate(-50%, -50%)"
+  loadingDiv.style.padding = "20px"
+  loadingDiv.style.background = "white"
+  loadingDiv.style.boxShadow = "0 0 10px rgba(0,0,0,0.2)"
+  loadingDiv.style.borderRadius = "5px"
+  loadingDiv.style.zIndex = "9999"
+  document.body.appendChild(loadingDiv)
+
   // First try to get debug info about this notification
   fetch(`/api/debug/notification-by-related/${eventId}`)
-    .then(response => response.json())
-    .then(debugData => {
-      console.log("Debug data for notification:", debugData);
-      
+    .then((response) => response.json())
+    .then((debugData) => {
+      console.log("Debug data for notification:", debugData)
+
       // Now try to fetch the event
-      return fetch(`/api/event/${eventId}`);
+      return fetch(`/api/event/${eventId}`)
     })
-    .then(response => {
+    .then((response) => {
       if (!response.ok) {
         // If event not found by ID, try to find by name
         if (response.status === 404 && notification.eventName) {
-          console.log("Event not found by ID, trying by name:", notification.eventName);
-          return fetch(`/api/event/${encodeURIComponent(notification.eventName)}`);
+          console.log("Event not found by ID, trying by name:", notification.eventName)
+          return fetch(`/api/event/${encodeURIComponent(notification.eventName)}`)
         }
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`)
       }
-      return response.json();
+      return response.json()
     })
-    .then(eventData => {
-      document.body.removeChild(loadingDiv); // Remove loading indicator
-      
+    .then((eventData) => {
+      document.body.removeChild(loadingDiv) // Remove loading indicator
+
       if (eventData.success) {
-        console.log("Event data received:", eventData.event);
+        console.log("Event data received:", eventData.event)
         // Store the event data in sessionStorage
-        sessionStorage.setItem('eventData', JSON.stringify(eventData.event));
+        sessionStorage.setItem("eventData", JSON.stringify(eventData.event))
         // Redirect to the payment page
-        window.location.href = 'payment.html';
+        window.location.href = "payment.html"
       } else {
-        console.error("API returned error:", eventData);
-        throw new Error(eventData.message || 'Unknown error');
+        console.error("API returned error:", eventData)
+        throw new Error(eventData.message || "Unknown error")
       }
     })
-    .catch(error => {
+    .catch((error) => {
       if (document.body.contains(loadingDiv)) {
-        document.body.removeChild(loadingDiv); // Remove loading indicator if still present
+        document.body.removeChild(loadingDiv) // Remove loading indicator if still present
       }
-      console.error('Error fetching event details:', error);
-      
+      console.error("Error fetching event details:", error)
+
       // Offer alternative options
       const useManualEntry = confirm(
-        'Failed to fetch event details automatically. Would you like to enter event details manually?\n\n' +
-        'Error: ' + error.message
-      );
-      
+        "Failed to fetch event details automatically. Would you like to enter event details manually?\n\n" +
+          "Error: " +
+          error.message,
+      )
+
       if (useManualEntry) {
         // Create a minimal event object with data from the notification
         const minimalEvent = {
-          userEmail: notification.userEmail || '',
-          eventName: notification.eventName || 'Unknown Event',
-          eventDate: notification.eventDate || new Date().toISOString().split('T')[0],
-          startTime: notification.startTime || '09:00',
-          endTime: notification.endTime || '12:00',
-          amenity: notification.amenity || 'Unknown',
-        };
-        
-        sessionStorage.setItem('eventData', JSON.stringify(minimalEvent));
-        window.location.href = 'payment.html';
+          userEmail: notification.userEmail || "",
+          eventName: notification.eventName || "Unknown Event",
+          eventDate: notification.eventDate || new Date().toISOString().split("T")[0],
+          startTime: notification.startTime || "09:00",
+          endTime: notification.endTime || "12:00",
+          amenity: notification.amenity || "Unknown",
+        }
+
+        sessionStorage.setItem("eventData", JSON.stringify(minimalEvent))
+        window.location.href = "payment.html"
       }
-    });
+    })
 }
 
 app.post("/logout", (req, res) => {
@@ -1977,65 +1977,65 @@ app.post("/api/markNotificationsAsRead", async (req, res) => {
 })
 
 function updateNotificationList() {
-  const notificationList = document.getElementById('notificationList');
+  const notificationList = document.getElementById("notificationList")
   if (!notificationList) {
-    console.error('Notification list element not found');
-    return;
+    console.error("Notification list element not found")
+    return
   }
-  
-  notificationList.innerHTML = ''; // Clear existing list
+
+  notificationList.innerHTML = "" // Clear existing list
 
   if (!notifications || notifications.length === 0) {
-    const noNotifications = document.createElement('div');
-    noNotifications.classList.add('no-notifications');
-    noNotifications.textContent = 'No new notifications';
-    notificationList.appendChild(noNotifications);
-    return;
+    const noNotifications = document.createElement("div")
+    noNotifications.classList.add("no-notifications")
+    noNotifications.textContent = "No new notifications"
+    notificationList.appendChild(noNotifications)
+    return
   }
 
   notifications.forEach((notification) => {
-    const notificationItem = document.createElement('div');
-    notificationItem.classList.add('notification-item');
+    const notificationItem = document.createElement("div")
+    notificationItem.classList.add("notification-item")
 
     // Create checkbox
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'notification-checkbox';
-    checkbox.dataset.id = notification._id;
+    const checkbox = document.createElement("input")
+    checkbox.type = "checkbox"
+    checkbox.className = "notification-checkbox"
+    checkbox.dataset.id = notification._id
 
     // Create content wrapper
-    const contentWrapper = document.createElement('div');
-    contentWrapper.className = 'notification-content';
+    const contentWrapper = document.createElement("div")
+    contentWrapper.className = "notification-content"
 
     // Create message element
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'notification-message';
-    messageDiv.textContent = notification.message;
+    const messageDiv = document.createElement("div")
+    messageDiv.className = "notification-message"
+    messageDiv.textContent = notification.message
 
     // Create timestamp element
-    const timestampDiv = document.createElement('div');
-    timestampDiv.className = 'notification-timestamp';
-    timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
+    const timestampDiv = document.createElement("div")
+    timestampDiv.className = "notification-timestamp"
+    timestampDiv.textContent = new Date(notification.timestamp).toLocaleString()
 
     // Add message and timestamp to content wrapper
-    contentWrapper.appendChild(messageDiv);
-    contentWrapper.appendChild(timestampDiv);
+    contentWrapper.appendChild(messageDiv)
+    contentWrapper.appendChild(timestampDiv)
 
     // Add elements to notification item
-    notificationItem.appendChild(checkbox);
-    notificationItem.appendChild(contentWrapper);
+    notificationItem.appendChild(checkbox)
+    notificationItem.appendChild(contentWrapper)
 
     // If it's an event notification that requires payment, add the proceed button
-    if (notification.type === 'event_deleted' || notification.type === 'payment_required') {
-      const proceedButton = document.createElement('button');
-      proceedButton.className = 'proceed-to-payment-btn';
-      proceedButton.textContent = 'Proceed to Payment';
-      proceedButton.onclick = () => proceedToPayment(notification);
-      notificationItem.appendChild(proceedButton);
+    if (notification.type === "event_deleted" || notification.type === "payment_required") {
+      const proceedButton = document.createElement("button")
+      proceedButton.className = "proceed-to-payment-btn"
+      proceedButton.textContent = "Proceed to Payment"
+      proceedButton.onclick = () => proceedToPayment(notification)
+      notificationItem.appendChild(proceedButton)
     }
 
-    notificationList.appendChild(notificationItem);
-  });
+    notificationList.appendChild(notificationItem)
+  })
 }
 
 app.get("/api/calendar-events", async (req, res) => {
@@ -2090,6 +2090,67 @@ app.post("/api/clearAllNotifications", async (req, res) => {
     res.status(500).json({
       success: false,
 
+      error: "Internal server error",
+    })
+  }
+})
+
+// Add this endpoint after the clearAllNotifications endpoint
+
+app.post("/api/clearSelectedNotifications", async (req, res) => {
+  try {
+    const userEmail = req.session?.user?.email
+    const { notificationIds } = req.body
+
+    if (!userEmail) {
+      return res.status(401).json({
+        success: false,
+        error: "User not authenticated",
+      })
+    }
+
+    if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No notification IDs provided",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
+
+    const objectIds = notificationIds
+      .map((id) => {
+        try {
+          return new ObjectId(id)
+        } catch (error) {
+          console.error(`Invalid ObjectId format: ${id}`)
+          return null
+        }
+      })
+      .filter((id) => id !== null)
+
+    if (objectIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No valid notification IDs provided",
+      })
+    }
+
+    const result = await notificationsCollection.deleteMany({
+      _id: { $in: objectIds },
+      userEmail: userEmail,
+    })
+
+    res.json({
+      success: true,
+      message: "Selected notifications cleared",
+      deletedCount: result.deletedCount,
+    })
+  } catch (error) {
+    console.error("Error clearing selected notifications:", error)
+    res.status(500).json({
+      success: false,
       error: "Internal server error",
     })
   }

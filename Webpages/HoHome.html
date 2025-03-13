@@ -1170,6 +1170,54 @@ async function clearAllNotifications() {
   }
 }
 
+// Add this function after the fetchNotifications function and before the DOMContentLoaded event listener
+
+// Function to clear selected notifications
+async function clearSelectedNotifications() {
+  console.log("Clearing selected notifications");
+  try {
+    const checkboxes = document.querySelectorAll('.notification-checkbox:checked');
+    if (checkboxes.length === 0) {
+      console.log("No notifications selected");
+      return;
+    }
+
+    const selectedIds = Array.from(checkboxes).map(checkbox => checkbox.dataset.id);
+    console.log("Selected notification IDs:", selectedIds);
+
+    const response = await fetch('/api/clearSelectedNotifications', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ notificationIds: selectedIds })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        // Remove the cleared notifications from the array
+        notifications = notifications.filter(notification => 
+          !selectedIds.includes(notification._id)
+        );
+        
+        // Update the notification count
+        const notificationCount = document.getElementById('notificationCount');
+        if (notificationCount) {
+          notificationCount.textContent = notifications.length.toString();
+        }
+        
+        // Update the UI
+        updateNotificationList();
+        updateClearButtons();
+      }
+    }
+  } catch (error) {
+    console.error('Error clearing selected notifications:', error);
+    showErrorMessage('Failed to clear selected notifications. Please try again.');
+  }
+}
 // Function to fetch notifications from the server - defined last since it uses all the above functions
 async function fetchNotifications() {
   console.log("Fetching notifications");
