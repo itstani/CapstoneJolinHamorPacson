@@ -28,7 +28,7 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? "https://capstone-jolin-hamor-pacson.vercel.app"
+        ? "https://avidasetting.onrender.com"
         : "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
