@@ -48,22 +48,32 @@ app.use((req, res, next) => {
   next()
 })
 
-// Replace your existing session middleware with this updated version
+// Replace the existing session middleware configuration with this updated version
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Changed to true to ensure session is saved
+    saveUninitialized: true, // Changed to true to ensure new sessions are saved
     cookie: {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
-      domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+      domain: process.env.NODE_ENV === "production" ? "avidasetting.onrender.com" : undefined,
     },
-    proxy: process.env.NODE_ENV === "production", // Trust the reverse proxy when in production
+    proxy: true, // Always trust the proxy
   }),
 )
+
+// Add this middleware right after the session middleware to log session data
+app.use((req, res, next) => {
+  console.log("Session middleware - Current session:", {
+    id: req.sessionID,
+    user: req.session?.user,
+    cookie: req.session?.cookie,
+  })
+  next()
+})
 
 function getClient() {
   return new MongoClient(uri, {
@@ -434,6 +444,7 @@ app.get("/api/generate-report", async (req, res) => {
 
 // Add CORS middleware
 
+// Update the login route to properly set session data
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body
   const db = await connectToDatabase()
@@ -469,8 +480,12 @@ app.post("/api/login", async (req, res) => {
     console.log("User found, comparing passwords...")
     const isValidPassword = await bcrypt.compare(password, user.password)
 
-    // After successful login verification and before sending the response
-    console.log("Login successful for user:", user.username)
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      })
+    }
 
     // Set user data in session
     req.session.user = {
@@ -479,14 +494,28 @@ app.post("/api/login", async (req, res) => {
       role: user.role || "homeowner",
     }
 
-    // Log successful login
-    await logActivity("login", `User ${user.username} logged in successfully`)
+    // Force session save
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error saving session:", err)
+        return res.status(500).json({
+          success: false,
+          message: "Error saving session",
+        })
+      }
 
-    res.json({
-      success: true,
-      username: user.username,
-      email: user.email,
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      console.log("Session saved successfully:", req.sessionID)
+      console.log("Session data:", req.session)
+
+      // Log successful login
+      logActivity("login", `User ${user.username} logged in successfully`)
+
+      res.json({
+        success: true,
+        username: user.username,
+        email: user.email,
+        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      })
     })
   } catch (error) {
     console.error("Login error:", error)
@@ -1823,69 +1852,57 @@ app.get("/api/event/:eventId", async (req, res) => {
   }
 })
 
+// Update the notifications endpoint to include more detailed logging
 app.get("/api/notifications", async (req, res) => {
   try {
-    console.log("Session in notifications endpoint:", req.session)
+    console.log("Session in notifications endpoint:", {
+      sessionID: req.sessionID,
+      session: req.session,
+      user: req.session?.user,
+      cookie: req.session?.cookie,
+    })
 
     // Check if the user is authenticated
-
     if (!req.session || !req.session.user || !req.session.user.email) {
       console.log("User not authenticated in notifications endpoint")
-
+      console.log("Session details:", req.session)
       return res.status(401).json({
         success: false,
-
         error: "User not authenticated",
-
         notifications: [],
-
         unreadCount: 0,
       })
     }
 
     const userEmail = req.session.user.email
-
     console.log("Fetching notifications for:", userEmail)
 
     const db = await connectToDatabase()
-
     const notificationsCollection = db.collection("notifications")
 
     const notifications = await notificationsCollection
-
       .find({
         userEmail: userEmail,
-
         read: false,
       })
-
       .sort({ timestamp: -1 })
-
       .limit(10)
-
       .toArray()
 
     console.log(`Found ${notifications.length} notifications for ${userEmail}`)
-
     console.log("Notifications:", JSON.stringify(notifications))
 
     res.json({
       success: true,
-
       notifications: notifications,
-
       unreadCount: notifications.length,
     })
   } catch (error) {
     console.error("Error fetching notifications:", error)
-
     res.status(500).json({
       success: false,
-
       error: "Internal server error",
-
       notifications: [],
-
       unreadCount: 0,
     })
   }
