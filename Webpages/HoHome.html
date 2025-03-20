@@ -912,16 +912,19 @@ function updateNotificationList() {
   });
 }
 
+// Find the showEventDetails function and replace it with this version that preserves all CSS classes:
+
+// Update the showEventDetails function with better debugging and fallback options
 function showEventDetails(notification) {
   console.log("Showing event details for notification:", notification);
-  currentNotification = notification;
-  
+  currentNotification = notification; 
+
   // Close the notification modal
   const notificationModal = document.getElementById('notificationModal');
   if (notificationModal) {
     notificationModal.style.display = 'none';
   }
-  
+
   // Extract event name from notification message if available
   let eventName = '';
   if (notification.message) {
@@ -930,37 +933,70 @@ function showEventDetails(notification) {
       eventName = match[1];
     }
   }
-  
+
   // Set event details in the modal
   document.getElementById('eventDetailsTitle').textContent = 'Event Details';
-  
+
   // Set event name - try multiple sources
   document.getElementById('eventDetailsName').textContent = 
     eventName || 
     notification.eventName || 
     (notification.subject ? notification.subject.split(' on ')[0] : 'N/A');
+
+  // Debug the date and time values
+  console.log("Date value:", notification.eventDate);
+  console.log("Start time:", notification.startTime);
+  console.log("End time:", notification.endTime);
   
-  // Try to extract date and time from subject or message
-  let eventDate = notification.eventDate || 'N/A';
-  let eventTime = notification.eventTime || 'N/A';
-  
-  if (notification.subject) {
+  // Try to extract date from multiple sources
+  let eventDate = 'N/A';
+  if (notification.eventDate) {
+    eventDate = notification.eventDate;
+  } else if (notification.subject) {
+    // Try to extract date from subject
     const dateMatch = notification.subject.match(/on\s+(\d{4}-\d{2}-\d{2})/);
     if (dateMatch && dateMatch[1]) {
       eventDate = dateMatch[1];
     }
-    
-    // Updated time extraction to handle AM/PM correctly
+  } else if (notification.message) {
+    // Try to extract date from message
+    const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
+    if (dateMatch && dateMatch[1]) {
+      eventDate = dateMatch[1];
+    }
+  }
+
+  // For time, check multiple sources with detailed fallbacks
+  let eventTime = 'N/A';
+  
+  // First check: direct properties
+  if (notification.startTime && notification.endTime) {
+    console.log("Using direct time properties");
+    eventTime = `${notification.startTime} - ${notification.endTime}`;
+  } 
+  // Second check: subject line
+  else if (notification.subject) {
+    console.log("Trying to extract time from subject");
     const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))-(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
     if (timeMatch && timeMatch[1] && timeMatch[2]) {
       eventTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
+      console.log("Extracted time from subject:", eventTime);
     }
   }
-  
+  // Third check: message content
+  else if (notification.message) {
+    console.log("Trying to extract time from message");
+    const timeMatch = notification.message.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))-(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+    if (timeMatch && timeMatch[1] && timeMatch[2]) {
+      eventTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
+      console.log("Extracted time from message:", eventTime);
+    }
+  }
+
   document.getElementById('eventDetailsDate').textContent = eventDate;
   document.getElementById('eventDetailsTime').textContent = eventTime;
   document.getElementById('eventDetailsAmenity').textContent = notification.amenity || 'N/A';
-  
+
   // Set status based on notification type
   let status = 'Confirmed';
   if (notification.type === 'payment_required' || notification.type === 'event_deleted') {
@@ -970,14 +1006,14 @@ function showEventDetails(notification) {
   } else if (notification.type === 'event_cancelled') {
     status = 'Cancelled';
   }
-  
+
   document.getElementById('eventDetailsStatus').textContent = status;
   document.getElementById('eventDetailsMessage').textContent = notification.message || '';
-  
+
   // Add payment button if needed
   const actionsDiv = document.getElementById('eventActions');
   actionsDiv.innerHTML = '';
-  
+
   if (notification.type === 'payment_required' || notification.type === 'event_deleted') {
     const paymentButton = document.createElement('button');
     paymentButton.className = 'payment-button';
@@ -985,7 +1021,7 @@ function showEventDetails(notification) {
     paymentButton.onclick = () => proceedToPayment(notification);
     actionsDiv.appendChild(paymentButton);
   }
-  
+
   // Show the modal
   const eventDetailsModal = document.getElementById('eventDetailsModal');
   if (eventDetailsModal) {
@@ -1225,7 +1261,7 @@ async function fetchNotifications() {
     console.log("Attempting to fetch notifications...");
     const response = await fetch('/api/notifications', {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'include', // Important: This ensures cookies are sent with the request
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
@@ -1235,6 +1271,12 @@ async function fetchNotifications() {
     console.log("Fetch response received:", response);
     
     if (!response.ok) {
+      // If we get a 401, try to redirect to login
+      if (response.status === 401) {
+        console.log("User not authenticated, redirecting to login page");
+        window.location.href = '/Webpages/login.html';
+        return;
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
