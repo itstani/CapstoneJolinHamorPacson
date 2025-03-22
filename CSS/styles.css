@@ -86,10 +86,12 @@ padding-left: 70px;
 }
 
 .avidalogo {
-width: 400px;
-height: 180px;
-margin-left: 20px;
-padding-top: 4%;
+  max-width: 300px;
+  width: 100%;
+  height: auto; /* This maintains the aspect ratio */
+  margin-left: 50px;
+  padding-top: 20px; /* Using fixed padding instead of percentage */
+  display: block; /* Ensures proper rendering */
 }
 
 

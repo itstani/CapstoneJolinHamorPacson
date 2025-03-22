@@ -669,6 +669,23 @@ z-index: 1002; /* Ensure it's above the header */
           padding: 12px;
         }
       }
+      .avidalogo {
+  max-width: 300px;
+  width: 100%;
+  height: auto; /* This maintains the aspect ratio */
+  margin-left: 50px;
+  padding-top: 20px; /* Using fixed padding instead of percentage */
+  display: block; /* Ensures proper rendering */
+}
+
+/* Add responsive adjustments */
+@media screen and (max-width: 768px) {
+  .avidalogo {
+    max-width: 200px;
+    margin-left: 20px;
+    padding-top: 10px;
+  }
+}
     </style>
   </head>
   <body>
@@ -901,23 +918,59 @@ function updateNotificationList() {
     notificationItem.appendChild(checkbox);
     notificationItem.appendChild(contentWrapper);
 
-    // Add click event to show event details
-    notificationItem.addEventListener('click', (e) => {
-      if (e.target !== checkbox) {
-        showEventDetails(notification);
-      }
-    });
+    // Check if this is an admin response/concern notification
+    const isAdminResponse = 
+      notification.type === 'concern' || 
+      notification.type === 'new_concern' || 
+      notification.isAdminResponse === true ||
+      (notification.subject && notification.subject.toLowerCase().includes('concern'));
+    
+    if (isAdminResponse) {
+      // For admin responses, show the custom popup with the message
+      notificationItem.addEventListener('click', (e) => {
+        if (e.target !== checkbox) {
+          showAdminResponsePopup(`Admin Response: ${notification.message}`);
+        }
+      });
+    } else {
+      // For event notifications, show the event details modal
+      notificationItem.addEventListener('click', (e) => {
+        if (e.target !== checkbox) {
+          showEventDetails(notification);
+        }
+      });
+    }
 
     notificationList.appendChild(notificationItem);
   });
 }
 
-// Find the showEventDetails function and replace it with this version that preserves all CSS classes:
-
-// Update the showEventDetails function with better debugging and fallback options
 function showEventDetails(notification) {
   console.log("Showing event details for notification:", notification);
-  currentNotification = notification; 
+  
+  // First, check if this is actually an event notification
+  const isEventNotification = 
+    notification.eventName || 
+    notification.eventDate || 
+    notification.amenity ||
+    notification.type === 'payment_required' ||
+    notification.type === 'payment_confirmed' ||
+    notification.type === 'event_confirmed';
+  
+  // Check if this is an admin response
+  const isAdminResponse = 
+    notification.type === 'concern' || 
+    notification.type === 'new_concern' || 
+    notification.isAdminResponse === true ||
+    (notification.subject && notification.subject.toLowerCase().includes('concern'));
+  
+  if (isAdminResponse || !isEventNotification) {
+    console.log("This is not an event notification:", notification);
+    alert(`Admin Response: ${notification.message}`);
+    return;
+  }
+  
+  currentNotification = notification;
 
   // Close the notification modal
   const notificationModal = document.getElementById('notificationModal');
@@ -925,96 +978,124 @@ function showEventDetails(notification) {
     notificationModal.style.display = 'none';
   }
 
-  // Extract event name from notification message if available
-  let eventName = '';
-  if (notification.message) {
-    const match = notification.message.match(/"([^"]+)"/);
+  // Extract event name
+  let displayEventName = notification.eventName || 'N/A';
+  if (!displayEventName || displayEventName === 'N/A') {
+    const match = notification.message?.match(/"([^"]+)"/);
     if (match && match[1]) {
-      eventName = match[1];
+      displayEventName = match[1];
+    } else if (notification.subject) {
+      const subjectParts = notification.subject.split(' on ');
+      if (subjectParts.length > 0) {
+        displayEventName = subjectParts[0];
+      }
     }
   }
+  document.getElementById('eventDetailsName').textContent = displayEventName;
 
-  // Set event details in the modal
-  document.getElementById('eventDetailsTitle').textContent = 'Event Details';
-
-  // Set event name - try multiple sources
-  document.getElementById('eventDetailsName').textContent = 
-    eventName || 
-    notification.eventName || 
-    (notification.subject ? notification.subject.split(' on ')[0] : 'N/A');
-
-  // Debug the date and time values
-  console.log("Date value:", notification.eventDate);
-  console.log("Start time:", notification.startTime);
-  console.log("End time:", notification.endTime);
-  
-  // Try to extract date from multiple sources
-  let eventDate = 'N/A';
-  if (notification.eventDate) {
-    eventDate = notification.eventDate;
-  } else if (notification.subject) {
-    // Try to extract date from subject
-    const dateMatch = notification.subject.match(/on\s+(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch && dateMatch[1]) {
-      eventDate = dateMatch[1];
+  // Extract date
+  let displayDate = notification.eventDate || 'N/A';
+  if (!displayDate || displayDate === 'N/A') {
+    if (notification.subject) {
+      const dateMatch = notification.subject.match(/on\s+(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch && dateMatch[1]) {
+        displayDate = dateMatch[1];
+      }
     }
-  } else if (notification.message) {
-    // Try to extract date from message
-    const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch && dateMatch[1]) {
-      eventDate = dateMatch[1];
+    if ((!displayDate || displayDate === 'N/A') && notification.message) {
+      const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch && dateMatch[1]) {
+        displayDate = dateMatch[1];
+      }
     }
   }
+  document.getElementById('eventDetailsDate').textContent = displayDate;
 
-  // For time, check multiple sources with detailed fallbacks
-  let eventTime = 'N/A';
+  // Extract time
+  let displayTime = 'N/A';
   
-  // First check: direct properties
+  // First check direct properties
   if (notification.startTime && notification.endTime) {
-    console.log("Using direct time properties");
-    eventTime = `${notification.startTime} - ${notification.endTime}`;
+    displayTime = `${notification.startTime} - ${notification.endTime}`;
   } 
-  // Second check: subject line
+  // Then check subject - specifically for the format in your data
+  else if (notification.subject && notification.subject.includes('PM-')) {
+    // Handle the specific format in your data like "Liga on 2025-03-20 4: PM-6: PM"
+    const timeMatch = notification.subject.match(/(\d+:\s*PM)-(\d+:\s*PM)/i);
+    if (timeMatch && timeMatch[1] && timeMatch[2]) {
+      displayTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
+    }
+  }
+  // Try other patterns if still not found
   else if (notification.subject) {
-    console.log("Trying to extract time from subject");
-    const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))-(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+    const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*-\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)/i);
     if (timeMatch && timeMatch[1] && timeMatch[2]) {
-      eventTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
-      console.log("Extracted time from subject:", eventTime);
+      displayTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
     }
   }
-  // Third check: message content
-  else if (notification.message) {
-    console.log("Trying to extract time from message");
-    const timeMatch = notification.message.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))-(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
-    if (timeMatch && timeMatch[1] && timeMatch[2]) {
-      eventTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
-      console.log("Extracted time from message:", eventTime);
+  document.getElementById('eventDetailsTime').textContent = displayTime;
+
+  // Extract amenity
+  let displayAmenity = notification.amenity || 'N/A';
+  if (!displayAmenity || displayAmenity === 'N/A') {
+    if (notification.message) {
+      const amenityMatch = notification.message.match(/at\s+([A-Za-z]+)/i);
+      if (amenityMatch && amenityMatch[1]) {
+        displayAmenity = amenityMatch[1];
+      }
     }
   }
+  document.getElementById('eventDetailsAmenity').textContent = displayAmenity;
 
-  document.getElementById('eventDetailsDate').textContent = eventDate;
-  document.getElementById('eventDetailsTime').textContent = eventTime;
-  document.getElementById('eventDetailsAmenity').textContent = notification.amenity || 'N/A';
-
-  // Set status based on notification type
+  // Determine if payment is required based on multiple factors
+  let requiresPayment = false;
   let status = 'Confirmed';
-  if (notification.type === 'payment_required' || notification.type === 'event_deleted') {
+
+  // Check explicit payment indicators
+  if (notification.type === 'payment_required') {
+    requiresPayment = true;
     status = 'Payment Required';
-  } else if (notification.type === 'payment_confirmed') {
+  } else if (notification.type === 'payment_confirmed' || notification.paymentStatus === 'paid' || notification.isPaid === true) {
     status = 'Payment Confirmed';
-  } else if (notification.type === 'event_cancelled') {
+  } else if (notification.type === 'event_cancelled' || notification.type === 'event_deleted') {
     status = 'Cancelled';
+  } else if (notification.message && notification.message.includes('proceed with the payment')) {
+    // If message mentions payment but no other indicators suggest it's been paid
+    if (!(notification.type === 'payment_confirmed' || notification.paymentStatus === 'paid' || notification.isPaid === true)) {
+      requiresPayment = true;
+      status = 'Payment Required';
+    }
+  }
+
+  // Check event type - certain types typically don't require payment
+  const freeEventTypes = ['birthday', 'meeting', 'community'];
+  if (notification.eventType && freeEventTypes.includes(notification.eventType.toLowerCase())) {
+    requiresPayment = false;
+    if (status === 'Payment Required') {
+      status = 'Confirmed'; // Override status for free event types
+    }
+  }
+
+  // Check event name for keywords that suggest it's a birthday event
+  const birthdayKeywords = ['birthday', 'bday', 'celebration', 'anniversary'];
+  const eventNameLower = displayEventName.toLowerCase();
+  if (birthdayKeywords.some(keyword => eventNameLower.includes(keyword))) {
+    requiresPayment = false;
+    if (status === 'Payment Required') {
+      status = 'Confirmed'; // Override status for birthday events
+    }
   }
 
   document.getElementById('eventDetailsStatus').textContent = status;
+  
+  // Set message
   document.getElementById('eventDetailsMessage').textContent = notification.message || '';
 
-  // Add payment button if needed
+  // Add payment button ONLY if payment is required
   const actionsDiv = document.getElementById('eventActions');
   actionsDiv.innerHTML = '';
-
-  if (notification.type === 'payment_required' || notification.type === 'event_deleted') {
+  
+  if (requiresPayment) {
     const paymentButton = document.createElement('button');
     paymentButton.className = 'payment-button';
     paymentButton.textContent = 'Proceed to Payment';
@@ -1027,8 +1108,117 @@ function showEventDetails(notification) {
   if (eventDetailsModal) {
     eventDetailsModal.style.display = 'flex';
   }
+
+  // If we're missing important details, try to fetch them from the server
+  if (displayDate === 'N/A' || displayTime === 'N/A' || displayAmenity === 'N/A') {
+    fetchEventDetails(notification, displayEventName);
+  }
 }
-// Function to update the clear buttons state
+
+function showAdminResponsePopup(message) {
+  // Check if popup already exists and remove it
+  const existingPopup = document.getElementById('adminResponsePopup');
+  if (existingPopup) {
+    document.body.removeChild(existingPopup);
+  }
+
+  // Create popup container
+  const popup = document.createElement('div');
+  popup.id = 'adminResponsePopup';
+  popup.style.position = 'fixed';
+  popup.style.top = '50%';
+  popup.style.left = '50%';
+  popup.style.transform = 'translate(-50%, -50%)';
+  popup.style.backgroundColor = '#2d2d2d';
+  popup.style.color = 'white';
+  popup.style.padding = '20px';
+  popup.style.borderRadius = '5px';
+  popup.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+  popup.style.zIndex = '1000';
+  popup.style.minWidth = '300px';
+  popup.style.maxWidth = '80%';
+  popup.style.display = 'flex';
+  popup.style.flexDirection = 'column';
+
+  // Create header with hostname
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.alignItems = 'center';
+  header.style.marginBottom = '15px';
+  
+  const icon = document.createElement('span');
+  icon.innerHTML = '🌐';
+  icon.style.marginRight = '5px';
+  
+  const hostname = document.createElement('span');
+  hostname.textContent = 'localhost:3000';
+  hostname.style.fontSize = '14px';
+  hostname.style.opacity = '0.8';
+  
+  header.appendChild(icon);
+  header.appendChild(hostname);
+  
+  // Create message content
+  const content = document.createElement('div');
+  content.textContent = message;
+  content.style.marginBottom = '20px';
+  content.style.lineHeight = '1.5';
+  
+  // Create OK button
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.display = 'flex';
+  buttonContainer.style.justifyContent = 'flex-end';
+  
+  const okButton = document.createElement('button');
+  okButton.textContent = 'OK';
+  okButton.style.backgroundColor = '#00bcd4';
+  okButton.style.color = 'white';
+  okButton.style.border = 'none';
+  okButton.style.borderRadius = '4px';
+  okButton.style.padding = '8px 16px';
+  okButton.style.cursor = 'pointer';
+  okButton.style.fontWeight = 'bold';
+  okButton.onclick = function() {
+    document.body.removeChild(popup);
+  };
+  
+  buttonContainer.appendChild(okButton);
+  
+  // Add overlay
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  overlay.style.zIndex = '999';
+  overlay.onclick = function() {
+    document.body.removeChild(overlay);
+    document.body.removeChild(popup);
+  };
+  
+  // Assemble popup
+  popup.appendChild(header);
+  popup.appendChild(content);
+  popup.appendChild(buttonContainer);
+  
+  // Add to document
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
+}
+
+
+function handleNoNotifications() {
+  console.log("Handling no notifications");
+  notifications = [];
+  const notificationCountElement = document.getElementById('notificationCount');
+  if (notificationCountElement) {
+    notificationCountElement.textContent = '0';
+  }
+  updateNotificationList();
+  updateClearButtons();
+}
 function updateClearButtons() {
   console.log("Updating clear buttons");
   const clearSelectedBtn = document.getElementById('clearSelectedBtn');
@@ -1052,16 +1242,6 @@ function updateClearButtons() {
   }
 }
 
-function handleNoNotifications() {
-  console.log("Handling no notifications");
-  notifications = [];
-  const notificationCountElement = document.getElementById('notificationCount');
-  if (notificationCountElement) {
-    notificationCountElement.textContent = '0';
-  }
-  updateNotificationList();
-  updateClearButtons();
-}
 // Function to show error messages
 function showErrorMessage(message) {
   console.error('Error message:', message);
@@ -1088,6 +1268,7 @@ function showErrorMessage(message) {
     }
   }, 5000); // Remove after 5 seconds
 }
+
 function proceedToPayment(notification) {
   // Check if this is a deleted event notification
   if (notification.type === 'event_deleted') {
@@ -1096,6 +1277,7 @@ function proceedToPayment(notification) {
   }
 
   if (!notification.relatedId) {
+    console.error("Missing relatedId in notification:", notification);
     alert('Error: Missing event ID. Please contact support.');
     return;
   }
@@ -1116,6 +1298,28 @@ function proceedToPayment(notification) {
   loadingDiv.style.zIndex = '9999';
   document.body.appendChild(loadingDiv);
   
+  // First try to use the notification data directly if it has all needed fields
+  if (notification.eventName && notification.eventDate && 
+      notification.startTime && notification.endTime && notification.amenity) {
+    
+    console.log("Using notification data directly for payment");
+    const eventData = {
+      _id: notification.relatedId,
+      userEmail: notification.userEmail,
+      eventName: notification.eventName,
+      eventDate: notification.eventDate,
+      startTime: notification.startTime,
+      endTime: notification.endTime,
+      amenity: notification.amenity
+    };
+    
+    document.body.removeChild(loadingDiv);
+    sessionStorage.setItem('eventData', JSON.stringify(eventData));
+    window.location.href = 'payment.html';
+    return;
+  }
+  
+  // Otherwise, fetch from server
   fetch(`/api/event/${eventId}`)
     .then(response => {
       if (!response.ok) {
@@ -1206,8 +1410,6 @@ async function clearAllNotifications() {
   }
 }
 
-// Add this function after the fetchNotifications function and before the DOMContentLoaded event listener
-
 // Function to clear selected notifications
 async function clearSelectedNotifications() {
   console.log("Clearing selected notifications");
@@ -1254,7 +1456,8 @@ async function clearSelectedNotifications() {
     showErrorMessage('Failed to clear selected notifications. Please try again.');
   }
 }
-// Function to fetch notifications from the server - defined last since it uses all the above functions
+
+// Function to fetch notifications from the server
 async function fetchNotifications() {
   console.log("Fetching notifications");
   try {
@@ -1325,7 +1528,6 @@ async function fetchNotifications() {
     }
   }
 }
-
 
 // Wait for DOM to be fully loaded before running any code
 document.addEventListener('DOMContentLoaded', function() {
@@ -1544,6 +1746,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showErrorMessage("Failed to initialize notification system. Please refresh the page.");
   }
 });
+
 // Function to handle image loading errors
 function handleImageError(img) {
   console.error('Failed to load image:', img.src);
