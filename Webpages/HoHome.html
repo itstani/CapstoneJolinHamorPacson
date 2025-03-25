@@ -1594,150 +1594,188 @@ function fetchEventDetails(notification, eventName) {
     });
 }
 
-// Wait for DOM to be fully loaded before running any code
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("DOM fully loaded, initializing notification system");
+    console.log("DOM fully loaded, initializing notification system");
 
-  try {
-    // Initialize notification elements
-    const notificationIcon = document.getElementById('notificationIcon');
-    const notificationModal = document.getElementById('notificationModal');
-    const closeModal = document.getElementById('closeModal');
-    const closeEventDetails = document.getElementById('closeEventDetails');
-    const clearSelectedBtn = document.getElementById('clearSelectedBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    const notificationCount = document.getElementById('notificationCount');
-    const notificationList = document.getElementById('notificationList');
-    const eventDetailsModal = document.getElementById('eventDetailsModal');
-    
-    console.log("Notification elements:", {
-      notificationIcon: !!notificationIcon,
-      notificationModal: !!notificationModal,
-      closeModal: !!closeModal,
-      closeEventDetails: !!closeEventDetails,
-      clearSelectedBtn: !!clearSelectedBtn,
-      clearAllBtn: !!clearAllBtn,
-      notificationCount: !!notificationCount,
-      notificationList: !!notificationList,
-      eventDetailsModal: !!eventDetailsModal
-    });
-    
-    // Set up event listeners
-    if (notificationIcon) {
-      notificationIcon.addEventListener('click', () => {
-        console.log("Notification icon clicked");
-        if (notificationModal) {
-          notificationModal.style.display = 'block';
-          updateNotificationList();
-        }
+    try {
+      // Initialize notification elements
+      const notificationIcon = document.getElementById('notificationIcon');
+      const notificationModal = document.getElementById('notificationModal');
+      const closeModal = document.getElementById('closeModal');
+      const closeEventDetails = document.getElementById('closeEventDetails');
+      const clearSelectedBtn = document.getElementById('clearSelectedBtn');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+      const notificationCount = document.getElementById('notificationCount');
+      const notificationList = document.getElementById('notificationList');
+      const eventDetailsModal = document.getElementById('eventDetailsModal');
+      
+      console.log("Notification elements:", {
+        notificationIcon: !!notificationIcon,
+        notificationModal: !!notificationModal,
+        closeModal: !!closeModal,
+        closeEventDetails: !!closeEventDetails,
+        clearSelectedBtn: !!clearSelectedBtn,
+        clearAllBtn: !!clearAllBtn,
+        notificationCount: !!notificationCount,
+        notificationList: !!notificationList,
+        eventDetailsModal: !!eventDetailsModal
       });
-    }
-    
-    if (closeModal) {
-      closeModal.addEventListener('click', () => {
-        console.log("Close modal clicked");
-        if (notificationModal) {
+      
+      // Set up event listeners
+      if (notificationIcon) {
+        notificationIcon.addEventListener('click', () => {
+          console.log("Notification icon clicked");
+          if (notificationModal) {
+            // Toggle the notification panel display
+            if (notificationModal.style.display === 'flex' || notificationModal.style.display === 'block') {
+              notificationModal.style.display = 'none';
+            } else {
+              notificationModal.style.display = 'flex';
+              updateNotificationList();
+            }
+          }
+        });
+      }
+      
+      if (closeModal) {
+        closeModal.addEventListener('click', () => {
+          console.log("Close modal clicked");
+          if (notificationModal) {
+            notificationModal.style.display = 'none';
+          }
+        });
+      }
+      
+      if (closeEventDetails) {
+        closeEventDetails.addEventListener('click', () => {
+          console.log("Close event details clicked");
+          if (eventDetailsModal) {
+            eventDetailsModal.style.display = 'none';
+          }
+        });
+      }
+      
+      if (clearSelectedBtn) {
+        clearSelectedBtn.addEventListener('click', clearSelectedNotifications);
+      }
+      
+      if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllNotifications);
+      }
+      
+      // Close modals when clicking outside
+      window.addEventListener('click', (event) => {
+        if (notificationModal && event.target === notificationModal) {
           notificationModal.style.display = 'none';
         }
-      });
-    }
-    
-    if (closeEventDetails) {
-      closeEventDetails.addEventListener('click', () => {
-        console.log("Close event details clicked");
-        if (eventDetailsModal) {
+        if (eventDetailsModal && event.target === eventDetailsModal) {
           eventDetailsModal.style.display = 'none';
         }
       });
-    }
-    
-    if (clearSelectedBtn) {
-      clearSelectedBtn.addEventListener('click', clearSelectedNotifications);
-    }
-    
-    if (clearAllBtn) {
-      clearAllBtn.addEventListener('click', clearAllNotifications);
-    }
-    
-    // Close modals when clicking outside
-    window.addEventListener('click', (event) => {
-      if (notificationModal && event.target === notificationModal) {
-        notificationModal.style.display = 'none';
-      }
-      if (eventDetailsModal && event.target === eventDetailsModal) {
-        eventDetailsModal.style.display = 'none';
-      }
-    });
-    
-    // Initialize admin popup functionality
-    const adminButton = document.getElementById("adminbutton");
-    const popup = document.getElementById("adminPopup");
-    const closePopup = document.getElementById("closePopup");
-    const form = document.getElementById("adminForm");
-    
-    if (adminButton) {
-      adminButton.addEventListener("click", () => {
-        if (popup) {
-          popup.style.display = "flex";
-        }
-      });
-    }
-    
-    if (closePopup) {
-      closePopup.addEventListener("click", () => {
-        if (popup) {
-          popup.style.display = "none";
-          if (form) {
-            form.reset();
+      
+      // Initialize admin popup functionality
+      const adminButton = document.getElementById("adminbutton");
+      const popup = document.getElementById("adminPopup");
+      const closePopup = document.getElementById("closePopup");
+      const form = document.getElementById("adminForm");
+      
+      if (adminButton) {
+        adminButton.addEventListener("click", () => {
+          if (popup) {
+            popup.style.display = "flex";
           }
-        }
-      });
-    }
-    
-    // Initialize logout button
-    const logoutButton = document.getElementById('logoutButton');
-    if (logoutButton) {
-      logoutButton.addEventListener('click', async () => {
-        try {
-          const response = await fetch('/logout', { method: 'POST' });
-          if (response.ok) {
-            localStorage.clear(); // Clear user data
-            window.location.href = 'login.html'; // Redirect to the login page
+        });
+      }
+      
+      if (closePopup) {
+        closePopup.addEventListener("click", () => {
+          if (popup) {
+            popup.style.display = "none";
+            if (form) {
+              form.reset();
+            }
+          }
+        });
+      }
+      
+      // Initialize logout button
+      const logoutButton = document.getElementById('logoutButton');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', async () => {
+          try {
+            const response = await fetch('/logout', { method: 'POST' });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = 'login.html'; // Redirect to the login page
+            } else {
+              showErrorMessage('Logout failed. Please try again.');
+            }
+          } catch (error) {
+            console.error('Error during logout:', error);
+            showErrorMessage('An error occurred during logout. Please try again.');
+          }
+        });
+      }
+      
+      // Handle form submission for admin concerns
+      if (document.getElementById('adminForm')) {
+        document.getElementById('adminForm').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          
+          const subject = document.getElementById('subject').value;
+          const message = document.getElementById('message').value;
+          const fileInput = document.getElementById('fileInput');
+          const selectedFile = fileInput?.files?.[0];
+          let fileData = null;
+
+          if (selectedFile) {
+            const reader = new FileReader();
+
+            reader.onloadend = async function () {
+              // Prepare the file data as base64 for sending
+              fileData = reader.result.split(',')[1]; // Get base64 part after the comma
+
+              const concernData = {
+                username: localStorage.getItem('username'),
+                email: localStorage.getItem('email'),
+                subject: subject,
+                message: message,
+                createdAt: new Date().toISOString().replace('Z', '+00:00'),
+                file: fileData,
+              };
+
+              try {
+                const response = await fetch('/addconcern', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(concernData),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                  alert("Your concern has been submitted successfully!");
+                  document.getElementById('adminForm').reset();
+                  document.getElementById('adminPopup').style.display = "none";
+                } else {
+                  alert("Failed to submit the concern. Please try again.");
+                }
+              } catch (error) {
+                console.error('Error submitting concern:', error);
+                alert("There was an error submitting your concern. Please try again.");
+              }
+            };
+
+            reader.readAsDataURL(selectedFile); // Read file as Data URL
           } else {
-            showErrorMessage('Logout failed. Please try again.');
-          }
-        } catch (error) {
-          console.error('Error during logout:', error);
-          showErrorMessage('An error occurred during logout. Please try again.');
-        }
-      });
-    }
-    
-    // Handle form submission for admin concerns
-    if (document.getElementById('adminForm')) {
-      document.getElementById('adminForm').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        
-        const subject = document.getElementById('subject').value;
-        const message = document.getElementById('message').value;
-        const fileInput = document.getElementById('fileInput');
-        const selectedFile = fileInput?.files?.[0];
-        let fileData = null;
-
-        if (selectedFile) {
-          const reader = new FileReader();
-
-          reader.onloadend = async function () {
-            // Prepare the file data as base64 for sending
-            fileData = reader.result.split(',')[1]; // Get base64 part after the comma
-
             const concernData = {
               username: localStorage.getItem('username'),
               email: localStorage.getItem('email'),
               subject: subject,
               message: message,
               createdAt: new Date().toISOString().replace('Z', '+00:00'),
-              file: fileData,
             };
 
             try {
@@ -1762,55 +1800,146 @@ document.addEventListener('DOMContentLoaded', function() {
               console.error('Error submitting concern:', error);
               alert("There was an error submitting your concern. Please try again.");
             }
-          };
-
-          reader.readAsDataURL(selectedFile); // Read file as Data URL
-        } else {
-          const concernData = {
-            username: localStorage.getItem('username'),
-            email: localStorage.getItem('email'),
-            subject: subject,
-            message: message,
-            createdAt: new Date().toISOString().replace('Z', '+00:00'),
-          };
-
-          try {
-            const response = await fetch('/addconcern', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(concernData),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              alert("Your concern has been submitted successfully!");
-              document.getElementById('adminForm').reset();
-              document.getElementById('adminPopup').style.display = "none";
-            } else {
-              alert("Failed to submit the concern. Please try again.");
-            }
-          } catch (error) {
-            console.error('Error submitting concern:', error);
-            alert("There was an error submitting your concern. Please try again.");
           }
-        }
-      });
+        });
+      }
+      // Fetch notifications initially
+      console.log("Initializing first notification fetch");
+      fetchNotifications();
+      
+      // Set up periodic fetching (every 30 seconds)
+      setInterval(fetchNotifications, 30000);
+      
+    } catch (error) {
+      console.error("Error during initialization:", error);
+      showErrorMessage("Failed to initialize notification system. Please refresh the page.");
     }
-    // Fetch notifications initially
-    console.log("Initializing first notification fetch");
-    fetchNotifications();
-    
-    // Set up periodic fetching (every 30 seconds)
-    setInterval(fetchNotifications, 30000);
-    
-  } catch (error) {
-    console.error("Error during initialization:", error);
-    showErrorMessage("Failed to initialize notification system. Please refresh the page.");
+  });
+
+  // Modify the updateNotificationList function to close the notification panel when a notification is clicked
+  function updateNotificationList() {
+    const notificationList = document.getElementById('notificationList');
+    if (!notificationList) {
+      console.error('Notification list element not found');
+      return;
+    }
+
+    notificationList.innerHTML = ''; // Clear existing list
+
+    if (!notifications || notifications.length === 0) {
+      const noNotifications = document.createElement('div');
+      noNotifications.classList.add('no-notifications');
+      noNotifications.textContent = 'No new notifications';
+      notificationList.appendChild(noNotifications);
+      return;
+    }
+
+    notifications.forEach((notification) => {
+      // Skip deleted event notifications
+      if (notification.type === 'event_deleted') {
+        return;
+      }
+
+      const notificationItem = document.createElement('div');
+      notificationItem.classList.add('notification-item');
+      notificationItem.dataset.id = notification._id;
+      
+      // Create checkbox
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'notification-checkbox';
+      checkbox.dataset.id = notification._id;
+      checkbox.onclick = (e) => e.stopPropagation(); // Prevent opening modal when clicking checkbox
+
+      // Create content wrapper
+      const contentWrapper = document.createElement('div');
+      contentWrapper.className = 'notification-content';
+      
+      // Create subject line
+      const subjectDiv = document.createElement('div');
+      subjectDiv.className = 'notification-subject';
+      
+      // Format the subject line based on notification data
+      let subject = notification.subject || '';
+      if (!subject && notification.message) {
+        // Try to extract event name and date from message if subject is not available
+        const eventNameMatch = notification.message.match(/"([^"]+)"/);
+        const eventName = eventNameMatch ? eventNameMatch[1] : 'Event';
+        
+        // Try to extract date from message or use a placeholder
+        const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
+        const date = dateMatch ? dateMatch[1] : '';
+        
+        subject = `${eventName}${date ? ' on ' + date : ''}`;
+      }
+      subjectDiv.textContent = subject;
+
+      // Create message element
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'notification-message';
+      messageDiv.textContent = notification.message;
+
+      // Create timestamp element
+      const timestampDiv = document.createElement('div');
+      timestampDiv.className = 'notification-timestamp';
+      timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
+
+      // Add payment required indicator if needed
+      if (notification.type === 'payment_required') {
+        const paymentRequiredDiv = document.createElement('div');
+        paymentRequiredDiv.className = 'payment-required';
+        paymentRequiredDiv.textContent = 'Payment Required';
+        contentWrapper.appendChild(paymentRequiredDiv);
+      }
+
+      // Add subject, message and timestamp to content wrapper
+      contentWrapper.appendChild(subjectDiv);
+      contentWrapper.appendChild(messageDiv);
+      contentWrapper.appendChild(timestampDiv);
+
+      // Add elements to notification item
+      notificationItem.appendChild(checkbox);
+      notificationItem.appendChild(contentWrapper);
+
+      // Check if this is an admin response/concern notification
+      const isAdminResponse = 
+        notification.type === 'concern' || 
+        notification.type === 'new_concern' || 
+        notification.isAdminResponse === true ||
+        (notification.subject && notification.subject.toLowerCase().includes('concern')) ||
+        notification._id === '67c92e55e09de684a6e975ae';  // Add specific ID check
+      
+      if (isAdminResponse) {
+        // For admin responses, show the custom popup with the message
+        notificationItem.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            // Close the notification panel
+            const notificationModal = document.getElementById('notificationModal');
+            if (notificationModal) {
+              notificationModal.style.display = 'none';
+            }
+            
+            showAdminResponsePopup(`Admin Response: ${notification.message}`);
+          }
+        });
+      } else {
+        // For event notifications, show the event details modal
+        notificationItem.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            // Close the notification panel
+            const notificationModal = document.getElementById('notificationModal');
+            if (notificationModal) {
+              notificationModal.style.display = 'none';
+            }
+            
+            showEventDetails(notification);
+          }
+        });
+      }
+
+      notificationList.appendChild(notificationItem);
+    });
   }
-});
 
 // Function to handle image loading errors
 function handleImageError(img) {
