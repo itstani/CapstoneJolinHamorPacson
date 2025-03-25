@@ -2760,6 +2760,22 @@ app.get("/api/analytics/popular-days", async (req, res) => {
   }
 })
 
+app.get("/GenerateUPW", async(req, res) => {
+
+  try{
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+
+    //Apply logic here
+
+  }catch (error) {
+    console.error("Error fetching event types:", error)
+
+    res.status(500).json({ error: "Failed to fetch event types" })
+  }
+
+})
+
 // Analytics: Frequent Event Types
 
 app.get("/api/analytics/event-types", async (req, res) => {
