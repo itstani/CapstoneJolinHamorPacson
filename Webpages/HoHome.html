@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../CSS/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
@@ -302,17 +302,6 @@ z-index: 1002; /* Ensure it's above the header */
         top: 10px;
         right: 15px;
       }
-      .logoutbutton{
-
-        margin-top: auto;
-
-        margin-bottom: 30px; /* Adjust this as needed */
-
-        width: 100%;
-
-        text-align: center;
-
-        }
 
 
 
@@ -923,7 +912,8 @@ function updateNotificationList() {
       notification.type === 'concern' || 
       notification.type === 'new_concern' || 
       notification.isAdminResponse === true ||
-      (notification.subject && notification.subject.toLowerCase().includes('concern'));
+      (notification.subject && notification.subject.toLowerCase().includes('concern')) ||
+      notification._id === '67c92e55e09de684a6e975ae';  // Add specific ID check
     
     if (isAdminResponse) {
       // For admin responses, show the custom popup with the message
@@ -962,11 +952,18 @@ function showEventDetails(notification) {
     notification.type === 'concern' || 
     notification.type === 'new_concern' || 
     notification.isAdminResponse === true ||
-    (notification.subject && notification.subject.toLowerCase().includes('concern'));
+    (notification.subject && notification.subject.toLowerCase().includes('concern')) ||
+    notification._id === '67c92e55e09de684a6e975ae';  // Add specific ID check
   
-  if (isAdminResponse || !isEventNotification) {
+  if (isAdminResponse) {
+    console.log("This is an admin response notification:", notification);
+    showAdminResponsePopup(`Admin Response: ${notification.message}`);
+    return;
+  }
+  
+  if (!isEventNotification) {
     console.log("This is not an event notification:", notification);
-    alert(`Admin Response: ${notification.message}`);
+    alert(notification.message);
     return;
   }
   
@@ -1069,7 +1066,7 @@ function showEventDetails(notification) {
 
   // Check event type - certain types typically don't require payment
   const freeEventTypes = ['birthday', 'meeting', 'community'];
-  if (notification.eventType && freeEventTypes.includes(notification.eventType.toLowerCase())) {
+  if (notification.eventType && freeEventTypes.some(type => notification.eventType.toLowerCase().includes(type))) {
     requiresPayment = false;
     if (status === 'Payment Required') {
       status = 'Confirmed'; // Override status for free event types
@@ -1122,70 +1119,9 @@ function showAdminResponsePopup(message) {
     document.body.removeChild(existingPopup);
   }
 
-  // Create popup container
-  const popup = document.createElement('div');
-  popup.id = 'adminResponsePopup';
-  popup.style.position = 'fixed';
-  popup.style.top = '50%';
-  popup.style.left = '50%';
-  popup.style.transform = 'translate(-50%, -50%)';
-  popup.style.backgroundColor = '#2d2d2d';
-  popup.style.color = 'white';
-  popup.style.padding = '20px';
-  popup.style.borderRadius = '5px';
-  popup.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-  popup.style.zIndex = '1000';
-  popup.style.minWidth = '300px';
-  popup.style.maxWidth = '80%';
-  popup.style.display = 'flex';
-  popup.style.flexDirection = 'column';
-
-  // Create header with hostname
-  const header = document.createElement('div');
-  header.style.display = 'flex';
-  header.style.alignItems = 'center';
-  header.style.marginBottom = '15px';
-  
-  const icon = document.createElement('span');
-  icon.innerHTML = '🌐';
-  icon.style.marginRight = '5px';
-  
-  const hostname = document.createElement('span');
-  hostname.textContent = 'localhost:3000';
-  hostname.style.fontSize = '14px';
-  hostname.style.opacity = '0.8';
-  
-  header.appendChild(icon);
-  header.appendChild(hostname);
-  
-  // Create message content
-  const content = document.createElement('div');
-  content.textContent = message;
-  content.style.marginBottom = '20px';
-  content.style.lineHeight = '1.5';
-  
-  // Create OK button
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.display = 'flex';
-  buttonContainer.style.justifyContent = 'flex-end';
-  
-  const okButton = document.createElement('button');
-  okButton.textContent = 'OK';
-  okButton.style.backgroundColor = '#00bcd4';
-  okButton.style.color = 'white';
-  okButton.style.border = 'none';
-  okButton.style.borderRadius = '4px';
-  okButton.style.padding = '8px 16px';
-  okButton.style.cursor = 'pointer';
-  okButton.style.fontWeight = 'bold';
-  okButton.onclick = function() {
-    document.body.removeChild(popup);
-  };
-  
-  buttonContainer.appendChild(okButton);
-  
-  // Add overlay
+  // Create overlay
   const overlay = document.createElement('div');
+  overlay.id = 'adminResponseOverlay';
   overlay.style.position = 'fixed';
   overlay.style.top = '0';
   overlay.style.left = '0';
@@ -1193,21 +1129,109 @@ function showAdminResponsePopup(message) {
   overlay.style.height = '100%';
   overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
   overlay.style.zIndex = '999';
-  overlay.onclick = function() {
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  
+  // Create popup container
+  const popup = document.createElement('div');
+  popup.id = 'adminResponsePopup';
+  popup.style.backgroundColor = 'white';
+  popup.style.color = '#333';
+  popup.style.padding = '30px 20px 20px';
+  popup.style.borderRadius = '10px';
+  popup.style.maxWidth = '500px';
+  popup.style.width = '90%';
+  popup.style.maxHeight = '80vh';
+  popup.style.position = 'relative';
+  popup.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+  
+  // Create close button
+  const closeButton = document.createElement('button');
+  closeButton.innerHTML = '&times;';
+  closeButton.style.position = 'absolute';
+  closeButton.style.top = '10px';
+  closeButton.style.right = '10px';
+  closeButton.style.fontSize = '24px';
+  closeButton.style.cursor = 'pointer';
+  closeButton.style.color = '#888';
+  closeButton.style.background = 'none';
+  closeButton.style.border = 'none';
+  closeButton.style.padding = '0';
+  closeButton.style.width = '30px';
+  closeButton.style.height = '30px';
+  closeButton.style.display = 'flex';
+  closeButton.style.alignItems = 'center';
+  closeButton.style.justifyContent = 'center';
+  closeButton.style.borderRadius = '50%';
+  closeButton.onclick = function() {
     document.body.removeChild(overlay);
-    document.body.removeChild(popup);
   };
   
+  // Create title
+  const title = document.createElement('h3');
+  title.textContent = 'Admin Response';
+  title.style.margin = '0 0 20px';
+  title.style.color = '#333';
+  title.style.fontSize = '1.5em';
+  title.style.paddingRight = '30px';
+  
+  // Create message content
+  const messageContent = document.createElement('div');
+  messageContent.className = 'event-detail-row';
+  messageContent.style.display = 'flex';
+  messageContent.style.marginBottom = '15px';
+  messageContent.style.borderBottom = '1px solid #eee';
+  messageContent.style.paddingBottom = '10px';
+  
+  const messageLabel = document.createElement('div');
+  messageLabel.className = 'event-detail-label';
+  messageLabel.textContent = 'Message:';
+  messageLabel.style.fontWeight = 'bold';
+  messageLabel.style.width = '120px';
+  messageLabel.style.flexShrink = '0';
+  messageLabel.style.color = '#333';
+  
+  const messageValue = document.createElement('div');
+  messageValue.className = 'event-detail-value';
+  messageValue.textContent = message;
+  messageValue.style.flexGrow = '1';
+  messageValue.style.color = '#666';
+  
+  messageContent.appendChild(messageLabel);
+  messageContent.appendChild(messageValue);
+  
+  // Create actions div
+  const actionsDiv = document.createElement('div');
+  actionsDiv.style.marginTop = '20px';
+  actionsDiv.style.textAlign = 'right';
+  
+  // Create OK button
+  const okButton = document.createElement('button');
+  okButton.textContent = 'OK';
+  okButton.style.backgroundColor = '#af2630';
+  okButton.style.color = 'white';
+  okButton.style.border = 'none';
+  okButton.style.padding = '10px 15px';
+  okButton.style.borderRadius = '5px';
+  okButton.style.cursor = 'pointer';
+  okButton.onclick = function() {
+    document.body.removeChild(overlay);
+  };
+  
+  actionsDiv.appendChild(okButton);
+  
   // Assemble popup
-  popup.appendChild(header);
-  popup.appendChild(content);
-  popup.appendChild(buttonContainer);
+  popup.appendChild(closeButton);
+  popup.appendChild(title);
+  popup.appendChild(messageContent);
+  popup.appendChild(actionsDiv);
+  
+  overlay.appendChild(popup);
   
   // Add to document
   document.body.appendChild(overlay);
-  document.body.appendChild(popup);
 }
-
 
 function handleNoNotifications() {
   console.log("Handling no notifications");
@@ -1527,6 +1551,47 @@ async function fetchNotifications() {
       updateClearButtons();
     }
   }
+}
+
+// Function to fetch event details from the server
+function fetchEventDetails(notification, eventName) {
+  console.log("Fetching additional event details");
+  
+  // If we don't have a relatedId, we can't fetch details
+  if (!notification.relatedId) {
+    console.log("No relatedId available, skipping fetch");
+    return;
+  }
+  
+  fetch(`/api/event/${notification.relatedId}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success && data.event) {
+        console.log("Received event details:", data.event);
+        
+        // Update the UI with the fetched details
+        if (data.event.eventDate) {
+          document.getElementById('eventDetailsDate').textContent = data.event.eventDate;
+        }
+        
+        if (data.event.startTime && data.event.endTime) {
+          document.getElementById('eventDetailsTime').textContent = 
+            `${data.event.startTime} - ${data.event.endTime}`;
+        }
+        
+        if (data.event.amenity) {
+          document.getElementById('eventDetailsAmenity').textContent = data.event.amenity;
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Error fetching event details:", error);
+    });
 }
 
 // Wait for DOM to be fully loaded before running any code

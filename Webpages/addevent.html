@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="/CSS/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../CSS/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
@@ -680,6 +680,63 @@
 </div>
 
   <script>
+    // Find the time input elements
+const eventStartHour = document.getElementById('eventStartHour');
+const eventStartMinute = document.getElementById('eventStartMinute');
+const eventStartAmPm = document.getElementById('eventStartAmPm');
+const eventEndHour = document.getElementById('eventEndHour');
+const eventEndMinute = document.getElementById('eventEndMinute');
+const eventEndAmPm = document.getElementById('eventEndAmPm');
+
+// Add event listeners to all start time inputs
+[eventStartHour, eventStartMinute, eventStartAmPm].forEach(element => {
+    element.addEventListener('change', updateEndTime);
+});
+
+// Function to update end time based on start time
+function updateEndTime() {
+    // Get start time values
+    let startHour = parseInt(eventStartHour.value) || 1;
+    let startMinute = parseInt(eventStartMinute.value) || 0;
+    let startAmPm = eventStartAmPm.value;
+    
+    // Calculate end time (1 hour later)
+    let endHour = startHour;
+    let endMinute = startMinute;
+    let endAmPm = startAmPm;
+    
+    // Add 1 hour
+    endHour += 1;
+    
+    // Handle hour overflow
+    if (endHour > 12) {
+        endHour = endHour - 12;
+        // Toggle AM/PM if we cross 12
+        if (startHour === 12) {
+            endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
+        }
+    }
+    
+    // Handle special case of 11 AM/PM to 12 PM/AM
+    if (startHour === 11) {
+        endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
+    }
+    
+    // Update end time fields
+    eventEndHour.value = endHour;
+    eventEndMinute.value = startMinute < 10 ? '0' + startMinute : startMinute;
+    eventEndAmPm.value = endAmPm;
+}
+
+// Initialize end time on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default values if empty
+    if (!eventStartHour.value) eventStartHour.value = '1';
+    if (!eventStartMinute.value) eventStartMinute.value = '00';
+    
+    // Update end time based on initial start time
+    updateEndTime();
+});
     const clubhouseRadio = document.getElementById('amenityClubhouse');
     const poolRadio = document.getElementById('amenityClubhouse');
     const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
