@@ -178,6 +178,7 @@
     background-color: rgba(0, 0, 0, 0.5); /* Transparent background */
     justify-content: center;
     align-items: center;
+    z-index: 1000;
 }
 
 /* Popup content styling */
@@ -188,10 +189,10 @@
     border: 2px solid #AF2630;  
     width: 90%;  
     max-width: 800px;  
-    height: 100%;  
-    max-height: 600px; 
+    height: auto;  
+    max-height: 80vh; 
     text-align: center;
-    overflow: hidden;
+    overflow: auto;
     position: relative;
     display: flex;        
     flex-direction: column;
@@ -206,27 +207,23 @@
     font-size: 20px;
     font-weight: bold;
     border-radius: 8px 8px 0 0; 
-    position: absolute;
+    position: sticky;
     top: 0;
     left: 0;
     width: 100%;
     text-align: center;
+    margin-bottom: 20px;
 }
 
 /* Styling for input fields container */
 .guest-inputs {
-    padding: 10px;
-   
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    padding: 20px 10px;
+    display: flex;
+    flex-direction: column;
     gap: 12px;  
-    max-height: 400px;  
-    overflow-y: auto;  
-    margin-top: 75px;  
-    margin-bottom: 1px;  
+    width: 100%;
+    margin-bottom: 20px;
 }
-
-
 
 .guest-name {
     padding: 15px;  
@@ -235,6 +232,8 @@
     border: 2px solid #333 !important;  
     color: #333;  
     width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
 }
 
 
@@ -247,8 +246,7 @@
     cursor: pointer;
     font-size: 14px;  
     align-self: center; 
-    
-    
+    margin-top: 20px;
 }
 
 .close-btn:hover {
@@ -573,12 +571,10 @@
     <label for="date">Date:</label>
       <input type="date" id="date" name="date"><br><br>
   
-      <input type="hidden" id="HomeownerName" name="HomeownerName">
-      <input type="hidden" id="eventName" name="eventName">
       <input type="hidden" id="eventDate" name="eventDate">
       <input type="hidden" id="eventStartTime" name="eventStartTime">
       <input type="hidden" id="eventEndTime" name="eventEndTime">
-      <input type="hidden" id="guests" name="guests">
+      <input type="hidden" id="guestsData" name="guestsData">
       <input type="hidden" id="homeownerStatus" name="homeownerStatus">
 
       <label>Choose an amenity</label>
@@ -628,22 +624,21 @@
       
     <!-- guests --------------------------------------------------------->
     <div class="guests-container">
-        <label for="numberofguests">Number of guests:</label>
+        <label for="guests">Number of guests:</label>
         <div class="guests-input-group">
-            <input type="text" id="guests" name="guests"  required>
-            <button type="button" class="guests-button" onclick="openPopup()">Guest List</button>
+            <input type="text" id="guests" name="guests" required>
+            <button type="button" class="guests-button" onclick="openGuestPopup()">Guest List</button>
         </div>
     </div>
-<!-- popip---------------------------------------------- -->
+
+<!-- popup---------------------------------------------- -->
 <div id="guest-popup" class="popup-container">
     <div class="popup-content">
         <div class="popup-header">Guest List</div>
         <div id="guest-inputs" class="guest-inputs">
-          
+          <!-- Guest input fields will be generated here -->
         </div>
-
-       
-        <button type="button" class="close-btn" onclick="closePopup()">Confirm</button>
+        <button type="button" class="close-btn" onclick="closeGuestPopup()">Confirm</button>
     </div>
 </div>
 
@@ -680,365 +675,389 @@
 </div>
 
   <script>
-    // Find the time input elements
-const eventStartHour = document.getElementById('eventStartHour');
-const eventStartMinute = document.getElementById('eventStartMinute');
-const eventStartAmPm = document.getElementById('eventStartAmPm');
-const eventEndHour = document.getElementById('eventEndHour');
-const eventEndMinute = document.getElementById('eventEndMinute');
-const eventEndAmPm = document.getElementById('eventEndAmPm');
+    let monthDisplay;
+        let daysGrid;
+        let eventFilter;
+        let modalContent;
+        let modal;
+        let currentMonth;
+        let currentYear;
+        let eventsByDate = {};
+        let userEmail = '';
+        let isLoading = false;
+        let daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Add event listeners to all start time inputs
-[eventStartHour, eventStartMinute, eventStartAmPm].forEach(element => {
-    element.addEventListener('change', updateEndTime);
-});
-
-// Function to update end time based on start time
-function updateEndTime() {
-    // Get start time values
-    let startHour = parseInt(eventStartHour.value) || 1;
-    let startMinute = parseInt(eventStartMinute.value) || 0;
-    let startAmPm = eventStartAmPm.value;
-    
-    // Calculate end time (1 hour later)
-    let endHour = startHour;
-    let endMinute = startMinute;
-    let endAmPm = startAmPm;
-    
-    // Add 1 hour
-    endHour += 1;
-    
-    // Handle hour overflow
-    if (endHour > 12) {
-        endHour = endHour - 12;
-        // Toggle AM/PM if we cross 12
-        if (startHour === 12) {
-            endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
-        }
-    }
-    
-    // Handle special case of 11 AM/PM to 12 PM/AM
-    if (startHour === 11) {
-        endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
-    }
-    
-    // Update end time fields
-    eventEndHour.value = endHour;
-    eventEndMinute.value = startMinute < 10 ? '0' + startMinute : startMinute;
-    eventEndAmPm.value = endAmPm;
-}
-
-// Initialize end time on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default values if empty
-    if (!eventStartHour.value) eventStartHour.value = '1';
-    if (!eventStartMinute.value) eventStartMinute.value = '00';
-    
-    // Update end time based on initial start time
-    updateEndTime();
-});
-    const clubhouseRadio = document.getElementById('amenityClubhouse');
-    const poolRadio = document.getElementById('amenityClubhouse');
-    const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
-    const eventTypeContainerP = document.getElementById('eventTypeContainerP');
-
-    clubhouseRadio.addEventListener('change', function() {
-      if (this.checked) {
-        eventTypeContainerCB.style.display = 'block';
-        eventTypeContainerP.style.display = 'block';
-      } else {
-        eventTypeContainerCB.style.display = 'none';
-        eventTypeContainerP.style.display = 'none';
-      }
-    });
-
-    // Hide event type dropdown when other amenities are selected
-    document.getElementById('amenityPool').addEventListener('change', function() {
-      eventTypeContainerCB.style.display = 'none';
-    });
-    document.getElementById('amenityCourt').addEventListener('change', function() {
-      eventTypeContainerCB.style.display = 'none';
-      eventTypeContainerP.style.display = 'none';
-    });
-    document.getElementById('amenityClubhouse').addEventListener('change', function() {
-      eventTypeContainerP.style.display = 'none';
-    });
-    const amenities = document.querySelectorAll('input[name="amenity"]');
-    const previewImage = document.getElementById('amenityPreview');
-
-    // Event listener for changing the image preview based on selected amenity
-    amenities.forEach(amenity => {
-        amenity.addEventListener('change', function() {
-            if (this.checked) {
-                let selectedImage;
-                switch (this.value) {
-                    case 'Pool':
-                        selectedImage = '/images/poolimg.png';
-                        eventTypeContainerCB.style.display = 'none';
-                        eventTypeContainerP.style.display = 'block';
-                        break;
-                    case 'Clubhouse':
-                        selectedImage = '/images/clubhouseimg.jpg';
-                        eventTypeContainerCB.style.display = 'block';
-                        break;
-                    case 'Court':
-                        selectedImage = '/images/courtimg.jpg';
-                        eventTypeContainerCB.style.display = 'none';
-                        break;
-                }
-                previewImage.src = selectedImage;
-            }
-        });
-    });
-
-    document.getElementById('addGuestButton').addEventListener('click', function() {
-            const numberOfGuests = document.getElementById('guests').value;
-            const guestInputContainer = document.getElementById('guestInputContainer');
-            guestInputContainer.innerHTML = ''; // Clear previous inputs
-
-            for (let i = 0; i < numberOfGuests; i++) {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'guest-name';
-                input.placeholder = `Guest ${i + 1} Name`;
-                guestInputContainer.appendChild(input);
-            }
-
-            guestInputContainer.style.display = 'block';
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize DOM elements
+            monthDisplay = document.getElementById('monthDisplay');
+            daysGrid = document.querySelector('.days-grid');
+            eventFilter = document.getElementById('eventFilter');
+            modalContent = document.getElementById('modalContent');
+            modal = document.getElementById('eventDetails');
+            
+            // Set initial date values
+            const now = new Date();
+            currentMonth = now.getMonth();
+            currentYear = now.getFullYear();
+            
+            // Initialize calendar
+            initCalendar();
         });
 
-        function showSuccessModal() {
-            document.getElementById('successModal').style.display = 'flex';
-        }
-
-        document.getElementById('closeModalButton').addEventListener('click', function() {
-            document.getElementById('successModal').style.display = 'none';
-        });
-
-    document.addEventListener('DOMContentLoaded', function() {
-    const clubhouseRadio = document.getElementById('amenityClubhouse');
-    const poolRadio = document.getElementById('amenityPool');
-    const courtRadio = document.getElementById('amenityCourt');
-    const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
-    const eventTypeContainerP = document.getElementById('eventTypeContainerP');
-    const previewImage = document.getElementById('amenityPreview');
-
-    function updateDropdowns() {
-        if (clubhouseRadio.checked) {
-            eventTypeContainerCB.style.display = 'block';
-            eventTypeContainerP.style.display = 'none';
-        } else if (poolRadio.checked) {
-            eventTypeContainerCB.style.display = 'none';
-            eventTypeContainerP.style.display = 'block';
-        } else {
-            eventTypeContainerCB.style.display = 'none';
-            eventTypeContainerP.style.display = 'none';
-        }
-    }
-
-    function updatePreviewImage() {
-        if (poolRadio.checked) {
-            previewImage.src = '/images/poolimg.png';
-        } else if (clubhouseRadio.checked) {
-            previewImage.src = '/images/clubhouseimg.jpg';
-        } else if (courtRadio.checked) {
-            previewImage.src = '/images/courtimg.jpg';
-        }
-    }
-
-    [clubhouseRadio, poolRadio, courtRadio].forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateDropdowns();
-            updatePreviewImage();
-        });
-    });
-
-    // Initial update
-    updateDropdowns();
-    updatePreviewImage();
-    
-  });
-    
-
-   // Find the event listener for form submission and replace it with this improved version
-        // that properly handles guest names
-
-        document.getElementById('eventForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            // Collect guest names from the popup input fields
-            const guestNames = [];
-            const guestInputs = document.querySelectorAll('.guest-name');
-            guestInputs.forEach(input => {
-                if (input.value.trim() !== '') {
-                    guestNames.push(input.value.trim());
-                }
-            });
-
-            // Get the number of guests from the number input field
-            const numberOfGuests = document.getElementById('guests').value;
-
-            // Format the guest data as expected by the server
-            const guestData = {
-                number: numberOfGuests,
-                names: guestNames.join(', ') // Join all names with commas for easier storage
-            };
-
-            const formData = {
-                HomeownerName: document.getElementById('HomeownerName').value,
-                eventName: document.getElementById('eventName').value,
-                eventDate: document.getElementById('date').value,
-                startTime: document.getElementById('eventStartHour').value + ':' + 
-                          document.getElementById('eventStartMinute').value + ' ' + 
-                          document.getElementById('eventStartAmPm').value,
-                endTime: document.getElementById('eventEndHour').value + ':' + 
-                        document.getElementById('eventEndMinute').value + ' ' + 
-                        document.getElementById('eventEndAmPm').value,
-                amenity: document.querySelector('input[name="amenity"]:checked').value,
-                eventType: document.getElementById('eventType')?.value || '',
-                guests: guestData, // Use the properly formatted guest data
-                homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
-            };
-
-            try {
-                const response = await fetch('/addevent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
+        // Initialize the calendar
+        function initCalendar() {
+            // Render days of week
+            renderDaysOfWeek();
+            
+            // Fetch user email
+            fetchUserEmail()
+                .then(email => {
+                    userEmail = email;
+                    if (!userEmail) {
+                        console.warn('User email not found. User might not be logged in.');
+                        showError('User information not available. You may need to log in again.');
+                    }
+                    
+                    // Fetch events
+                    return fetchApprovedEvents();
+                })
+                .then(() => {
+                    // Add event listeners
+                    eventFilter.addEventListener('change', function() {
+                        renderCalendar();
+                    });
+                    
+                    document.getElementById('prevMonth').addEventListener('click', goToPrevMonth);
+                    document.getElementById('nextMonth').addEventListener('click', goToNextMonth);
+                    
+                    // Close modal when clicking outside
+                    window.onclick = function(event) {
+                        if (event.target === modal) {
+                            closeModal();
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error initializing calendar:', error);
+                    showError('Failed to initialize calendar. Please try refreshing the page.');
                 });
+        }
 
-                const result = await response.json();
+        // Render the days of the week
+        function renderDaysOfWeek() {
+            const daysOfWeekContainer = document.querySelector('.days-of-week');
+            let html = '';
+            for (let i = 0; i < daysOfWeek.length; i++) {
+                html += `<div>${daysOfWeek[i]}</div>`;
+            }
+            daysOfWeekContainer.innerHTML = html;
+        }
 
-                if (result.success) {
-                    // Show success modal instead of redirecting
-                    showSuccessModal();
+        // Format time from 24-hour to 12-hour format
+        function formatTime(time) {
+            if (!time) return 'N/A';
+            
+            try {
+                const [hours, minutes] = time.split(':');
+                const hour = parseInt(hours, 10);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const formattedHour = hour % 12 || 12;
+                return `${formattedHour}:${minutes} ${ampm}`;
+            } catch (error) {
+                console.error('Error formatting time:', error);
+                return time; // Return original if parsing fails
+            }
+        }
+
+        // Fetch approved events from the server
+        async function fetchApprovedEvents() {
+            setLoading(true);
+            
+            try {
+                console.log('Fetching approved events...');
+                const response = await fetch('/api/approved-events', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Received events data:', data);
+
+                if (data.success) {
+                    // Process events data
+                    processEvents(data.events || []);
+                    renderCalendar();
                 } else {
-                    alert(result.message || 'Failed to create event. Please try again.');
+                    throw new Error(data.message || 'Failed to fetch events');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                console.error('Error fetching events:', error);
+                showError('Failed to load events. Please try again later.');
+            } finally {
+                setLoading(false);
             }
-        });
-
-    function showCustomAlert(message) {
-            const alertElement = document.getElementById('customAlert');
-            const messageElement = document.getElementById('customAlertMessage');
-            messageElement.textContent = message;
-            alertElement.style.display = 'block';
         }
 
-        function closeCustomAlert() {
-            const alertElement = document.getElementById('customAlert');
-            alertElement.style.display = 'none';
-        }
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            const userEmail = localStorage.getItem('email');
-            console.log('User email from localStorage:', userEmail); // Debug log
-
-            if (!userEmail) {
+        // Process events data
+        function processEvents(events) {
+            // Filter out events older than 2 months
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+            
+            eventsByDate = {};
+            
+            for (let i = 0; i < events.length; i++) {
                 try {
-                    const response = await fetch('/api/user-info');
-                    const data = await response.json();
-                    if (data.success) {
-                        console.log('User email from API:', data.email); // Debug log
-                        document.getElementById('userEmail').value = data.email;
-                    } else {
-                        console.error('Failed to fetch user email:', data.message); // Debug log
+                    const event = events[i];
+                    const eventDate = new Date(event.eventDate);
+                    
+                    if (eventDate >= twoMonthsAgo) {
+                        const formattedDate = event.eventDate;
+                        
+                        if (!eventsByDate[formattedDate]) {
+                            eventsByDate[formattedDate] = [];
+                        }
+                        
+                        eventsByDate[formattedDate].push({
+                            id: event.id || i + 1, // Use event ID if available, otherwise generate one
+                            name: event.eventName,
+                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                            amenity: event.amenity,
+                            userEmail: event.userEmail,
+                            isPaid: event.isPaid,
+                            receipt: event.receipt || "",
+                            paymentDate: event.paymentDate || "",
+                            paymentAmount: event.paymentAmount || "$0.00"
+                        });
                     }
                 } catch (error) {
-                    console.error('Error fetching user email:', error);
+                    console.error('Error processing event:', event, error);
                 }
-            } else {
-                document.getElementById('userEmail').value = userEmail;
             }
-        });
+            
+            console.log('Processed events by date:', eventsByDate);
+        }
 
-        document.getElementById('eventForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Render the calendar
+        function renderCalendar() {
+            console.log('Rendering calendar for', currentMonth + 1, currentYear);
+            const date = new Date(currentYear, currentMonth, 1);
+            monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-            const formData = {
-              HomeownerName: document.getElementById('HomeownerName').value,
-                userEmail: document.getElementById('userEmail').value,
-                eventName: document.getElementById('eventName').value,
-                eventDate: document.getElementById('eventDate').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                amenity: document.getElementById('amenity').value,
-                guests: {
-                        number: numberOfGuests,
-                        names: guestNames 
-                    },
-                homeownerStatus: document.getElementById('homeownerStatus').value
-            };
+            daysGrid.innerHTML = '';
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const startDay = date.getDay();
 
-            console.log('Submitting event data:', formData); // Debug log
+            // Add empty days for the start of the month
+            for (let i = 0; i < startDay; i++) {
+                daysGrid.innerHTML += '<div class="day empty"></div>';
+            }
 
-            sessionStorage.setItem('eventData', JSON.stringify(formData));
+            // Add days with events
+            for (let i = 1; i <= daysInMonth; i++) {
+                const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                let events = eventsByDate[currentDate] || [];
+                
+                // Apply filter if needed
+                if (eventFilter.value === 'user') {
+                    events = events.filter(function(event) {
+                        return event.userEmail === userEmail;
+                    });
+                }
+                
+                let eventHTML = '';
+                for (let j = 0; j < events.length; j++) {
+                    const event = events[j];
+                    const isPaidClass = !event.isPaid ? 'unpaid-event' : '';
+                    const eventName = event.name.length > 15 ? event.name.substring(0, 15) + '...' : event.name;
+                    
+                    eventHTML += `
+                        <div class="event-bar ${isPaidClass}" 
+                             title="${event.name} - ${event.time}">
+                            ${eventName}
+                        </div>
+                    `;
+                }
 
+                daysGrid.innerHTML += `
+                    <div class="day" data-date="${currentDate}">
+                        ${i}
+                        ${eventHTML}
+                    </div>
+                `;
+            }
+
+            addDayClickEvents();
+        }
+
+        // Add click events to days
+        function addDayClickEvents() {
+            const days = document.querySelectorAll('.day:not(.empty)');
+            for (let i = 0; i < days.length; i++) {
+                days[i].addEventListener('click', function() {
+                    const date = this.getAttribute('data-date');
+                    displayEventDetails(date);
+                });
+            }
+        }
+
+        const logoutButton = document.getElementById('logoutButton');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/logout', { method: 'POST' });
+                    if (response.ok) {
+                        localStorage.clear(); // Clear user data
+                        window.location.href = 'login.html'; // Redirect to the login page
+                    } else {
+                        showErrorMessage('Logout failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                    showErrorMessage('An error occurred during logout. Please try again.');
+                }
+            });
+        }
+
+        // Display event details in modal
+        function displayEventDetails(date) {
+            let events = eventsByDate[date] || [];
+            
+            // Apply filter if needed
+            if (eventFilter.value === 'user') {
+                events = events.filter(function(event) {
+                    return event.userEmail === userEmail;
+                });
+            }
+            
+            let html = `<h3>Events on ${date}</h3>`;
+            
+            if (events.length) {
+                html += '<div class="event-list">';
+                for (let i = 0; i < events.length; i++) {
+                    const event = events[i];
+                    const isUserEvent = event.userEmail === userEmail ? 
+                        '<p style="color: #AF2630; font-style: italic;">This is your event</p>' : '';
+                    
+                    const statusClass = event.isPaid ? 'paid' : 'pending';
+                    const statusText = event.isPaid ? 'Confirmed' : 'Payment Pending';
+                    
+                    // Make the entire event item clickable for paid events
+                    const clickableClass = event.isPaid ? 'onclick="window.location.href=\'event-details.html?id=' + event.id + '\'"' : '';
+                    
+                    html += `
+                        <div class="event-item ${statusClass}" ${clickableClass}>
+                            <div style="font-weight: bold; font-size: 16px;">${event.name}</div>
+                            <div>Time: ${event.time}</div>
+                            <div>Location: ${event.amenity}</div>
+                            <div class="event-status ${statusClass}">Status: ${statusText}</div>
+                            ${isUserEvent}
+                            ${event.isPaid ? 
+                                `<a href="event-details.html?id=${event.id}" class="event-details-link">See details - click here</a>` : 
+                                ''}
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            } else {
+                html += '<p>No events for this day.</p>';
+            }
+            
+            modalContent.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        // Close the modal
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // Fetch user email
+        async function fetchUserEmail() {
             try {
-                const response = await fetch('/addevent', {
-                    method: 'POST',
+                const response = await fetch('/api/user-info', {
+                    method: 'GET',
+                    credentials: 'include',
                     headers: {
+                        'Accept': 'application/json',
                         'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
+                    }
                 });
 
-                const result = await response.json();
-                if (result.success) {
-                    console.log('Event created successfully'); // Debug log
-                    window.location.href = 'eventfin.html';
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log('User email fetched:', data.email);
+                    return data.email;
                 } else {
-                    console.error('Failed to create event:', result.message); // Debug log
-                    alert(result.message || 'Failed to create event');
+                    throw new Error('Failed to fetch user email');
                 }
             } catch (error) {
-                console.error('Error creating event:', error);
-                alert('An error occurred while creating the event');
+                console.error('Error fetching user email:', error);
+                return null;
             }
-        });
-            
-        function showSuccessModal() {
-    document.getElementById('successModal').style.display = 'flex';
-}
-
-function closeSuccessModal() {
-    document.getElementById('successModal').style.display = 'none';
-    window.location.href = 'HoHome.html'; // Redirect to homepage
-    document.getElementById('eventForm').reset();
-}
-
-// popup--------------------------------------------------------------
-// fixxed to 30 fields
-function openPopup() {
-    const guestInputsDiv = document.getElementById('guest-inputs');
-    
-   
-    if (guestInputsDiv.children.length === 0) {
-        for (let i = 0; i < 30; i++) {
-            const inputField = document.createElement('input');
-            inputField.type = 'text';
-            inputField.className = 'guest-name';
-            inputField.placeholder = `Guest ${i + 1}`;
-            guestInputsDiv.appendChild(inputField);
         }
-    }
 
-    //open
-    document.getElementById('guest-popup').style.display = 'flex';
-}
+        // Go to previous month
+        function goToPrevMonth() {
+            currentMonth = (currentMonth - 1 + 12) % 12;
+            if (currentMonth === 11) currentYear--;
+            renderCalendar();
+        }
 
-//close
-function closePopup() {
-    document.getElementById('guest-popup').style.display = 'none';
-}
+        // Go to next month
+        function goToNextMonth() {
+            currentMonth = (currentMonth + 1) % 12;
+            if (currentMonth === 0) currentYear++;
+            renderCalendar();
+        }
 
+        // Set loading state
+        function setLoading(isLoading) {
+            if (isLoading) {
+                daysGrid.innerHTML = '<div class="loading">Loading calendar...</div>';
+            }
+        }
 
-</script>
+        // Show error message
+        function showError(message) {
+            daysGrid.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Show error message in custom alert
+        function showErrorMessage(message) {
+            const customAlert = document.getElementById('customAlert');
+            const customAlertMessage = document.getElementById('customAlertMessage');
+            
+            if (customAlert && customAlertMessage) {
+                customAlertMessage.textContent = message;
+                customAlert.style.display = 'block';
+            } else {
+                alert(message);
+            }
+        }
+
+        // Close custom alert
+        function closeCustomAlert() {
+            const customAlert = document.getElementById('customAlert');
+            if (customAlert) {
+                customAlert.style.display = 'none';
+            }
+        }
+    </script>
+  </script>
 <div id="customAlert" class="custom-alert">
   <div class="custom-alert-content">
       <div class="custom-alert-header">Notice</div>
