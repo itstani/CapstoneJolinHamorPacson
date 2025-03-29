@@ -407,6 +407,10 @@
         </button>
         <p>Profile</p>
       </div>
+
+      <div class="logoutbutton">
+        <button type="button" id="logoutButton">Logout</button>
+    </div>
     </div>
 
     <div class="calendar">
@@ -666,6 +670,24 @@
                 });
             }
         }
+
+        const logoutButton = document.getElementById('logoutButton');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', async () => {
+          try {
+            const response = await fetch('/logout', { method: 'POST' });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = 'login.html'; // Redirect to the login page
+            } else {
+              showErrorMessage('Logout failed. Please try again.');
+            }
+          } catch (error) {
+            console.error('Error during logout:', error);
+            showErrorMessage('An error occurred during logout. Please try again.');
+          }
+        });
+      }
 
         // Display event details in modal
         function displayEventDetails(date) {

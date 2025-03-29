@@ -791,6 +791,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    document.getElementById('addGuestButton').addEventListener('click', function() {
+            const numberOfGuests = document.getElementById('guests').value;
+            const guestInputContainer = document.getElementById('guestInputContainer');
+            guestInputContainer.innerHTML = ''; // Clear previous inputs
+
+            for (let i = 0; i < numberOfGuests; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'guest-name';
+                input.placeholder = `Guest ${i + 1} Name`;
+                guestInputContainer.appendChild(input);
+            }
+
+            guestInputContainer.style.display = 'block';
+        });
+
+        function showSuccessModal() {
+            document.getElementById('successModal').style.display = 'flex';
+        }
+
+        document.getElementById('closeModalButton').addEventListener('click', function() {
+            document.getElementById('successModal').style.display = 'none';
+        });
+
     document.addEventListener('DOMContentLoaded', function() {
     const clubhouseRadio = document.getElementById('amenityClubhouse');
     const poolRadio = document.getElementById('amenityPool');
@@ -836,60 +860,68 @@ document.addEventListener('DOMContentLoaded', function() {
   });
     
 
-  document.getElementById('eventForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
+   // Find the event listener for form submission and replace it with this improved version
+        // that properly handles guest names
 
+        document.getElementById('eventForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
 
-     // Collect guest names from the popup input fields
-     const guestNames = [];
-    const guestInputs = document.querySelectorAll('.guest-name');
-    guestInputs.forEach(input => {
-        if (input.value.trim() !== '') {
-            guestNames.push(input.value.trim());
-        }
-    });
+            // Collect guest names from the popup input fields
+            const guestNames = [];
+            const guestInputs = document.querySelectorAll('.guest-name');
+            guestInputs.forEach(input => {
+                if (input.value.trim() !== '') {
+                    guestNames.push(input.value.trim());
+                }
+            });
 
-    // Get the number of guests from the number input field
-    const numberOfGuests = document.getElementById('guests').value;
+            // Get the number of guests from the number input field
+            const numberOfGuests = document.getElementById('guests').value;
 
-    const formData = {
-        HomeownerName: document.getElementById('HomeownerName').value,
-        eventName: document.getElementById('eventName').value,
-        eventDate: document.getElementById('date').value,
-        startTime: document.getElementById('eventStartHour').value + ':' + 
-                  document.getElementById('eventStartMinute').value + ' ' + 
-                  document.getElementById('eventStartAmPm').value,
-        endTime: document.getElementById('eventEndHour').value + ':' + 
-                document.getElementById('eventEndMinute').value + ' ' + 
-                document.getElementById('eventEndAmPm').value,
-        amenity: document.querySelector('input[name="amenity"]:checked').value,
-        eventType: document.getElementById('eventType')?.value || '',
-        guests: document.getElementById('guests').value,
-        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
-    };
+            // Format the guest data as expected by the server
+            const guestData = {
+                number: numberOfGuests,
+                names: guestNames.join(', ') // Join all names with commas for easier storage
+            };
 
-    try {
-        const response = await fetch('/addevent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
+            const formData = {
+                HomeownerName: document.getElementById('HomeownerName').value,
+                eventName: document.getElementById('eventName').value,
+                eventDate: document.getElementById('date').value,
+                startTime: document.getElementById('eventStartHour').value + ':' + 
+                          document.getElementById('eventStartMinute').value + ' ' + 
+                          document.getElementById('eventStartAmPm').value,
+                endTime: document.getElementById('eventEndHour').value + ':' + 
+                        document.getElementById('eventEndMinute').value + ' ' + 
+                        document.getElementById('eventEndAmPm').value,
+                amenity: document.querySelector('input[name="amenity"]:checked').value,
+                eventType: document.getElementById('eventType')?.value || '',
+                guests: guestData, // Use the properly formatted guest data
+                homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
+            };
+
+            try {
+                const response = await fetch('/addevent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success modal instead of redirecting
+                    showSuccessModal();
+                } else {
+                    alert(result.message || 'Failed to create event. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
         });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // Show success modal instead of redirecting
-            showSuccessModal();
-        } else {
-            alert(result.message || 'Failed to create event. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred. Please try again.');
-    }
-});
 
     function showCustomAlert(message) {
             const alertElement = document.getElementById('customAlert');
