@@ -171,61 +171,61 @@
         }
 
         .event-bar {
-        background-color: #AF2630; /* Default red color for paid events */
-        color: white;
-        border-radius: 4px;
-        padding: 2px 5px;
-        font-size: 0.8rem;
-        margin-top: 2px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        transition: background-color 0.3s ease;
-    }
+            background-color: #AF2630; /* Default red color for paid events */
+            color: white;
+            border-radius: 4px;
+            padding: 2px 5px;
+            font-size: 0.8rem;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: background-color 0.3s ease;
+        }
 
-    .event-bar.unpaid-event {
-        background-color: #FFB6C1; /* Light pink for unpaid events */
-        color: #AF2630; /* Darker text for better contrast */
-    }
-    .custom-alert {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        z-index: 1001; /* Ensure it's above the modal */
-      }
+        .event-bar.unpaid-event {
+            background-color: #FFB6C1; /* Light pink for unpaid events */
+            color: #AF2630; /* Darker text for better contrast */
+        }
+        .custom-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Ensure it's above the modal */
+        }
 
-      .custom-alert-content {
-        text-align: center;
-      }
+        .custom-alert-content {
+            text-align: center;
+        }
 
-      .custom-alert-header {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #af2630;
-      }
+        .custom-alert-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #af2630;
+        }
 
-      .custom-alert-body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-      }
+        .custom-alert-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
 
-      .custom-alert button {
-        background-color: #af2630;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-      }
+        .custom-alert button {
+            background-color: #af2630;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
  
 
         /* Navigation Buttons */
@@ -369,6 +369,23 @@
             border: 1px solid #AF2630;
         }
 
+        .loading {
+            text-align: center;
+            padding: 20px;
+            grid-column: span 7;
+            color: #AF2630;
+            font-weight: bold;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            grid-column: span 7;
+            color: #AF2630;
+            font-weight: bold;
+            background-color: #ffeeee;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -417,35 +434,109 @@
         </div>
     </div>
     
-
     <script>
-        const monthDisplay = document.getElementById('monthDisplay');
-        const daysGrid = document.querySelector('.days-grid');
-        const eventFilter = document.getElementById('eventFilter');
-        let currentMonth = new Date().getMonth();
-        let currentYear = new Date().getFullYear();
-        const modal = document.getElementById('eventDetails');
+        // Global variables
+        let monthDisplay;
+        let daysGrid;
+        let eventFilter;
+        let modalContent;
+        let modal;
+        let currentMonth;
+        let currentYear;
         let eventsByDate = {};
         let userEmail = '';
+        let isLoading = false;
+        let daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize DOM elements
+            monthDisplay = document.getElementById('monthDisplay');
+            daysGrid = document.querySelector('.days-grid');
+            eventFilter = document.getElementById('eventFilter');
+            modalContent = document.getElementById('modalContent');
+            modal = document.getElementById('eventDetails');
+            
+            // Set initial date values
+            const now = new Date();
+            currentMonth = now.getMonth();
+            currentYear = now.getFullYear();
+            
+            // Initialize calendar
+            initCalendar();
+        });
 
+        // Initialize the calendar
+        function initCalendar() {
+            // Render days of week
+            renderDaysOfWeek();
+            
+            // Fetch user email
+            fetchUserEmail()
+                .then(email => {
+                    userEmail = email;
+                    if (!userEmail) {
+                        console.warn('User email not found. User might not be logged in.');
+                        showError('User information not available. You may need to log in again.');
+                    }
+                    
+                    // Fetch events
+                    return fetchApprovedEvents();
+                })
+                .then(() => {
+                    // Add event listeners
+                    eventFilter.addEventListener('change', function() {
+                        renderCalendar();
+                    });
+                    
+                    document.getElementById('prevMonth').addEventListener('click', goToPrevMonth);
+                    document.getElementById('nextMonth').addEventListener('click', goToNextMonth);
+                    
+                    // Close modal when clicking outside
+                    window.onclick = function(event) {
+                        if (event.target === modal) {
+                            closeModal();
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error initializing calendar:', error);
+                    showError('Failed to initialize calendar. Please try refreshing the page.');
+                });
+        }
+
+        // Render the days of the week
         function renderDaysOfWeek() {
             const daysOfWeekContainer = document.querySelector('.days-of-week');
-            daysOfWeekContainer.innerHTML = daysOfWeek.map(day => `<div>${day}</div>`).join('');
+            let html = '';
+            for (let i = 0; i < daysOfWeek.length; i++) {
+                html += `<div>${daysOfWeek[i]}</div>`;
+            }
+            daysOfWeekContainer.innerHTML = html;
         }
 
+        // Format time from 24-hour to 12-hour format
         function formatTime(time) {
             if (!time) return 'N/A';
-            const [hours, minutes] = time.split(':');
-            const hour = parseInt(hours, 10);
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            const formattedHour = hour % 12 || 12;
-            return `${formattedHour}:${minutes} ${ampm}`;
+            
+            try {
+                const [hours, minutes] = time.split(':');
+                const hour = parseInt(hours, 10);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const formattedHour = hour % 12 || 12;
+                return `${formattedHour}:${minutes} ${ampm}`;
+            } catch (error) {
+                console.error('Error formatting time:', error);
+                return time; // Return original if parsing fails
+            }
         }
 
+        // Fetch approved events from the server
         async function fetchApprovedEvents() {
+            setLoading(true);
+            
             try {
+                console.log('Fetching approved events...');
                 const response = await fetch('/api/approved-events', {
                     method: 'GET',
                     credentials: 'include',
@@ -460,80 +551,166 @@
                 }
                 
                 const data = await response.json();
+                console.log('Received events data:', data);
 
                 if (data.success) {
-                    const twoMonthsAgo = new Date();
-                    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-
-                    eventsByDate = data.events.reduce((acc, event) => {
-                        const eventDate = new Date(event.eventDate);
-                        if (eventDate >= twoMonthsAgo) {
-                            const formattedDate = event.eventDate;
-                            acc[formattedDate] = acc[formattedDate] || [];
-                            acc[formattedDate].push({
-                                name: event.eventName,
-                                time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
-                                amenity: event.amenity,
-                                userEmail: event.userEmail
-                            });
-                        }
-                        return acc;
-                    }, {});
-
+                    // Process events data
+                    processEvents(data.events || []);
                     renderCalendar();
                 } else {
-                    console.error("Failed to fetch events:", data.message);
+                    throw new Error(data.message || 'Failed to fetch events');
                 }
             } catch (error) {
-                console.error("Error fetching events:", error);
+                console.error('Error fetching events:', error);
+                showError('Failed to load events. Please try again later.');
+            } finally {
+                setLoading(false);
             }
         }
 
-        
-        
-        
+        // Process events data
+        function processEvents(events) {
+            // Filter out events older than 2 months
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+            
+            eventsByDate = {};
+            
+            for (let i = 0; i < events.length; i++) {
+                try {
+                    const event = events[i];
+                    const eventDate = new Date(event.eventDate);
+                    
+                    if (eventDate >= twoMonthsAgo) {
+                        const formattedDate = event.eventDate;
+                        
+                        if (!eventsByDate[formattedDate]) {
+                            eventsByDate[formattedDate] = [];
+                        }
+                        
+                        eventsByDate[formattedDate].push({
+                            name: event.eventName,
+                            time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+                            amenity: event.amenity,
+                            userEmail: event.userEmail,
+                            isPaid: event.isPaid
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error processing event:', event, error);
+                }
+            }
+            
+            console.log('Processed events by date:', eventsByDate);
+        }
 
-    function addDayClickEvents() {
-        document.querySelectorAll('.day:not(.empty)').forEach(day => {
-            day.addEventListener('click', () => {
-                const date = day.getAttribute('data-date');
-                displayEventDetails(date);
-            });
-        });
-    }
+        // Render the calendar
+        function renderCalendar() {
+            console.log('Rendering calendar for', currentMonth + 1, currentYear);
+            const date = new Date(currentYear, currentMonth, 1);
+            monthDisplay.innerText = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-        function filterEvents(events) {
-            const filterValue = eventFilter.value;
-            if (filterValue === 'all') {
-                return events;
-            } else {
-                return events.filter(event => event.userEmail === userEmail);
+            daysGrid.innerHTML = '';
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const startDay = date.getDay();
+
+            // Add empty days for the start of the month
+            for (let i = 0; i < startDay; i++) {
+                daysGrid.innerHTML += '<div class="day empty"></div>';
+            }
+
+            // Add days with events
+            for (let i = 1; i <= daysInMonth; i++) {
+                const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                let events = eventsByDate[currentDate] || [];
+                
+                // Apply filter if needed
+                if (eventFilter.value === 'user') {
+                    events = events.filter(function(event) {
+                        return event.userEmail === userEmail;
+                    });
+                }
+                
+                let eventHTML = '';
+                for (let j = 0; j < events.length; j++) {
+                    const event = events[j];
+                    const isPaidClass = !event.isPaid ? 'unpaid-event' : '';
+                    const eventName = event.name.length > 15 ? event.name.substring(0, 15) + '...' : event.name;
+                    
+                    eventHTML += `
+                        <div class="event-bar ${isPaidClass}" 
+                             title="${event.name} - ${event.time}">
+                            ${eventName}
+                        </div>
+                    `;
+                }
+
+                daysGrid.innerHTML += `
+                    <div class="day" data-date="${currentDate}">
+                        ${i}
+                        ${eventHTML}
+                    </div>
+                `;
+            }
+
+            addDayClickEvents();
+        }
+
+        // Add click events to days
+        function addDayClickEvents() {
+            const days = document.querySelectorAll('.day:not(.empty)');
+            for (let i = 0; i < days.length; i++) {
+                days[i].addEventListener('click', function() {
+                    const date = this.getAttribute('data-date');
+                    displayEventDetails(date);
+                });
             }
         }
 
+        // Display event details in modal
         function displayEventDetails(date) {
-        const events = eventsByDate[date] || [];
-        modalContent.innerHTML = `
-            <h3>Events on ${date}</h3>
-            ${events.length
-                ? events.map(event => `
-                    <p>
-                        <strong>${event.name}</strong> from ${event.time} at <strong>${event.amenity}</strong>
-                        <br>
-                        <span style="color: ${event.isPaid ? '#AF2630' : '#FFB6C1'}">
-                            Status: ${event.isPaid ? 'Paid' : 'Payment Pending'}
-                        </span>
-                    </p>
-                `).join('')
-                : '<p>No events for this day.</p>'}
-        `;
-        modal.style.display = 'block';
-    }
+            let events = eventsByDate[date] || [];
+            
+            // Apply filter if needed
+            if (eventFilter.value === 'user') {
+                events = events.filter(function(event) {
+                    return event.userEmail === userEmail;
+                });
+            }
+            
+            let html = `<h3>Events on ${date}</h3>`;
+            
+            if (events.length) {
+                for (let i = 0; i < events.length; i++) {
+                    const event = events[i];
+                    const isUserEvent = event.userEmail === userEmail ? 
+                        '<p style="color: #AF2630; font-style: italic;">This is your event</p>' : '';
+                    
+                    html += `
+                        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                            <p><strong>${event.name}</strong></p>
+                            <p>Time: ${event.time}</p>
+                            <p>Location: ${event.amenity}</p>
+                            <p>Status: ${event.isPaid ? 'Confirmed' : 'Payment Pending'}</p>
+                            ${isUserEvent}
+                            <p style="color: #555; font-style: italic; margin-top: 5px;">To see details, click here</p>
+                        </div>
+                    `;
+                }
+            } else {
+                html += '<p>No events for this day.</p>';
+            }
+            
+            modalContent.innerHTML = html;
+            modal.style.display = 'block';
+        }
 
+        // Close the modal
         function closeModal() {
             modal.style.display = 'none';
         }
 
+        // Fetch user email
         async function fetchUserEmail() {
             try {
                 const response = await fetch('/api/user-info', {
@@ -551,6 +728,7 @@
 
                 const data = await response.json();
                 if (data.success) {
+                    console.log('User email fetched:', data.email);
                     return data.email;
                 } else {
                     throw new Error('Failed to fetch user email');
@@ -561,43 +739,32 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                renderDaysOfWeek();
-                userEmail = await fetchUserEmail();
-                if (!userEmail) {
-                    console.error('User email not found. User might not be logged in.');
-                    // You might want to redirect to login page or show an error message
-                }
-                await fetchApprovedEvents();
-                renderCalendar();
-
-                // Add event listener for filter changes
-                eventFilter.addEventListener('change', renderCalendar);
-            } catch (error) {
-                console.error('Error initializing calendar:', error);
-            }
-        });
-
-        document.getElementById('prevMonth').addEventListener('click', () => {
+        // Go to previous month
+        function goToPrevMonth() {
             currentMonth = (currentMonth - 1 + 12) % 12;
             if (currentMonth === 11) currentYear--;
             renderCalendar();
-        });
+        }
 
-        document.getElementById('nextMonth').addEventListener('click', () => {
+        // Go to next month
+        function goToNextMonth() {
             currentMonth = (currentMonth + 1) % 12;
             if (currentMonth === 0) currentYear++;
             renderCalendar();
-        });
+        }
 
-
-        window.onclick = (event) => {
-            if (event.target === modal) {
-                closeModal();
+        // Set loading state
+        function setLoading(isLoading) {
+            if (isLoading) {
+                daysGrid.innerHTML = '<div class="loading">Loading calendar...</div>';
             }
-        };
-            </script>
+        }
+
+        // Show error message
+        function showError(message) {
+            daysGrid.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+    </script>
 </body>
 </html>
 
