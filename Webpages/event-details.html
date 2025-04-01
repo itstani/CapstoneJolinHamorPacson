@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details</title>
+    <link rel="stylesheet" type="text/css" href="../CSS/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* Sidebar and Navigation */
+        .side-bar {
+            background-color: #D9D9D9;
+            position: fixed;
+            top: 50px;
+            left: 0;
+            width: 90px;
+            height: 100%;
+            padding: 20px 0;
+            z-index: 100;
+        }
+
+        .Home, .Calendar {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .Home img, .Calendar img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .Home p, .Calendar p {
+            margin-top: 8px;
+            color: #AF2630;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .Home button, .Calendar button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .Home button:hover, .Calendar button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Main Content */
+        .Welcome {
+            margin-left: 90px;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .Welcome h1 {
+            color: #AF2630;
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .avidalogo {
+            width: 300px;
+            height: auto;
+        }
+
+        /* Event Details Styles */
+        .event-details-container {
+            margin-left: 90px;
+            padding: 20px 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .event-details {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .event-header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 20px;
+        }
+
+        .event-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .event-date {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .event-time {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .event-location {
+            font-size: 18px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .event-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .event-status.paid {
+            background-color: #d4edda;
+            color: #28a745;
+        }
+
+        .event-info {
+            margin-bottom: 30px;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #AF2630;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            width: 150px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            flex: 1;
+            color: #333;
+        }
+
+        .guest-list {
+            list-style: none;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .guest-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .guest-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Receipt Styles */
+        .receipt {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .receipt-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #AF2630;
+            margin-bottom: 10px;
+        }
+
+        .receipt-number {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .receipt-date {
+            font-size: 16px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .receipt-body {
+            margin-bottom: 30px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .receipt-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .receipt-value {
+            color: #333;
+            text-align: right;
+        }
+
+        .receipt-total {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 0;
+            border-top: 2px solid #f0f0f0;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .receipt-logo {
+            width: 150px;
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .back-button:hover {
+            background-color: #8f1f27;
+        }
+
+        .print-button {
+            display: inline-block;
+            margin-top: 30px;
+            margin-left: 15px;
+            padding: 12px 24px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .print-button:hover {
+            background-color: #555;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .event-details-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .Welcome {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .event-details-container {
+                padding: 10px 20px;
+            }
+
+            .event-details, .receipt {
+                padding: 20px;
+            }
+
+            .event-title {
+                font-size: 24px;
+            }
+
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="side-bar">
+        <div class="Home">
+            <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
+                <img src="/images/house.png" alt="Home">
+            </button>
+            <p>Home</p>
+        </div>
+
+        <div class="Calendar">
+            <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calendar.html'">
+                <img src="/images/Calendar.png"  onclick="window.location.href='calendar.html'">
+                <img src="/images/Calendar.png" alt="calendar">
+            </button>
+            <p>Calendar</p>
+        </div>
+    </div>
+
+    <div class="Welcome">
+        <h1>Event Details</h1>
+        <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
+    </div>
+
+    <div class="event-details-container">
+        <div class="event-details">
+            <div class="event-header">
+                <div class="event-title" id="eventTitle">Loading event...</div>
+                <div class="event-date" id="eventDate"></div>
+                <div class="event-time" id="eventTime"></div>
+                <div class="event-location" id="eventLocation"></div>
+                <div class="event-status paid" id="eventStatus">Paid</div>
+            </div>
+
+            <div class="event-info">
+                <div class="info-section">
+                    <div class="section-title">Event Information</div>
+                    <div class="info-row">
+                        <div class="info-label">Homeowner:</div>
+                        <div class="info-value" id="eventHomeowner"></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Amenity:</div>
+                        <div class="info-value" id="eventAmenity"></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Number of Guests:</div>
+                        <div class="info-value" id="eventGuests"></div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">Guest List</div>
+                    <ul class="guest-list" id="guestList">
+                        <!-- Guest list will be populated here -->
+                    </ul>
+                </div>
+            </div>
+
+            <a href="calendar.html" class="back-button">Back to Calendar</a>
+        </div>
+
+        <div class="receipt">
+            <div class="receipt-header">
+                <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="receipt-logo">
+                <div class="receipt-title">Payment Receipt</div>
+                <div class="receipt-number" id="receiptNumber"></div>
+                <div class="receipt-date" id="receiptDate"></div>
+            </div>
+
+            <div class="receipt-body">
+                <div class="receipt-row">
+                    <div class="receipt-label">Event:</div>
+                    <div class="receipt-value" id="receiptEvent"></div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Date:</div>
+                    <div class="receipt-value" id="receiptEventDate"></div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Amenity:</div>
+                    <div class="receipt-value" id="receiptAmenity"></div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Number of Guests:</div>
+                    <div class="receipt-value" id="receiptGuests"></div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Homeowner:</div>
+                    <div class="receipt-value" id="receiptHomeowner"></div>
+                </div>
+
+                <div class="receipt-total">
+                    <div class="receipt-label">Total Amount Paid:</div>
+                    <div class="receipt-value" id="receiptAmount"></div>
+                </div>
+            </div>
+
+            <div class="receipt-footer">
+                <p>Thank you for your payment. This receipt serves as proof of payment for your event.</p>
+                <p>For any questions or concerns, please contact the Avida Settings administration.</p>
+            </div>
+
+            <button class="print-button" onclick="window.print()">Print Receipt</button>
+        </div>
+    </div>
+
+    <script>
+        // Sample events data (in a real application, this would come from a database)
+        const events = [
+            {
+                id: 1,
+                date: new Date(2025, 2, 15), // March 15, 2025
+                title: "Pool Party",
+                time: "2:00 PM - 5:00 PM",
+                location: "Community Pool",
+                status: "paid",
+                amenity: "Pool",
+                homeowner: "John Doe",
+                guests: 15,
+                guestList: ["Alice Smith", "Bob Johnson", "Carol Williams", "David Brown", "Emma Davis", 
+                           "Frank Miller", "Grace Wilson", "Henry Moore", "Isabella Taylor", "Jack Anderson",
+                           "Kate Thomas", "Leo Jackson", "Mia White", "Noah Harris", "Olivia Martin"],
+                receipt: "RCP-2025-001",
+                paymentDate: "March 10, 2025",
+                paymentAmount: "$150.00"
+            },
+            {
+                id: 4,
+                date: new Date(2025, 2, 25), // March 25, 2025
+                title: "Community Meeting",
+                time: "7:00 PM - 8:30 PM",
+                location: "Clubhouse",
+                status: "paid",
+                amenity: "Clubhouse",
+                homeowner: "Sarah Williams",
+                guests: 30,
+                guestList: ["Resident 1", "Resident 2", "Resident 3", "Resident 4", "Resident 5", 
+                           "Resident 6", "Resident 7", "Resident 8", "Resident 9", "Resident 10",
+                           "Resident 11", "Resident 12", "Resident 13", "Resident 14", "Resident 15",
+                           "Resident 16", "Resident 17", "Resident 18", "Resident 19", "Resident 20",
+                           "Resident 21", "Resident 22", "Resident 23", "Resident 24", "Resident 25",
+                           "Resident 26", "Resident 27", "Resident 28", "Resident 29", "Resident 30"],
+                receipt: "RCP-2025-002",
+                paymentDate: "March 20, 2025",
+                paymentAmount: "$0.00"
+            }
+        ];
+
+        // Get event ID from URL parameter
+        function getEventIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return parseInt(urlParams.get('id'));
+        }
+
+        // Format date
+        function formatDate(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+
+        // Populate event details
+        function populateEventDetails(event) {
+            // Event details
+            document.getElementById('eventTitle').textContent = event.title;
+            document.getElementById('eventDate').textContent = formatDate(event.date);
+            document.getElementById('eventTime').textContent = event.time;
+            document.getElementById('eventLocation').textContent = event.location;
+            document.getElementById('eventHomeowner').textContent = event.homeowner;
+            document.getElementById('eventAmenity').textContent = event.amenity;
+            document.getElementById('eventGuests').textContent = event.guests;
+
+            // Guest list
+            const guestList = document.getElementById('guestList');
+            guestList.innerHTML = '';
+            
+            if (event.guestList && event.guestList.length > 0) {
+                event.guestList.forEach(guest => {
+                    const li = document.createElement('li');
+                    li.textContent = guest;
+                    guestList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'No guest list available';
+                guestList.appendChild(li);
+            }
+
+            // Receipt details
+            document.getElementById('receiptNumber').textContent = `Receipt Number: ${event.receipt}`;
+            document.getElementById('receiptDate').textContent = `Payment Date: ${event.paymentDate}`;
+            document.getElementById('receiptEvent').textContent = event.title;
+            document.getElementById('receiptEventDate').textContent = formatDate(event.date);
+            document.getElementById('receiptAmenity').textContent = event.amenity;
+            document.getElementById('receiptGuests').textContent = event.guests;
+            document.getElementById('receiptHomeowner').textContent = event.homeowner;
+            document.getElementById('receiptAmount').textContent = event.paymentAmount;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventId = getEventIdFromUrl();
+            const event = events.find(e => e.id === eventId);
+            
+            if (event) {
+                populateEventDetails(event);
+            } else {
+                // Handle event not found
+                document.getElementById('eventTitle').textContent = 'Event not found';
+                document.querySelector('.event-details-container').innerHTML = `
+                    <div class="event-details">
+                        <div class="event-header">
+                            <div class="event-title">Event not found</div>
+                            <p>The event you are looking for does not exist or has been removed.</p>
+                        </div>
+                        <a href="calendar.html" class="back-button">Back to Calendar</a>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
+
