@@ -1238,85 +1238,46 @@ app.put("/updateHomeowner/:email", async (req, res) => {
 
 // Update the existing approve event route
 
-app.get("/api/event/:eventId", async (req, res) => {
-  const { eventId } = req.params
-
+app.get("/api/event/:id", async (req, res) => {
   try {
-    console.log("Fetching event with ID:", eventId)
+    const eventId = req.params.id
 
-    const db = await connectToDatabase()
-    console.log("Connected to database:", db.databaseName)
-
-    const aeventsCollection = db.collection("aevents")
-    const notificationsCollection = db.collection("notifications")
-
-    // Try multiple approaches to find the event
-    let event = null
-
-    // First try: Direct ObjectId lookup
-    try {
-      const objectId = new ObjectId(eventId)
-      event = await aeventsCollection.findOne({ _id: objectId })
-      console.log("ObjectId lookup result:", event ? "Found" : "Not found")
-    } catch (err) {
-      console.log("Invalid ObjectId format, trying string comparison")
-    }
-
-    // Second try: String comparison with _id
-    if (!event) {
-      const allEvents = await aeventsCollection.find({}).limit(20).toArray()
-      event = allEvents.find((e) => e._id.toString() === eventId)
-      console.log("String _id comparison result:", event ? "Found" : "Not found")
-    }
-
-    // Third try: Look by eventName
-    if (!event) {
-      event = await aeventsCollection.findOne({ eventName: eventId })
-      console.log("eventName lookup result:", event ? "Found" : "Not found")
-    }
-
-    // Fourth try: Find the notification and get user email
-    if (!event) {
-      console.log("Trying to find notification with relatedId:", eventId)
-      const notification = await notificationsCollection.findOne({ relatedId: eventId })
-
-      if (notification && notification.userEmail) {
-        console.log("Found notification for user:", notification.userEmail)
-
-        // Get the most recent event for this user
-        const userEvents = await aeventsCollection
-          .find({ userEmail: notification.userEmail })
-          .sort({ _id: -1 })
-          .limit(1)
-          .toArray()
-
-        if (userEvents.length > 0) {
-          event = userEvents[0]
-          console.log("Found most recent event for user:", event.eventName)
-        }
-      }
-    }
-
-    if (event) {
-      console.log("Event found:", event)
-      res.json({ success: true, event })
-    } else {
-      // If all attempts fail, dump some debug info
-      const sampleEvents = await aeventsCollection.find({}).limit(3).toArray()
-      console.log(
-        "Sample events in database:",
-        sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
-      )
-
-      res.status(404).json({
+    // Check if eventId is provided
+    if (!eventId) {
+      return res.status(400).json({
         success: false,
-        message: "Event not found",
-        debug: {
-          requestedId: eventId,
-          sampleEvents: sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
-        },
+        message: "Event ID is required",
       })
     }
+
+    const db = await connectToDatabase()
+    const eventsCollection = db.collection("events")
+
+    // Convert string ID to ObjectId if using MongoDB's ObjectId
+    let objectId
+    try {
+      objectId = new ObjectId(eventId)
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      })
+    }
+
+    // Find the event by ID
+    const event = await eventsCollection.findOne({ _id: objectId })
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      })
+    }
+
+    res.json({
+      success: true,
+      event: event,
+    })
   } catch (error) {
     console.error("Error fetching event details:", error)
     res.status(500).json({
@@ -1326,7 +1287,6 @@ app.get("/api/event/:eventId", async (req, res) => {
     })
   }
 })
-
 // Add this to server.js
 app.get("/api/debug/notifications", async (req, res) => {
   try {
@@ -2035,28 +1995,33 @@ app.put("/updateConcernStatus/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" })
   }
 })
-app.get("/api/user-events/:userEmail", async (req, res) => {
-  const { userEmail } = req.params
 
+app.get("/api/user-events/:email", async (req, res) => {
   try {
-    console.log("Fetching events for user:", userEmail)
+    const userEmail = req.params.email
 
-    const db = await connectToDatabase()
-    const aeventsCollection = db.collection("aevents")
-
-    // Find all events for this user
-    const events = await aeventsCollection.find({ userEmail }).toArray()
-
-    if (events && events.length > 0) {
-      console.log(`Found ${events.length} events for user ${userEmail}`)
-      res.json({ success: true, events })
-    } else {
-      console.log(`No events found for user ${userEmail}`)
-      res.status(404).json({
+    if (!userEmail) {
+      return res.status(400).json({
         success: false,
-        message: "No events found for this user",
+        message: "User email is required",
       })
     }
+
+    const db = await connectToDatabase()
+    const eventsCollection = db.collection("events")
+
+    // Find events by user email
+    const events = await eventsCollection
+      .find({
+        userEmail: userEmail,
+      })
+      .sort({ eventDate: -1 })
+      .toArray()
+
+    res.json({
+      success: true,
+      events: events,
+    })
   } catch (error) {
     console.error("Error fetching user events:", error)
     res.status(500).json({
@@ -2066,6 +2031,7 @@ app.get("/api/user-events/:userEmail", async (req, res) => {
     })
   }
 })
+
 
 app.get("/api/event/:eventId", async (req, res) => {
   const { eventId } = req.params
@@ -2159,55 +2125,40 @@ app.get("/api/event/:eventId", async (req, res) => {
 // Update the notifications endpoint to include more detailed logging
 app.get("/api/notifications", async (req, res) => {
   try {
-    console.log("Session in notifications endpoint:", {
-      sessionID: req.sessionID,
-      session: req.session,
-      user: req.session?.user,
-      cookie: req.session?.cookie,
-    })
-
-    // Check if the user is authenticated
+    // Check if user is authenticated
     if (!req.session || !req.session.user || !req.session.user.email) {
-      console.log("User not authenticated in notifications endpoint")
-      console.log("Session details:", req.session)
       return res.status(401).json({
         success: false,
-        error: "User not authenticated",
-        notifications: [],
-        unreadCount: 0,
+        error: "Not authenticated",
       })
     }
 
     const userEmail = req.session.user.email
-    console.log("Fetching notifications for:", userEmail)
 
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
 
+    // Get notifications for the current user only
     const notifications = await notificationsCollection
       .find({
-        userEmail: userEmail,
-        read: false,
+        userEmail: userEmail, // Filter by the current user's email
       })
       .sort({ timestamp: -1 })
-      .limit(10)
       .toArray()
 
-    console.log(`Found ${notifications.length} notifications for ${userEmail}`)
-    console.log("Notifications:", JSON.stringify(notifications))
+    // Count unread notifications
+    const unreadCount = notifications.filter((notification) => !notification.read).length
 
     res.json({
       success: true,
       notifications: notifications,
-      unreadCount: notifications.length,
+      unreadCount: unreadCount,
     })
   } catch (error) {
     console.error("Error fetching notifications:", error)
     res.status(500).json({
       success: false,
-      error: "Internal server error",
-      notifications: [],
-      unreadCount: 0,
+      error: "Failed to fetch notifications",
     })
   }
 })
@@ -2242,43 +2193,49 @@ app.post("/api/updateNotificationAfterPayment", async (req, res) => {
   }
 })
 
-app.post("/api/markNotificationsAsRead", async (req, res) => {
+app.post("/api/markAllNotificationsRead", async (req, res) => {
   try {
-    let userEmail = req.session?.user?.email
-
-    // Try auth header if session doesn't have user email
-    if (!userEmail && req.headers.authorization) {
-      try {
-        const authHeader = req.headers.authorization
-        if (authHeader.startsWith("Basic ")) {
-          const base64Credentials = authHeader.split(" ")[1]
-          const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8")
-          const [login, password] = credentials.split(":")
-
-          const db = await connectToDatabase()
-          const user = await db.collection("acc").findOne({
-            $or: [
-              { email: { $regex: new RegExp(`^${login}$`, "i") } },
-              { username: { $regex: new RegExp(`^${login}$`, "i") } },
-            ],
-          })
-
-          if (user && (await bcrypt.compare(password, user.password))) {
-            userEmail = user.email
-          }
-        }
-      } catch (err) {
-        console.error("Error authenticating with Basic Auth:", err)
-      }
-    }
-
-    if (!userEmail) {
+    // Check if user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
       return res.status(401).json({
         success: false,
-        error: "User not authenticated",
+        error: "Not authenticated",
       })
     }
 
+    const userEmail = req.session.user.email
+
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
+
+    // Update all notifications for this user to be marked as read
+    const result = await notificationsCollection.updateMany({ userEmail: userEmail }, { $set: { read: true } })
+
+    res.json({
+      success: true,
+      message: "All notifications marked as read",
+      modifiedCount: result.modifiedCount,
+    })
+  } catch (error) {
+    console.error("Error marking notifications as read:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to mark notifications as read",
+    })
+  }
+})
+
+app.post("/api/markSelectedNotificationsRead", async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      })
+    }
+
+    const userEmail = req.session.user.email
     const { notificationIds } = req.body
 
     if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
@@ -2291,39 +2248,25 @@ app.post("/api/markNotificationsAsRead", async (req, res) => {
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
 
-    const objectIds = notificationIds
-      .map((id) => {
-        try {
-          return new ObjectId(id)
-        } catch (error) {
-          console.error(`Invalid ObjectId format: ${id}`)
-          return null
-        }
-      })
-      .filter((id) => id !== null)
-
-    if (objectIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No valid notification IDs provided",
-      })
-    }
-
+    // Update selected notifications for this user to be marked as read
     const result = await notificationsCollection.updateMany(
-      { _id: { $in: objectIds }, userEmail },
+      {
+        _id: { $in: notificationIds.map((id) => new MongoClient.ObjectId(id)) },
+        userEmail: userEmail, // Ensure we only update this user's notifications
+      },
       { $set: { read: true } },
     )
 
     res.json({
       success: true,
-      message: "Notifications marked as read",
+      message: "Selected notifications marked as read",
       modifiedCount: result.modifiedCount,
     })
   } catch (error) {
-    console.error("Error marking notifications as read:", error)
+    console.error("Error marking selected notifications as read:", error)
     res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: "Failed to mark selected notifications as read",
     })
   }
 })
@@ -2448,123 +2391,7 @@ app.get("/api/calendar-events", async (req, res) => {
   }
 })
 
-app.post("/api/clearAllNotifications", async (req, res) => {
-  try {
-    // Get user email from session or headers
-    let userEmail = req.session?.user?.email
 
-    // Try auth header if session doesn't have user email
-    if (!userEmail && req.headers.authorization) {
-      try {
-        const authHeader = req.headers.authorization
-        if (authHeader.startsWith("Basic ")) {
-          const base64Credentials = authHeader.split(" ")[1]
-          const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8")
-          const [login, password] = credentials.split(":")
-
-          const db = await connectToDatabase()
-          const user = await db.collection("acc").findOne({
-            $or: [
-              { email: { $regex: new RegExp(`^${login}$`, "i") } },
-              { username: { $regex: new RegExp(`^${login}$`, "i") } },
-            ],
-          })
-
-          if (user && (await bcrypt.compare(password, user.password))) {
-            userEmail = user.email
-          }
-        }
-      } catch (err) {
-        console.error("Error authenticating with Basic Auth:", err)
-      }
-    }
-
-    if (!userEmail) {
-      return res.status(401).json({
-        success: false,
-        error: "User not authenticated",
-      })
-    }
-
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    const result = await notificationsCollection.deleteMany({ userEmail })
-
-    res.json({
-      success: true,
-      message: "All notifications cleared",
-      deletedCount: result.deletedCount,
-    })
-  } catch (error) {
-    console.error("Error clearing all notifications:", error)
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    })
-  }
-})
-
-// Add this endpoint after the clearAllNotifications endpoint
-
-app.post("/api/clearSelectedNotifications", async (req, res) => {
-  try {
-    const userEmail = req.session?.user?.email
-    const { notificationIds } = req.body
-
-    if (!userEmail) {
-      return res.status(401).json({
-        success: false,
-        error: "User not authenticated",
-      })
-    }
-
-    if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No notification IDs provided",
-      })
-    }
-
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    const objectIds = notificationIds
-      .map((id) => {
-        try {
-          return new ObjectId(id)
-        } catch (error) {
-          console.error(`Invalid ObjectId format: ${id}`)
-          return null
-        }
-      })
-      .filter((id) => id !== null)
-
-    if (objectIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No valid notification IDs provided",
-      })
-    }
-
-    const result = await notificationsCollection.deleteMany({
-      _id: { $in: objectIds },
-      userEmail: userEmail,
-    })
-
-    res.json({
-      success: true,
-      message: "Selected notifications cleared",
-      deletedCount: result.deletedCount,
-    })
-  } catch (error) {
-    console.error("Error clearing selected notifications:", error)
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    })
-  }
-})
 
 // userdata edit
 
@@ -2651,6 +2478,807 @@ app.post("/updateUserDetails", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" })
   }
 })
+app.post("/api/create-homeowner-account", async (req, res) => {
+  try {
+    const { username, email, password } = req.body
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Username, email, and password are required",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const usersCollection = db.collection("acc")
+
+    // Check if user already exists
+    const existingUser = await usersCollection.findOne({
+      $or: [{ username }, { email }],
+    })
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Username or email already exists",
+      })
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Create new user
+    const newUser = {
+      username,
+      email,
+      password: hashedPassword,
+      role: "homeowner",
+      createdAt: new Date(),
+    }
+
+    await usersCollection.insertOne(newUser)
+
+    res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+    })
+  } catch (error) {
+    console.error("Error creating homeowner account:", error)
+    res.status(500).json({
+      success: false,
+      message: "Server error while creating account",
+      error: error.message,
+    })
+  }
+})
+
+app.post("/api/create-homeowner", async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      Address,
+      email,
+      phoneNumber,
+      landLine,
+      paymentStatus,
+      homeownerStatus,
+      carStickerStatus,
+    } = req.body
+
+    if (!firstName || !lastName || !Address || !email || !phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required homeowner details",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+
+    // Check if homeowner already exists
+    const existingHomeowner = await homeownersCollection.findOne({ email })
+
+    if (existingHomeowner) {
+      return res.status(400).json({
+        success: false,
+        message: "Homeowner with this email already exists",
+      })
+    }
+
+    // Create new homeowner
+    const newHomeowner = {
+      firstName,
+      lastName,
+      Address,
+      email,
+      phoneNumber,
+      landLine: landLine || "",
+      paymentStatus: paymentStatus || "Compliant",
+      homeownerStatus: homeownerStatus || "Compliant",
+      carStickerStatus: carStickerStatus || "undetermined",
+      createdAt: new Date(),
+    }
+
+    await homeownersCollection.insertOne(newHomeowner)
+
+    // Log activity
+    await logActivity("homeownerCreated", `New homeowner account created for ${firstName} ${lastName}`)
+
+    res.status(201).json({
+      success: true,
+      message: "Homeowner details saved successfully",
+    })
+  } catch (error) {
+    console.error("Error creating homeowner:", error)
+    res.status(500).json({
+      success: false,
+      message: "Server error while saving homeowner details",
+      error: error.message,
+    })
+  }
+})
+
+app.get("/api/generate-payment-report", async (req, res) => {
+  try {
+    const { type, range, format, startDate, endDate } = req.query
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const paymentsCollection = db.collection("payments")
+
+    // Get date range
+    let dateFilter = {}
+    const now = new Date()
+
+    if (range === "this_month") {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      dateFilter = { createdAt: { $gte: startOfMonth } }
+    } else if (range === "last_month") {
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+      dateFilter = { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }
+    } else if (range === "last_quarter") {
+      const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - 3, 1)
+      dateFilter = { createdAt: { $gte: startOfQuarter } }
+    } else if (range === "last_year") {
+      const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1)
+      const endOfLastYear = new Date(now.getFullYear(), 0, 0)
+      dateFilter = { createdAt: { $gte: startOfLastYear, $lte: endOfLastYear } }
+    } else if (range === "custom" && startDate && endDate) {
+      const startDateObj = new Date(startDate)
+      const endDateObj = new Date(endDate)
+      endDateObj.setHours(23, 59, 59, 999) // Set to end of day
+      dateFilter = { createdAt: { $gte: startDateObj, $lte: endDateObj } }
+    }
+
+    // Get data based on report type
+    let reportData = []
+
+    if (type === "payment_frequency") {
+      // Get all homeowners with their payment status
+      reportData = await homeownersCollection.find({}).toArray()
+
+      // If date filter is applied, get payment history for the period
+      if (Object.keys(dateFilter).length > 0) {
+        const payments = await paymentsCollection.find(dateFilter).toArray()
+
+        // Create a map of homeowner emails to payment counts
+        const paymentCounts = {}
+        payments.forEach((payment) => {
+          if (!paymentCounts[payment.email]) {
+            paymentCounts[payment.email] = 0
+          }
+          paymentCounts[payment.email]++
+        })
+
+        // Add payment frequency to homeowner data
+        reportData = reportData.map((homeowner) => ({
+          ...homeowner,
+          paymentFrequency: paymentCounts[homeowner.email] || 0,
+        }))
+      }
+    } else if (type === "delinquent_owners") {
+      // Get only delinquent homeowners
+      reportData = await homeownersCollection
+        .find({
+          $or: [{ paymentStatus: "Delinquent" }, { homeownerStatus: "Delinquent" }],
+        })
+        .toArray()
+    } else if (type === "payment_history") {
+      // Get payment history for all homeowners
+      const payments = await paymentsCollection.find(dateFilter).toArray()
+
+      // Group payments by homeowner
+      const homeownerEmails = [...new Set(payments.map((payment) => payment.email))]
+
+      // Get homeowner details
+      const homeowners = await homeownersCollection
+        .find({
+          email: { $in: homeownerEmails },
+        })
+        .toArray()
+
+      // Create a map of emails to homeowner details
+      const homeownerMap = {}
+      homeowners.forEach((homeowner) => {
+        homeownerMap[homeowner.email] = homeowner
+      })
+
+      // Create report data with payment history
+      reportData = payments.map((payment) => ({
+        ...payment,
+        firstName: homeownerMap[payment.email]?.firstName || "",
+        lastName: homeownerMap[payment.email]?.lastName || "",
+        Address: homeownerMap[payment.email]?.Address || "",
+      }))
+    }
+
+    // Create Excel workbook
+    const excel = officegen("xlsx")
+
+    // Add worksheet
+    const sheet = excel.makeNewSheet()
+    sheet.name =
+      type === "payment_frequency"
+        ? "Payment Frequency"
+        : type === "delinquent_owners"
+          ? "Delinquent Owners"
+          : "Payment History"
+
+    // Add headers based on report type
+    let headers = []
+
+    if (type === "payment_frequency") {
+      headers = [
+        "Last Name",
+        "First Name",
+        "Address",
+        "Phone Number",
+        "Landline",
+        "Payment Status",
+        "Homeowner Status",
+        "Car Sticker Status",
+        "Payment Frequency",
+      ]
+    } else if (type === "delinquent_owners") {
+      headers = [
+        "Last Name",
+        "First Name",
+        "Address",
+        "Phone Number",
+        "Landline",
+        "Payment Status",
+        "Homeowner Status",
+        "Car Sticker Status",
+        "Last Payment Date",
+      ]
+    } else if (type === "payment_history") {
+      headers = [
+        "Last Name",
+        "First Name",
+        "Address",
+        "Amount",
+        "Payment Date",
+        "Payment Method",
+        "Reference Number",
+        "Status",
+      ]
+    }
+
+    sheet.data[0] = headers
+
+    // Add data rows based on report type
+    reportData.forEach((item, index) => {
+      let rowData = []
+
+      if (type === "payment_frequency") {
+        rowData = [
+          item.lastName || "",
+          item.firstName || "",
+          item.Address || "",
+          item.phoneNumber || "",
+          item.landLine || "",
+          item.paymentStatus || "",
+          item.homeownerStatus || "",
+          item.carStickerStatus || "Undetermined",
+          item.paymentFrequency || 0,
+        ]
+      } else if (type === "delinquent_owners") {
+        rowData = [
+          item.lastName || "",
+          item.firstName || "",
+          item.Address || "",
+          item.phoneNumber || "",
+          item.landLine || "",
+          item.paymentStatus || "",
+          item.homeownerStatus || "",
+          item.carStickerStatus || "Undetermined",
+          item.lastPaymentDate ? new Date(item.lastPaymentDate).toLocaleDateString() : "Never",
+        ]
+      } else if (type === "payment_history") {
+        rowData = [
+          item.lastName || "",
+          item.firstName || "",
+          item.Address || "",
+          item.amount ? `₱${item.amount.toFixed(2)}` : "",
+          item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : "",
+          item.paymentMethod || "",
+          item.referenceNumber || "",
+          item.status || "",
+        ]
+      }
+
+      sheet.data[index + 1] = rowData
+    })
+
+    // Set content type based on format
+    if (format === "excel" || format === "xlsx") {
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.xlsx`)
+    } else if (format === "csv") {
+      res.setHeader("Content-Type", "text/csv")
+      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.csv`)
+    } else if (format === "pdf") {
+      res.setHeader("Content-Type", "application/pdf")
+      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.pdf`)
+    } else {
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.xlsx`)
+    }
+
+    // Generate and send the file
+    excel.generate(res)
+
+    // Log activity
+    await logActivity("reportGenerated", `Generated ${type} report in ${format} format`)
+  } catch (error) {
+    console.error("Error generating payment report:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate payment report",
+      error: error.message,
+    })
+  }
+})
+
+
+async function notifyDelinquentHomeowners() {
+  try {
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    const notificationsCollection = db.collection("notifications");
+    
+    // Find all homeowners with delinquent status
+    const delinquentHomeowners = await homeownersCollection.find({
+      $or: [
+        { paymentStatus: "Not Paid" },
+        { homeownerStatus: "Delinquent" }
+      ]
+    }).toArray();
+    
+    console.log(`Found ${delinquentHomeowners.length} delinquent homeowners`);
+    
+    // Create notifications for each delinquent homeowner
+    for (const homeowner of delinquentHomeowners) {
+      // Check if we already sent a notification this month
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      const existingNotification = await notificationsCollection.findOne({
+        userEmail: homeowner.email,
+        type: "payment_reminder",
+        timestamp: { $gte: firstDayOfMonth }
+      });
+      
+      // If no notification was sent this month, create one
+      if (!existingNotification) {
+        await createNotification(
+          homeowner.email,
+          "payment_reminder",
+          `Payment Reminder: Your homeowner dues are currently marked as unpaid. Please settle your payment as soon as possible to avoid penalties.`,
+          null,
+          "Payment Reminder",
+          null,
+          { isPaid: false }
+        );
+        
+        console.log(`Sent payment reminder to ${homeowner.email}`);
+      }
+    }
+    
+    return {
+      success: true,
+      message: `Notifications sent to ${delinquentHomeowners.length} delinquent homeowners`
+    };
+  } catch (error) {
+    console.error("Error sending delinquent notifications:", error);
+    return {
+      success: false,
+      message: "Failed to send notifications",
+      error: error.message
+    };
+  }
+}
+schedule.scheduleJob("0 9 1 * *", async () => {
+  console.log("Running scheduled delinquent homeowner notifications");
+  await notifyDelinquentHomeowners();
+});
+
+app.post("/api/send-delinquent-notifications", async (req, res) => {
+  try {
+    const { type, subject, message, recipientType } = req.body;
+    
+    if (!subject || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "Subject and message are required"
+      });
+    }
+    
+    // Assuming you have a function to connect to the database
+    // const db = await connectToDatabase(); // Uncomment and adjust if needed
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    const notificationsCollection = db.collection("notifications");
+    
+    // Determine which homeowners to notify based on recipientType
+    let query = {};
+    
+    if (recipientType === "delinquent") {
+      query = { paymentStatus: "Delinquent" };
+    } else if (recipientType === "not_paid") {
+      query = { paymentStatus: "Not Paid" };
+    } else if (recipientType === "all_delinquent") {
+      query = { 
+        $or: [
+          { paymentStatus: "Delinquent" },
+          { paymentStatus: "Not Paid" }
+        ]
+      };
+    } else {
+      // Default to all delinquent homeowners
+      query = { 
+        $or: [
+          { paymentStatus: "Delinquent" },
+          { paymentStatus: "Not Paid" }
+        ]
+      };
+    }
+    
+    // Find all homeowners matching the query
+    const homeowners = await homeownersCollection.find(query).toArray();
+    
+    if (homeowners.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No homeowners found matching the criteria"
+      });
+    }
+    
+    // Create notifications for each homeowner
+    const notifications = [];
+    
+    for (const homeowner of homeowners) {
+      if (homeowner.email) {
+        notifications.push({
+          userEmail: homeowner.email,
+          type: type || "payment_reminder",
+          subject,
+          message,
+          timestamp: new Date(),
+          read: false
+        });
+      }
+    }
+    
+    // Insert all notifications
+    if (notifications.length > 0) {
+      await notificationsCollection.insertMany(notifications);
+    }
+    
+    // Record this notification sending in sent_notifications collection
+    await db.collection("sent_notifications").insertOne({
+      type: type || "payment_reminder",
+      subject,
+      message,
+      recipientType,
+      recipientCount: notifications.length,
+      timestamp: new Date()
+    });
+    
+    // Log the activity
+    // Assuming you have a function to log activity
+    // await logActivity(
+    //   "notificationSent", 
+    //   `Sent ${subject} notification to ${notifications.length} homeowners`
+    // ); // Uncomment and adjust if needed
+    await logActivity(
+      "notificationSent", 
+      `Sent ${subject} notification to ${notifications.length} homeowners`
+    );
+    
+    res.json({
+      success: true,
+      message: `Notifications sent successfully to ${notifications.length} homeowners`,
+      recipientCount: notifications.length
+    });
+    
+  } catch (error) {
+    console.error("Error sending notifications:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send notifications",
+      error: error.message
+    });
+  }
+});
+
+// API endpoint to manually trigger notifications
+app.post("/api/notify-delinquent-homeowners", async (req, res) => {
+  try {
+    const result = await notifyDelinquentHomeowners();
+    res.json(result);
+  } catch (error) {
+    console.error("Error in notify-delinquent-homeowners endpoint:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while sending notifications",
+      error: error.message
+    });
+  }
+});
+
+app.get("/api/payment-report", async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    
+    // Get all homeowners
+    const homeowners = await homeownersCollection.find({}).toArray();
+    
+    // Count payment statuses
+    const paymentStats = {
+      paid: homeowners.filter(h => h.paymentStatus === "Paid").length,
+      notPaid: homeowners.filter(h => h.paymentStatus === "Not Paid").length,
+      toBeVerified: homeowners.filter(h => h.paymentStatus === "To be verified").length,
+      total: homeowners.length
+    };
+    
+    res.json({
+      success: true,
+      stats: paymentStats,
+      homeowners: homeowners
+    });
+  } catch (error) {
+    console.error("Error generating payment report:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate payment report",
+      error: error.message
+    });
+  }
+});
+
+app.post("/api/homeowners/generate-account", async (req, res) => {
+  try {
+    const { firstName, lastName, address, phoneNumber, landLine, paymentStatus, carStickerStatus } = req.body
+
+    if (!firstName || !lastName || !address || !phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const accCollection = db.collection("acc")
+
+    // Generate username and email
+    const username =
+      (firstName.charAt(0) + lastName).toLowerCase().replace(/\s+/g, "") + Math.floor(100 + Math.random() * 900)
+    const email = username + "@example.com"
+
+    // Extract block and lot numbers from address
+    const blockMatch = address.match(/Block\s+(\d+)/i)
+    const lotMatch = address.match(/Lot\s+(\d+)/i)
+
+    if (!blockMatch || !lotMatch) {
+      return res.status(400).json({
+        success: false,
+        error: "Address must contain valid Block and Lot numbers",
+      })
+    }
+
+    const blockNumber = blockMatch[1]
+    const lotNumber = lotMatch[1]
+    const currentYear = new Date().getFullYear()
+
+    // Generate password in the format: ASC + block + lot + year + !
+    const password = `ASC${blockNumber}${lotNumber}${currentYear}!`
+
+    // Check if username or email already exists
+    const existingUser = await accCollection.findOne({
+      $or: [{ username }, { email }],
+    })
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: "Username or email already exists. Please try again.",
+      })
+    }
+
+    // Create account in acc collection
+    const hashedPassword = await bcrypt.hash(password, 10)
+    await accCollection.insertOne({
+      username,
+      email,
+      password: hashedPassword,
+      role: "homeowner",
+      createdAt: new Date(),
+    })
+
+    // Create homeowner record
+    const homeowner = {
+      firstName,
+      lastName,
+      Address: address,
+      email,
+      phoneNumber,
+      landLine: landLine || "",
+      paymentStatus: paymentStatus || "Compliant",
+      homeownerStatus: paymentStatus === "Delinquent" ? "Delinquent" : "Compliant",
+      carStickerStatus: carStickerStatus || "undetermined",
+      createdAt: new Date(),
+    }
+
+    await homeownersCollection.insertOne(homeowner)
+
+    // Log activity
+    await logActivity("accountGenerated", `Generated account for homeowner ${firstName} ${lastName}`)
+
+    res.json({
+      success: true,
+      message: "Account generated successfully",
+      account: {
+        username,
+        password,
+      },
+    })
+  } catch (error) {
+    console.error("Error generating homeowner account:", error)
+    res.status(500).json({
+      success: false,
+      error: "Server error while generating account",
+    })
+  }
+})
+
+
+app.get("/api/generate-payment-report", async (req, res) => {
+  try {
+    const { type, range, format, startDate, endDate } = req.query;
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    
+    // Get date range
+    let dateFilter = new Date();
+    if (range === 'last-month') {
+      dateFilter.setMonth(dateFilter.getMonth() - 1);
+    } else if (range === 'last-quarter') {
+      dateFilter.setMonth(dateFilter.getMonth() - 3);
+    } else if (range === 'last-year') {
+      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+    } else if (range === 'custom' && startDate && endDate) {
+      dateFilter = new Date(startDate);
+    }
+    
+    // Get homeowners data
+    const homeowners = await homeownersCollection.find({}).toArray();
+    
+    // Create Excel workbook
+    const excel = officegen('xlsx');
+    
+    // Add worksheet
+    const sheet = excel.makeNewSheet();
+    sheet.name = 'Homeowner Payments';
+    
+    // Add headers
+    const headers = ['Last Name', 'First Name', 'Address', 'Phone Number', 'Landline', 'Payment Status', 'Homeowner Status'];
+    sheet.data[0] = headers;
+    
+    // Add data rows
+    homeowners.forEach((homeowner, index) => {
+      sheet.data[index + 1] = [
+        homeowner.lastName || '',
+        homeowner.firstName || '',
+        homeowner.Address || '',
+        homeowner.phoneNumber || '',
+        homeowner.landLine || '',
+        homeowner.paymentStatus || '',
+        homeowner.homeownerStatus || ''
+      ];
+    });
+    
+    // Set content type based on format
+    if (format === 'excel' || format === 'xlsx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
+    } else if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.csv');
+    } else {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
+    }
+    
+    // Generate and send the file
+    excel.generate(res);
+    
+  } catch (error) {
+    console.error("Error generating payment report:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate payment report",
+      error: error.message
+    });
+  }
+});
+
+app.get("/api/generate-payment-report", async (req, res) => {
+  try {
+    const { type, range, format, startDate, endDate } = req.query;
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    
+    // Get date range
+    let dateFilter = new Date();
+    if (range === 'last-month') {
+      dateFilter.setMonth(dateFilter.getMonth() - 1);
+    } else if (range === 'last-quarter') {
+      dateFilter.setMonth(dateFilter.getMonth() - 3);
+    } else if (range === 'last-year') {
+      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+    } else if (range === 'custom' && startDate && endDate) {
+      dateFilter = new Date(startDate);
+    }
+    
+    // Get homeowners data
+    const homeowners = await homeownersCollection.find({}).toArray();
+    
+    // Create Excel workbook
+    const excel = officegen('xlsx');
+    
+    // Add worksheet
+    const sheet = excel.makeNewSheet();
+    sheet.name = 'Homeowner Payments';
+    
+    // Add headers
+    const headers = ['Last Name', 'First Name', 'Address', 'Phone Number', 'Landline', 'Payment Status', 'Homeowner Status', 'Car Sticker Status'];
+    sheet.data[0] = headers;
+    
+    // Add data rows
+    homeowners.forEach((homeowner, index) => {
+      sheet.data[index + 1] = [
+        homeowner.lastName || '',
+        homeowner.firstName || '',
+        homeowner.Address || '',
+        homeowner.phoneNumber || '',
+        homeowner.landLine || '',
+        homeowner.paymentStatus || '',
+        homeowner.homeownerStatus || '',
+        homeowner.carStickerStatus || 'Undetermined'
+      ];
+    });
+    
+    // Set content type based on format
+    if (format === 'excel' || format === 'xlsx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
+    } else if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.csv');
+    } else {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
+    }
+    
+    // Generate and send the file
+    excel.generate(res);
+    
+  } catch (error) {
+    console.error("Error generating payment report:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate payment report",
+      error: error.message
+    });
+  }
+});
 
 // CONCERN REPLY-----------------------------------------------
 
