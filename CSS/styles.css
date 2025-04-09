@@ -735,6 +735,22 @@ body {
   }
 }
 
+.admin-response {
+  color: #3e0408;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.notification-item .admin-response {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+
 /* Touch device improvements */
 @media (hover: none) {
   .reserve button:hover {

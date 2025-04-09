@@ -1501,94 +1501,80 @@ app.get("/eventshow", async (req, res) => {
 
 //Submit Concern
 
-app.post("/api/repair-notifications", async (req, res) => {
+app.get("/api/repair-notifications", async (req, res) => {
   try {
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
-    const eventsCollection = db.collection("aevents")
+    const aeventsCollection = db.collection("aevents")
 
-    // Find all payment_required notifications
-    const paymentNotifications = await notificationsCollection
+    // Get all notifications that might need repair
+    const notifications = await notificationsCollection
       .find({
-        type: "payment_required",
+        $or: [
+          { eventDate: { $exists: false } },
+          { startTime: { $exists: false } },
+          { endTime: { $exists: false } },
+          { amenity: { $exists: false } },
+        ],
       })
       .toArray()
 
-    let updatedCount = 0
+    console.log(`Found ${notifications.length} notifications that need repair`)
 
-    for (const notification of paymentNotifications) {
-      let isFreeEvent = false
+    let repaired = 0
 
-      // Check message for free event keywords
-      if (notification.message) {
-        const lowerCaseMsg = notification.message.toLowerCase()
-        const freeEventKeywords = ["birthday", "meeting", "celebration", "community event"]
-        isFreeEvent = freeEventKeywords.some((keyword) => lowerCaseMsg.includes(keyword))
-      }
+    // Process each notification
+    for (const notification of notifications) {
+      // Skip if no relatedId
+      if (!notification.relatedId) continue
 
-      // If relatedId exists, check the event details
-      if (notification.relatedId && !isFreeEvent) {
+      try {
+        // Try to find the related event
+        let event = null
         try {
-          // Try to find the event
-          const eventId = new ObjectId(notification.relatedId)
-          const event = await eventsCollection.findOne({ _id: eventId })
-
-          if (event) {
-            // Check event name for free event keywords
-            const eventName = event.eventName?.toLowerCase() || ""
-            const freeEventKeywords = ["birthday", "meeting", "celebration", "community"]
-            isFreeEvent = freeEventKeywords.some((keyword) => eventName.includes(keyword))
-
-            // Check event type if it exists
-            if (event.eventType) {
-              isFreeEvent = isFreeEvent || ["free", "nonpaid", "non-paid"].includes(event.eventType.toLowerCase())
-            }
-          }
+          const objectId = new ObjectId(notification.relatedId)
+          event = await aeventsCollection.findOne({ _id: objectId })
         } catch (err) {
-          console.error(`Error checking event for notification ${notification._id}:`, err)
-        }
-      }
-
-      // Update the notification if it's a free event
-      if (isFreeEvent) {
-        let updatedMessage = notification.message
-
-        // Replace payment text with details text
-        if (
-          updatedMessage &&
-          (updatedMessage.includes("Proceed to payment") || updatedMessage.includes("proceed to payment"))
-        ) {
-          updatedMessage = updatedMessage.replace(
-            /Proceed to payment|proceed to payment/g,
-            "To see event details, click here",
-          )
+          // Not a valid ObjectId, try other methods
         }
 
-        // Update the notification
-        await notificationsCollection.updateOne(
-          { _id: notification._id },
-          {
-            $set: {
-              type: "event_confirmed",
-              message: updatedMessage,
-            },
-          },
-        )
+        // If event not found by ID, try by name
+        if (!event && notification.eventName) {
+          event = await aeventsCollection.findOne({ eventName: notification.eventName })
+        }
 
-        updatedCount++
+        // If event found, update the notification
+        if (event) {
+          const updateData = {
+            eventName: event.eventName,
+            eventDate: event.eventDate,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            amenity: event.amenity,
+          }
+
+          // Create a better subject line
+          const timeInfo = event.startTime && event.endTime ? `${event.startTime}-${event.endTime}` : ""
+          const subject = `${event.eventName} on ${event.eventDate} ${timeInfo}`.trim()
+          updateData.subject = subject
+
+          await notificationsCollection.updateOne({ _id: notification._id }, { $set: updateData })
+
+          repaired++
+        }
+      } catch (error) {
+        console.error(`Error repairing notification ${notification._id}:`, error)
       }
     }
 
     res.json({
       success: true,
-      message: `Repaired ${updatedCount} notifications for free events`,
-      updatedCount,
+      message: `Repaired ${repaired} of ${notifications.length} notifications`,
     })
   } catch (error) {
     console.error("Error repairing notifications:", error)
     res.status(500).json({
       success: false,
-      message: "Error repairing notifications",
       error: error.message,
     })
   }
@@ -2174,6 +2160,7 @@ app.get("/api/notifications", async (req, res) => {
     }
 
     const userEmail = req.session.user.email
+    console.log("Fetching notifications for user:", userEmail)
 
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
@@ -2186,8 +2173,11 @@ app.get("/api/notifications", async (req, res) => {
       .sort({ timestamp: -1 })
       .toArray()
 
+    console.log(`Found ${notifications.length} notifications for user ${userEmail}`)
+
     // Count unread notifications
     const unreadCount = notifications.filter((notification) => !notification.read).length
+    console.log(`Unread notifications: ${unreadCount}`)
 
     res.json({
       success: true,
@@ -2233,6 +2223,51 @@ app.post("/api/updateNotificationAfterPayment", async (req, res) => {
   }
 })
 
+app.post("/api/markNotificationAsRead", async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      })
+    }
+
+    const { notificationId } = req.body
+
+    if (!notificationId) {
+      return res.status(400).json({
+        success: false,
+        error: "Notification ID is required",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const notificationsCollection = db.collection("notifications")
+
+    // Update the notification to mark it as read
+    const result = await notificationsCollection.updateOne(
+      {
+        _id: new ObjectId(notificationId),
+        userEmail: req.session.user.email, // Ensure we only update this user's notification
+      },
+      { $set: { read: true } },
+    )
+
+    res.json({
+      success: true,
+      message: "Notification marked as read",
+      modifiedCount: result.modifiedCount,
+    })
+  } catch (error) {
+    console.error("Error marking notification as read:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to mark notification as read",
+    })
+  }
+})
+
 app.post("/api/markAllNotificationsRead", async (req, res) => {
   try {
     // Check if user is authenticated
@@ -2264,7 +2299,6 @@ app.post("/api/markAllNotificationsRead", async (req, res) => {
     })
   }
 })
-
 app.post("/api/markSelectedNotificationsRead", async (req, res) => {
   try {
     // Check if user is authenticated
@@ -3325,49 +3359,52 @@ app.get("/api/generate-payment-report", async (req, res) => {
 // Handle form submission
 
 app.post("/sendReply", upload.single("attachment"), async (req, res) => {
-  const { subject, message, concernId } = req.body // Added concernId
+  const { subject, message, concernId } = req.body
 
   const attachment = req.file ? req.file.filename : null
 
   // Validate inputs
-
   if (!subject || !message || !concernId) {
-    // Added validation for concernId
-
     return res.status(400).json({ success: false, message: "Subject, message, and concernId are required" })
   }
 
   try {
     const db = await connectToDatabase()
-
     const concernsCollection = db.collection("Concerns")
 
-    // Update the concern document with the reply
+    // Get the concern to find the user's email
+    const concern = await concernsCollection.findOne({ _id: new ObjectId(concernId) })
 
+    if (!concern) {
+      return res.status(404).json({ success: false, message: "Concern not found" })
+    }
+
+    // Update the concern document with the reply
     await concernsCollection.updateOne(
       { _id: new ObjectId(concernId) },
-
       {
         $push: { replies: { reply: message, attachment, timestamp: new Date() } },
-
         $set: { status: "replied" }, // Set status to 'replied'
       },
     )
 
-    // Log the reply activity
+    // Create a notification for the homeowner
+    if (concern.email) {
+      await createNotification(concern.email, "admin_reply", message, concernId, subject, null, {
+        isAdminResponse: true,
+      })
+    }
 
+    // Log the reply activity
     await logActivity("replySent", `Reply to concern: ${subject}`)
 
     // Send a success response
-
     res.json({ success: true })
   } catch (error) {
     console.error("Error saving reply:", error)
-
     res.status(500).json({ success: false, message: "Failed to save reply" })
   }
 })
-
 // Analytics: Amenity Reservation Frequency
 
 app.get("/api/analytics/amenity-frequency", async (req, res) => {
