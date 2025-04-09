@@ -1732,31 +1732,71 @@ app.post("/addconcern", async (req, res) => {
 
 app.get("/getConcerns", async (req, res) => {
   try {
+    console.log("Fetching concerns...")
     const db = await connectToDatabase()
 
-    const collection = db.collection("Concerns")
+    // Try both possible collection names
+    let collection
+    let collectionName
+
+    try {
+      // First try lowercase
+      collection = db.collection("concerns")
+      const count = await collection.countDocuments()
+      console.log(`Found ${count} concerns in 'concerns' collection`)
+      collectionName = "concerns"
+
+      if (count === 0) {
+        // If empty, try capitalized version
+        const capitalizedCollection = db.collection("Concerns")
+        const capitalizedCount = await capitalizedCollection.countDocuments()
+        console.log(`Found ${capitalizedCount} concerns in 'Concerns' collection`)
+
+        if (capitalizedCount > 0) {
+          collection = capitalizedCollection
+          collectionName = "Concerns"
+        }
+      }
+    } catch (err) {
+      console.error("Error checking concerns collection:", err)
+      // Try capitalized as fallback
+      collection = db.collection("Concerns")
+      collectionName = "Concerns"
+    }
+
+    console.log(`Using collection: ${collectionName}`)
 
     const page = Number.parseInt(req.query.page) || 1
-
-    const limit = 5
-
+    const limit = Number.parseInt(req.query.limit) || 5
     const skip = (page - 1) * limit
 
+    // Get total count for pagination
     const totalConcerns = await collection.countDocuments()
+    console.log(`Total concerns: ${totalConcerns}`)
 
-    const concerns = await collection.find().sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
+    // Get concerns with pagination
+    const concerns = await collection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
+
+    console.log(`Retrieved ${concerns.length} concerns for page ${page}`)
+
+    // Log the first concern for debugging
+    if (concerns.length > 0) {
+      console.log("Sample concern:", JSON.stringify(concerns[0], null, 2))
+    }
 
     res.json({
+      success: true,
       concerns,
-
       currentPage: page,
-
-      totalPages: Math.ceil(totalConcerns / limit),
+      totalPages: Math.ceil(totalConcerns / limit) || 1,
     })
   } catch (error) {
     console.error("Error fetching concerns:", error)
-
-    res.status(500).json({ error: "Failed to fetch concerns" })
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch concerns",
+      error: error.message,
+    })
   }
 })
 

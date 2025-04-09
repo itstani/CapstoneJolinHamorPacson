@@ -514,6 +514,31 @@
       .popup .popup-buttons #closePopup:hover {
         background-color: #7a1b24;
       }
+      
+      /* Loading and error styles */
+      .loading, .error, .no-concerns {
+        padding: 15px;
+        text-align: center;
+        margin: 10px 0;
+        border-radius: 4px;
+      }
+
+      .loading {
+        background-color: #f9f9f9;
+        color: #666;
+      }
+
+      .error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .no-concerns {
+        background-color: #e2e3e5;
+        color: #383d41;
+        border: 1px solid #d6d8db;
+      }
     </style>
   </head>
   <body>
@@ -527,7 +552,7 @@
           aria-label="home"
           onclick="window.location.href='AdHome.html'"
         >
-          <img src="/images/house.png" />
+          <img src="/images/house.png" alt="Home" />
         </button>
         <p>Home</p>
       </div>
@@ -539,7 +564,7 @@
           aria-label="Documents"
           onclick="window.location.href='hotable.html'"
         >
-          <img src="/images/Documents.png" />
+          <img src="/images/Documents.png" alt="Documents" />
         </button>
         <p>Homeowner status</p>
       </div>
@@ -551,7 +576,7 @@
           aria-label="analytics"
           onclick="window.location.href='analytics.html'"
         >
-          <img src="/images/Data.png" />
+          <img src="/images/Data.png" alt="Analytics" />
         </button>
         <p>analytics</p>
       </div>
@@ -563,7 +588,7 @@
           aria-label="Calendar"
           onclick="window.location.href='admincalender.html'"
         >
-          <img src="/images/Calendar.png" />
+          <img src="/images/Calendar.png" alt="Calendar" />
         </button>
         <p>Calendar</p>
       </div>
@@ -624,7 +649,7 @@
           <div id="currently-reserved-amenity" class="box">
             <h2 class="section-title">Currently Reserved Amenity</h2>
             <div id="amenity-container">
-              <img id="amenity-image" src="" alt="Reserved Amenity" />
+              <img id="amenity-image" src="/placeholder.svg" alt="Reserved Amenity" />
               <button id="prev-amenity" class="amenity-nav">&lt;</button>
               <button id="next-amenity" class="amenity-nav">&gt;</button>
             </div>
@@ -633,8 +658,16 @@
         </div>
       </div>
     </div>
+    
+    <!-- Concern Modal -->
+    <div id="concernModal" class="modal">
+      <div id="modalContent" class="modal-content">
+        <!-- Modal content will be dynamically inserted here -->
+      </div>
+    </div>
+    
     <!-- Admin Reply Popup -->
-    <div id="adminPopup" class="popup" style="display: none">
+    <div id="adminPopup" class="popup">
       <div class="popup-content">
         <h3>Reply to Concern</h3>
         <form id="adminForm">
@@ -654,176 +687,371 @@
         </form>
       </div>
     </div>
+    
+    <!-- Custom Alert -->
+    <div id="customAlert" class="custom-alert">
+      <div class="custom-alert-content">
+        <div class="custom-alert-header">Notice</div>
+        <div class="custom-alert-body">
+          <p id="customAlertMessage"></p>
+          <button onclick="closeCustomAlert()">OK</button>
+        </div>
+      </div>
+    </div>
 
     <script>
+      // Global variables
+      let concerns = [];
       let concernsPage = 1;
       let activityPage = 1;
       let eventsPage = 1;
+      const concernsPerPage = 5;
 
-      async function loadConcerns(page = 1) {
-        try {
-          const response = await fetch(`/getConcerns?page=${page}`);
-          const data = await response.json();
-
-          const concernsBox = document.getElementById("recent-concerns-box");
-          concernsBox.innerHTML = "";
-
-          data.concerns.forEach((concern) => {
-            const concernItem = document.createElement("div");
-            concernItem.className = "activity-item";
-            concernItem.innerHTML = `
-                        <p>Email: <span style="color: #AF2630; text-decoration: underline;">${
-                          concern.email
-                        }</span></p>
-                        <p>Subject: <span style="color: #AF2630; text-decoration: underline;">${
-                          concern.subject
-                        }</span></p>
-                        <small>${new Date(
-                          concern.createdAt
-                        ).toLocaleString()}</small>
-                    `;
-            concernItem.onclick = () => showConcernModal(concern);
-            concernsBox.appendChild(concernItem);
-          });
-
-          // Add pagination controls for concerns
-
-          updatePagination("concerns", data.currentPage, data.totalPages);
-        } catch (error) {
-          console.error("Error loading concerns:", error);
+      // Function to show custom alert
+      function showCustomAlert(message) {
+        const alertElement = document.getElementById("customAlert");
+        const messageElement = document.getElementById("customAlertMessage");
+        if (alertElement && messageElement) {
+          messageElement.textContent = message;
+          alertElement.style.display = "block";
+        } else {
+          alert(message); // Fallback to regular alert
         }
       }
 
-      function showConcernModal(concern) {
+      // Function to close custom alert
+      function closeCustomAlert() {
+        const alertElement = document.getElementById("customAlert");
+        if (alertElement) {
+          alertElement.style.display = "none";
+        }
+      }
+
+      // Replace the loadConcerns function with this improved version
+      function loadConcerns(page = 1) {
+        try {
+          // Show loading indicator
+          const concernsBox = document.getElementById("recent-concerns-box");
+          if (concernsBox) {
+            concernsBox.innerHTML = '<div class="loading">Loading concerns...</div>';
+          }
+          
+          // Log the request for debugging
+          console.log(`Fetching concerns from: /getConcerns?page=${page}&limit=${concernsPerPage}`);
+          
+          fetch(`/getConcerns?page=${page}&limit=${concernsPerPage}`)
+            .then(response => {
+              console.log("Response status:", response.status);
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.text().then(text => {
+                // Try to parse the response as JSON, but log the raw text if it fails
+                try {
+                  return JSON.parse(text);
+                } catch (e) {
+                  console.error("Failed to parse JSON response:", text);
+                  throw new Error("Invalid JSON response from server");
+                }
+              });
+            })
+            .then(data => {
+              console.log("Received concerns data:", data);
+              
+              // Check if data has the expected structure
+              if (data && (data.success || data.concerns)) {
+                // Extract concerns from the response
+                concerns = data.concerns || (Array.isArray(data) ? data : []);
+                
+                // Display concerns in the recent-concerns-box
+                if (concernsBox) {
+                  if (concerns.length === 0) {
+                    concernsBox.innerHTML = '<div class="no-concerns">No concerns found.</div>';
+                  } else {
+                    concernsBox.innerHTML = '';
+                    
+                    concerns.forEach(concern => {
+                      const concernDiv = document.createElement("div");
+                      concernDiv.className = "activity-item";
+                      
+                      // Ensure concern has required fields
+                      const subject = concern.subject || "No Subject";
+                      const message = concern.message || "No Message";
+                      const email = concern.email || concern.userEmail || "No Email";
+                      const id = concern._id || "";
+                      const status = concern.status || "pending";
+                      
+                      // Format date if available
+                      let dateStr = "N/A";
+                      if (concern.createdAt) {
+                        try {
+                          dateStr = new Date(concern.createdAt).toLocaleString();
+                        } catch (e) {
+                          console.error("Error formatting date:", e);
+                        }
+                      }
+                      
+                      concernDiv.innerHTML = `
+                        <h3>${subject}</h3>
+                        <p>${message.substring(0, 100)}${message.length > 100 ? "..." : ""}</p>
+                        <p><strong>From:</strong> ${email}</p>
+                        <p><strong>Status:</strong> <span style="color: ${status === 'resolved' ? 'green' : status === 'in-progress' ? 'orange' : 'red'}">${status}</span></p>
+                        <p class="timestamp">Date: ${dateStr}</p>
+                        <button onclick="showConcernModal('${id}')" style="background-color: #AF2630; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 5px;">View Details</button>
+                      `;
+                      
+                      concernsBox.appendChild(concernDiv);
+                    });
+                  }
+                }
+                
+                // Update pagination
+                const currentPage = data.currentPage || page;
+                const totalPages = data.totalPages || 1;
+                updateConcernsPagination(currentPage, totalPages);
+              } else {
+                if (concernsBox) {
+                  concernsBox.innerHTML = '<div class="error">Failed to load concerns: Invalid response format.</div>';
+                }
+                console.error("Invalid response format:", data);
+                showCustomAlert("Failed to load concerns: Invalid response format");
+              }
+            })
+            .catch(error => {
+              console.error("Error loading concerns:", error);
+              if (concernsBox) {
+                concernsBox.innerHTML = `<div class="error">Error loading concerns: ${error.message}</div>`;
+              }
+              showCustomAlert("Error loading concerns: " + error.message);
+            });
+        } catch (error) {
+          console.error("Exception in loadConcerns:", error);
+          showCustomAlert("Exception loading concerns: " + error.message);
+        }
+      }
+
+      // Add this fallback function to create a test concern if none exist
+      async function createTestConcern() {
+        try {
+          const response = await fetch('/createTestConcern', {
+            method: 'POST'
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              console.log("Created test concern:", result);
+              loadConcerns(1); // Reload concerns
+              return true;
+            }
+          }
+          return false;
+        } catch (error) {
+          console.error("Error creating test concern:", error);
+          return false;
+        }
+      }
+
+      // Function to show concern modal
+      function showConcernModal(concernId) {
+        console.log("Opening modal for concern ID:", concernId);
+        
+        if (!concernId) {
+          showCustomAlert("Invalid concern ID");
+          return;
+        }
+        
+        // Find the concern in the loaded concerns array
+        const concern = concerns.find(c => c._id === concernId);
+        
+        if (!concern) {
+          showCustomAlert("Concern not found");
+          return;
+        }
+        
+        console.log("Found concern:", concern);
+        
         const modal = document.getElementById("concernModal");
         const modalContent = document.getElementById("modalContent");
-
+        
+        if (!modal || !modalContent) {
+          console.error("Modal elements not found");
+          return;
+        }
+        
+        // Format date if available
+        let dateStr = "N/A";
+        if (concern.createdAt) {
+          try {
+            dateStr = new Date(concern.createdAt).toLocaleString();
+          } catch (e) {
+            console.error("Error formatting date:", e);
+          }
+        }
+        
         modalContent.innerHTML = `
+          <span class="close" id="closeModalBtn" style="float: right; cursor: pointer; font-size: 24px;">&times;</span>
           <h2>Concern Details</h2>
-          <p><strong>Email:</strong> ${concern.email}</p>
-          <p><strong>Subject:</strong> ${concern.subject}</p>
-          <p><strong>Message:</strong> ${concern.message}</p>
-          <p><strong>Date:</strong> ${new Date(
-            concern.createdAt
-          ).toLocaleString()}</p>
+          <p><strong>Email:</strong> ${concern.email || "N/A"}</p>
+          <p><strong>Subject:</strong> ${concern.subject || "N/A"}</p>
+          <p><strong>Message:</strong> ${concern.message || "N/A"}</p>
+          <p><strong>Date:</strong> ${dateStr}</p>
           <p><strong>Status:</strong> 
             <select id="concernStatus">
-              <option value="new" ${
-                concern.status === "new" ? "selected" : ""
-              }>New</option>
-              <option value="in-progress" ${
-                concern.status === "in-progress" ? "selected" : ""
-              }>In Progress</option>
-              <option value="resolved" ${
-                concern.status === "resolved" ? "selected" : ""
-              }>Resolved</option>
+              <option value="pending" ${concern.status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="in-progress" ${concern.status === "in-progress" ? "selected" : ""}>In Progress</option>
+              <option value="resolved" ${concern.status === "resolved" ? "selected" : ""}>Resolved</option>
             </select>
           </p>
-          <button id="updateStatus">Update Status</button>
-          <button id="replyButton">Reply</button>
-          <button id="closeModal">Close</button>
-      `;
+          <button id="updateStatus" style="background-color: #AF2630; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Update Status</button>
+          <button id="replyButton" style="background-color: #AF2630; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Reply</button>
+          <button id="closeModal" style="background-color: #8c1e26; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Close</button>
+        `;
+        
         modal.style.display = "block";
-
-        // Close modal
+        
+        // Close modal when clicking the X
+        document.getElementById("closeModalBtn").onclick = () => {
+          modal.style.display = "none";
+        };
+        
+        // Close modal when clicking the Close button
         document.getElementById("closeModal").onclick = () => {
           modal.style.display = "none";
         };
-
+        
         // Update Status
         document.getElementById("updateStatus").onclick = async () => {
           const newStatus = document.getElementById("concernStatus").value;
           try {
-            const response = await fetch(
-              `/updateConcernStatus/${concern._id}`,
-              {
-                method: "PUT",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ status: newStatus }),
-              }
-            );
+            const response = await fetch(`/updateConcernStatus/${concern._id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ status: newStatus }),
+            });
             const result = await response.json();
             if (result.success) {
               showCustomAlert("Concern status updated successfully");
               modal.style.display = "none";
               loadConcerns(concernsPage);
             } else {
-              showCustomAlert("Failed to update concern status");
+              showCustomAlert("Failed to update concern status: " + (result.message || "Unknown error"));
             }
           } catch (error) {
             console.error("Error updating concern status:", error);
-            showCustomAlert("Error updating concern status");
+            showCustomAlert("Error updating concern status: " + error.message);
           }
         };
-
-        // Ensure this function is called when the "Reply" button is clicked
-        document
-          .getElementById("replyButton")
-          .addEventListener("click", function () {
-            // Find the popup element
-            const popup = document.getElementById("adminPopup");
-
-            if (!popup) {
-              console.error("Popup element not found!");
-              return;
-            }
-
-            // Display the popup
-            popup.style.display = "block";
-
-            // Pre-fill the subject with a response to the concern's subject
-            document.getElementById("subject").value = `Re: ${concern.subject}`;
-
-            // Close the popup when the 'Cancel' button is clicked
-            document
-              .getElementById("closePopup")
-              .addEventListener("click", function () {
-                popup.style.display = "none";
-              });
-
-            // Handle the form submission
-            document.getElementById("adminForm").onsubmit = async function (e) {
-              e.preventDefault();
-              const subject = document.getElementById("subject").value;
-              const message = document.getElementById("message").value;
-              const fileInput = document.getElementById("fileInput").files[0];
-
-              try {
-                const formData = new FormData();
-                formData.append("subject", subject);
-                formData.append("message", message);
-                if (fileInput) {
-                  formData.append("attachment", fileInput);
-                }
-
-                const response = await fetch("/sendReply", {
-                  method: "POST",
-                  body: formData,
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                  showCustomAlert("Reply sent successfully!");
-                  popup.style.display = "none";
-                  // Optional: You can refresh the concern modal or load concerns again
-                  loadConcerns(concernsPage);
-                } else {
-                  showCustomAlert("Failed to send the reply.");
-                }
-              } catch (error) {
-                console.error("Error sending reply:", error);
-                showCustomAlert("Error sending reply");
-              }
-            };
-          });
-
-        // Function to close the modal popup when the close button is clicked
-        document.getElementById("closePopup").onclick = function () {
-          document.getElementById("adminPopup").style.display = "none";
+        
+        // Reply button handler
+        document.getElementById("replyButton").onclick = function() {
+          // Find the popup element
+          const popup = document.getElementById("adminPopup");
+          
+          if (!popup) {
+            console.error("Popup element not found!");
+            return;
+          }
+          
+          // Store the concern ID in a data attribute on the form
+          document.getElementById("adminForm").dataset.concernId = concern._id;
+          
+          // Pre-fill the subject with a response to the concern's subject
+          document.getElementById("subject").value = `Re: ${concern.subject || "Concern"}`;
+          
+          // Display the popup
+          popup.style.display = "block";
         };
       }
+
+      // Function to update concerns pagination
+      function updateConcernsPagination(currentPage, totalPages) {
+        const prevButton = document.getElementById("prev-concerns");
+        const nextButton = document.getElementById("next-concerns");
+        const pageDisplay = document.getElementById("concerns-page-display");
+        
+        if (prevButton) prevButton.disabled = currentPage <= 1;
+        if (nextButton) nextButton.disabled = currentPage >= totalPages;
+        if (pageDisplay) pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
+        
+        concernsPage = currentPage;
+      }
+
+      // Handle admin form submission
+      document.getElementById("adminForm").onsubmit = async function(e) {
+        e.preventDefault();
+        const subject = document.getElementById("subject").value;
+        const message = document.getElementById("message").value;
+        const fileInput = document.getElementById("fileInput");
+        const concernId = this.dataset.concernId; // Get the concern ID from the data attribute
+        
+        if (!subject || !message) {
+          showCustomAlert("Please fill in both subject and message fields");
+          return;
+        }
+        
+        if (!concernId) {
+          showCustomAlert("Error: Missing concern ID");
+          return;
+        }
+        
+        try {
+          const formData = new FormData();
+          formData.append("subject", subject);
+          formData.append("message", message);
+          formData.append("concernId", concernId); // Add the concern ID to the form data
+          
+          if (fileInput.files.length > 0) {
+            formData.append("attachment", fileInput.files[0]);
+          }
+          
+          const response = await fetch("/sendReply", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              subject: subject,
+              message: message,
+              concernId: concernId
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            showCustomAlert("Reply sent successfully!");
+            document.getElementById("adminPopup").style.display = "none";
+            document.getElementById("adminForm").reset();
+            document.getElementById("concernModal").style.display = "none";
+            loadConcerns(concernsPage); // Reload concerns to show updated status
+          } else {
+            showCustomAlert("Failed to send the reply: " + (result.message || "Unknown error"));
+          }
+        } catch (error) {
+          console.error("Error sending reply:", error);
+          showCustomAlert("Error sending reply: " + error.message);
+        }
+      };
+
+      // Close popup when cancel button is clicked
+      document.getElementById("closePopup").addEventListener("click", function() {
+        document.getElementById("adminPopup").style.display = "none";
+      });
+
+      // Close modal when clicking outside
+      window.addEventListener("click", function(event) {
+        const modal = document.getElementById("concernModal");
+        if (event.target === modal) {
+          modal.style.display = "none";
+        }
+        
+        const popup = document.getElementById("adminPopup");
+        if (event.target === popup) {
+          popup.style.display = "none";
+        }
+      });
 
       async function resolveConcern(concernId) {
         try {
@@ -843,132 +1071,185 @@
           showCustomAlert("Error resolving concern");
         }
       }
-      let currentPage = 1;
-      let totalPages = 1;
 
       async function loadRecentActivity(page = 1) {
-        if (page < 1 || page > totalPages) return;
-
         try {
+          const activityBox = document.getElementById("recent-activity-box");
+          if (activityBox) {
+            activityBox.innerHTML = '<div class="loading">Loading activity...</div>';
+          }
+          
           const response = await fetch(`/getRecentActivity?page=${page}`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
           const data = await response.json();
+          
+          if (activityBox) {
+            if (!data.activities || data.activities.length === 0) {
+              activityBox.innerHTML = '<div class="no-concerns">No recent activity found.</div>';
+            } else {
+              activityBox.innerHTML = data.activities
+                .map((activity) => {
+                  // Map action to descriptive text
+                  let actionDescription;
+                  switch (activity.action) {
+                    case "profileUpdate":
+                      actionDescription = "Homeowner Profile Updated";
+                      break;
+                    case "homeownerUpdate":
+                      actionDescription = "Homeowner Updated";
+                      break;
+                    case "eventApproval":
+                      actionDescription = "Event Approved";
+                      break;
+                    case "eventDisapproval":
+                      actionDescription = "Event Disapproved";
+                      break;
+                    case "replySent":
+                      actionDescription = "Reply Sent"; // For replies
+                      break;
+                    // Add more cases as needed
+                    default:
+                      actionDescription = activity.action; // Use the raw action as fallback
+                  }
 
-          totalPages = data.totalPages;
-          currentPage = data.currentPage;
-
-          const recentActivityBox = document.getElementById(
-            "recent-activity-box"
-          );
-
-          recentActivityBox.innerHTML = data.activities
-            .map((activity) => {
-              // Map action to descriptive text
-              let actionDescription;
-              switch (activity.action) {
-                case "profileUpdate":
-                  actionDescription = "Homeowner Profile Updated";
-                  break;
-                case "homeownerUpdate":
-                  actionDescription = "Homeowner Updated";
-                  break;
-                case "eventApproval":
-                  actionDescription = "Event Approved";
-                  break;
-                case "eventDisapproval":
-                  actionDescription = "Event Disapproved";
-                  break;
-                case "replySent":
-                  actionDescription = "Reply Sent"; // For replies
-                  break;
-                // Add more cases as needed
-                default:
-                  actionDescription = activity.action; // Use the raw action as fallback
-              }
-
-              return `
-                  <div class="activity-item">
-                    <p>${actionDescription}: <span style="color: #AF2630; text-decoration: underline;">${
-                activity.details
-              }</span></p>
-                    <small>${new Date(
-                      activity.timestamp
-                    ).toLocaleString()}</small>
-                  </div>
-                `;
-            })
-            .join("");
-
-          updatePagination("activity", data.currentPage, data.totalPages);
+                  return `
+                    <div class="activity-item">
+                      <p>${actionDescription}: <span style="color: #AF2630; text-decoration: underline;">${
+                  activity.details || "No details"
+                }</span></p>
+                      <small>${new Date(
+                        activity.timestamp || new Date()
+                      ).toLocaleString()}</small>
+                    </div>
+                  `;
+                })
+                .join("");
+            }
+          }
+          
+          updatePagination("activity", data.currentPage || 1, data.totalPages || 1);
         } catch (error) {
           console.error("Error loading recent activity:", error);
+          const activityBox = document.getElementById("recent-activity-box");
+          if (activityBox) {
+            activityBox.innerHTML = '<div class="error">Error loading activity. Please try again.</div>';
+          }
         }
       }
 
       async function loadUpcomingEvents(page = 1) {
         try {
-          const response = await fetch(`/getUpcomingEvents?page=${page}`);
-          const data = await response.json();
-
           const eventsBox = document.getElementById("upcoming-events-box");
-          eventsBox.innerHTML = "";
-
-          data.events.forEach((event) => {
-            const eventItem = document.createElement("div");
-            eventItem.className = "event-item";
-            eventItem.innerHTML = `
-                              <h3>${event.eventName}</h3>
-                              <p>Date: ${new Date(
-                                event.eventDate
-                              ).toLocaleDateString()}</p>
-                              <p>Time: ${event.startTime} - ${event.endTime}</p>
-                              <p>Amenity: ${event.amenity}</p>
-                          `;
-            eventsBox.appendChild(eventItem);
-          });
-
-          updatePagination("events", data.currentPage, data.totalPages);
-
-          if (data.events.length === 0) {
-            eventsBox.innerHTML = "<p>No upcoming events found.</p>";
+          if (eventsBox) {
+            eventsBox.innerHTML = '<div class="loading">Loading events...</div>';
           }
+          
+          const response = await fetch(`/getUpcomingEvents?page=${page}`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (eventsBox) {
+            if (!data.events || data.events.length === 0) {
+              eventsBox.innerHTML = '<div class="no-concerns">No upcoming events found.</div>';
+            } else {
+              eventsBox.innerHTML = "";
+              
+              data.events.forEach((event) => {
+                const eventItem = document.createElement("div");
+                eventItem.className = "event-item";
+                
+                // Format date
+                let dateStr = "N/A";
+                if (event.eventDate) {
+                  try {
+                    dateStr = new Date(event.eventDate).toLocaleDateString();
+                  } catch (e) {
+                    console.error("Error formatting date:", e);
+                  }
+                }
+                
+                eventItem.innerHTML = `
+                  <h3>${event.eventName || "Unnamed Event"}</h3>
+                  <p>Date: ${dateStr}</p>
+                  <p>Time: ${event.startTime || "N/A"} - ${event.endTime || "N/A"}</p>
+                  <p>Amenity: ${event.amenity || "N/A"}</p>
+                `;
+                eventsBox.appendChild(eventItem);
+              });
+            }
+          }
+          
+          updatePagination("events", data.currentPage || 1, data.totalPages || 1);
         } catch (error) {
           console.error("Error loading upcoming events:", error);
+          const eventsBox = document.getElementById("upcoming-events-box");
+          if (eventsBox) {
+            eventsBox.innerHTML = '<div class="error">Error loading events. Please try again.</div>';
+          }
         }
       }
+
       let currentAmenityIndex = 0;
       let reservedAmenities = [];
 
       async function loadCurrentlyReservedAmenities() {
         try {
+          const container = document.getElementById("currently-reserved-amenity");
+          if (container) {
+            container.innerHTML = `
+              <h2 class="section-title">Currently Reserved Amenity</h2>
+              <div class="loading">Loading reserved amenities...</div>
+            `;
+          }
+          
           const response = await fetch("/getCurrentlyReservedAmenities");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
+          
           const data = await response.json();
           console.log("Received amenities data:", data); // Debug log
 
           if (Array.isArray(data) && data.length > 0) {
             reservedAmenities = data;
+            
+            if (container) {
+              container.innerHTML = `
+                <h2 class="section-title">Currently Reserved Amenity</h2>
+                <div id="amenity-container">
+                  <img id="amenity-image" src="/placeholder.svg" alt="Reserved Amenity" />
+                  <button id="prev-amenity" class="amenity-nav">&lt;</button>
+                  <button id="next-amenity" class="amenity-nav">&gt;</button>
+                </div>
+                <p id="amenity-name"></p>
+              `;
+            }
+            
             displayCurrentAmenity();
             updateAmenityNavigation();
           } else {
-            const container = document.getElementById(
-              "currently-reserved-amenity"
-            );
-            container.innerHTML = `
-                            <h2 class="section-title">Currently Reserved Amenity</h2>
-                            <p>No amenities are currently reserved for today.</p>
-                          `;
+            if (container) {
+              container.innerHTML = `
+                <h2 class="section-title">Currently Reserved Amenity</h2>
+                <p>No amenities are currently reserved for today.</p>
+              `;
+            }
           }
         } catch (error) {
           console.error("Error loading currently reserved amenities:", error);
-          const container = document.getElementById(
-            "currently-reserved-amenity"
-          );
-          container.innerHTML = `
-                        <h2 class="section-title">Currently Reserved Amenity</h2>
-                        <p>Error loading reserved amenities. Please try again later.</p>
-                      `;
+          const container = document.getElementById("currently-reserved-amenity");
+          if (container) {
+            container.innerHTML = `
+              <h2 class="section-title">Currently Reserved Amenity</h2>
+              <p>Error loading reserved amenities. Please try again later.</p>
+            `;
+          }
         }
       }
 
@@ -977,22 +1258,26 @@
         const imageElement = document.getElementById("amenity-image");
         const nameElement = document.getElementById("amenity-name");
 
-        if (amenity) {
+        if (amenity && imageElement && nameElement) {
           imageElement.onerror = function () {
             console.error("Failed to load image:", this.src);
             this.src = "/images/placeholder.jpg";
           };
 
-          imageElement.src = amenity.imagePath;
-          imageElement.alt = `${amenity.name} Image`;
-          nameElement.textContent = amenity.name;
+          imageElement.src = amenity.imagePath || "/images/placeholder.jpg";
+          imageElement.alt = `${amenity.name || "Amenity"} Image`;
+          nameElement.textContent = amenity.name || "Unknown Amenity";
 
           console.log("Displaying amenity:", amenity);
         } else {
-          console.error("No amenity to display");
-          imageElement.src = "/images/placeholder.jpg";
-          imageElement.alt = "No amenity available";
-          nameElement.textContent = "No amenity currently reserved";
+          console.error("No amenity to display or elements not found");
+          if (imageElement) {
+            imageElement.src = "/images/placeholder.jpg";
+            imageElement.alt = "No amenity available";
+          }
+          if (nameElement) {
+            nameElement.textContent = "No amenity currently reserved";
+          }
         }
       }
 
@@ -1000,25 +1285,27 @@
         const prevButton = document.getElementById("prev-amenity");
         const nextButton = document.getElementById("next-amenity");
 
-        if (reservedAmenities.length > 1) {
-          prevButton.style.display = "block";
-          nextButton.style.display = "block";
+        if (prevButton && nextButton) {
+          if (reservedAmenities.length > 1) {
+            prevButton.style.display = "block";
+            nextButton.style.display = "block";
 
-          prevButton.onclick = () => {
-            currentAmenityIndex =
-              (currentAmenityIndex - 1 + reservedAmenities.length) %
-              reservedAmenities.length;
-            displayCurrentAmenity();
-          };
+            prevButton.onclick = () => {
+              currentAmenityIndex =
+                (currentAmenityIndex - 1 + reservedAmenities.length) %
+                reservedAmenities.length;
+              displayCurrentAmenity();
+            };
 
-          nextButton.onclick = () => {
-            currentAmenityIndex =
-              (currentAmenityIndex + 1) % reservedAmenities.length;
-            displayCurrentAmenity();
-          };
-        } else {
-          prevButton.style.display = "none";
-          nextButton.style.display = "none";
+            nextButton.onclick = () => {
+              currentAmenityIndex =
+                (currentAmenityIndex + 1) % reservedAmenities.length;
+              displayCurrentAmenity();
+            };
+          } else {
+            prevButton.style.display = "none";
+            nextButton.style.display = "none";
+          }
         }
       }
 
@@ -1027,12 +1314,14 @@
         const nextButton = document.getElementById(`next-${section}`);
         const pageDisplay = document.getElementById(`${section}-page-display`);
 
-        prevButton.disabled = currentPage === 1;
-        nextButton.disabled = currentPage === totalPages;
-        pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
+        if (prevButton && nextButton && pageDisplay) {
+          prevButton.disabled = currentPage <= 1;
+          nextButton.disabled = currentPage >= totalPages;
+          pageDisplay.textContent = `Page ${currentPage} of ${totalPages}`;
 
-        prevButton.onclick = () => loadSection(section, currentPage - 1);
-        nextButton.onclick = () => loadSection(section, currentPage + 1);
+          prevButton.onclick = () => loadSection(section, currentPage - 1);
+          nextButton.onclick = () => loadSection(section, currentPage + 1);
+        }
       }
 
       function loadSection(section, page) {
@@ -1052,16 +1341,41 @@
         }
       }
 
-      window.onload = () => {
+      // Modify the DOMContentLoaded event handler to include a fallback
+      document.addEventListener("DOMContentLoaded", function() {
+        // Try to load concerns
         loadConcerns(concernsPage);
+        
+        // Set up a fallback if concerns don't load
+        setTimeout(() => {
+          const concernsBox = document.getElementById("recent-concerns-box");
+          if (concernsBox && concernsBox.querySelector('.error')) {
+            console.log("Concerns failed to load, trying alternative approach...");
+            
+            // Try to create a test concern if none exist
+            createTestConcern().then(success => {
+              if (!success) {
+                // If creating a test concern fails, show a message with instructions
+                concernsBox.innerHTML = `
+                  <div class="no-concerns">
+                    <p>No concerns found or unable to connect to the database.</p>
+                    <p>Please check your server connection and ensure the concerns collection exists.</p>
+                    <button onclick="loadConcerns(1)" style="background-color: #AF2630; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                      Retry Loading Concerns
+                    </button>
+                  </div>
+                `;
+              }
+            });
+          }
+        }, 3000); // Wait 3 seconds before checking
+        
         loadRecentActivity(activityPage);
         loadUpcomingEvents(eventsPage);
         loadCurrentlyReservedAmenities();
-      };
-
-      document
-        .getElementById("logoutButton")
-        .addEventListener("click", async () => {
+        
+        // Set up logout button
+        document.getElementById("logoutButton").addEventListener("click", async () => {
           try {
             const response = await fetch("/logout", { method: "POST" });
             if (response.ok) {
@@ -1072,37 +1386,10 @@
             }
           } catch (error) {
             console.error("Error during logout:", error);
-            showCustomAlert(
-              "An error occurred during logout. Please try again."
-            );
+            showCustomAlert("An error occurred during logout. Please try again.");
           }
         });
-
-      function showCustomAlert(message) {
-        const alertElement = document.getElementById("customAlert");
-        const messageElement = document.getElementById("customAlertMessage");
-        messageElement.textContent = message;
-        alertElement.style.display = "block";
-      }
-
-      function closeCustomAlert() {
-        const alertElement = document.getElementById("customAlert");
-        alertElement.style.display = "none";
-      }
+      });
     </script>
-    <div id="concernModal" class="modal">
-      <div id="modalContent" class="modal-content">
-        <!-- Modal content will be dynamically inserted here -->
-      </div>
-    </div>
-    <div id="customAlert" class="custom-alert">
-      <div class="custom-alert-content">
-        <div class="custom-alert-header">Notice</div>
-        <div class="custom-alert-body">
-          <p id="customAlertMessage"></p>
-          <button onclick="closeCustomAlert()">OK</button>
-        </div>
-      </div>
-    </div>
   </body>
 </html>
