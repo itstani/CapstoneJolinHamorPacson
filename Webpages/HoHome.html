@@ -1898,6 +1898,23 @@ window.addEventListener('error', function(event) {
   showErrorMessage(`An error occurred: ${event.error?.message || 'Unknown error'}`);
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+    // Use the authUtils from auth-debug.js
+    if (window.authUtils) {
+        window.authUtils.debugLog("HoHome.html loaded, checking authentication...");
+        window.authUtils.checkAuthStatus().then(status => {
+            if (!status.authenticated) {
+                window.authUtils.debugLog("Not authenticated, redirecting to login page");
+                window.location.replace("/login.html");
+            } else {
+                window.authUtils.debugLog("Authentication verified, user can access this page");
+            }
+        });
+    } else {
+        console.error("authUtils not available. Make sure auth-debug.js is loaded correctly.");
+    }
+});
+
 console.log("Script loaded successfully");
   </script>
 </html>

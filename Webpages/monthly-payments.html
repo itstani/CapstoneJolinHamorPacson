@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monthly Payments Admin</title>
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .top-bar {
+            background-color: #AF2630;
+            height: 60px;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 80px auto 30px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        h1 {
+            color: #AF2630;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab:hover {
+            color: #AF2630;
+        }
+        
+        .tab.active {
+            color: #AF2630;
+            border-bottom-color: #AF2630;
+        }
+        
+        .payment-list {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .payment-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.3s;
+        }
+        
+        .payment-item:last-child {
+            border-bottom: none;
+        }
+        
+        .payment-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .payment-info {
+            flex-grow: 1;
+        }
+        
+        .payment-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .payment-details {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .payment-amount {
+            font-weight: bold;
+            color: #AF2630;
+            margin: 0 20px;
+        }
+        
+        .payment-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .view-btn, .approve-btn, .reject-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .view-btn {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .view-btn:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .approve-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .approve-btn:hover {
+            background-color: #3e8e41;
+        }
+        
+        .reject-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .reject-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .pagination button:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .pagination button.active {
+            background-color: #AF2630;
+            color: white;
+            border-color: #AF2630;
+        }
+        
+        .pagination button:disabled {
+            background-color: #f5f5f5;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+        }
+        
+        .modal-title {
+            color: #AF2630;
+            margin-bottom: 20px;
+            padding-right: 30px;
+        }
+        
+        .payment-detail-row {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .payment-detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .payment-detail-label {
+            font-weight: bold;
+            width: 150px;
+            flex-shrink: 0;
+            color: #333;
+        }
+        
+        .payment-detail-value {
+            flex-grow: 1;
+            color: #555;
+        }
+        
+        .receipt-image {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .reject-form {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .reject-form textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin-top: 70px;
+            }
+            
+            .payment-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .payment-amount {
+                margin: 10px 0;
+            }
+            
+            .payment-actions {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 10px;
+            }
+            
+            .tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+            
+            .payment-detail-row {
+                flex-direction: column;
+            }
+            
+            .payment-detail-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar"></div>
+    
+    <div class="container">
+        <h1>Monthly Dues Payments</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-status="pending" onclick="changeTab('pending')">Pending</div>
+            <div class="tab" data-status="approved" onclick="changeTab('approved')">Approved</div>
+            <div class="tab" data-status="rejected" onclick="changeTab('rejected')">Rejected</div>
+        </div>
+        
+        <div class="payment-list" id="paymentList">
+            <!-- Payment items will be loaded here -->
+            <div class="empty-state">Loading payments...</div>
+        </div>
+        
+        <div class="pagination" id="pagination">
+            <!-- Pagination buttons will be added here -->
+        </div>
+    </div>
+    
+    <!-- Payment Details Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2 class="modal-title">Payment Details</h2>
+            
+            <div id="paymentDetails">
+                <!-- Payment details will be loaded here -->
+            </div>
+            
+            <div class="modal-actions" id="modalActions">
+                <!-- Action buttons will be added here based on payment status -->
+            </div>
+            
+            <div class="reject-form" id="rejectForm">
+                <h3>Reason for Rejection</h3>
+                <textarea id="rejectReason" placeholder="Please provide a reason for rejecting this payment"></textarea>
+                <button class="reject-btn" onclick="confirmReject()">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentStatus = 'pending';
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentPaymentId = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load initial data
+            loadPayments('pending', 1);
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('paymentModal');
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+        });
+        
+        // Function to change tab
+        function changeTab(status) {
+            currentStatus = status;
+            currentPage = 1;
+            
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
+            
+            // Load payments for the selected tab
+            loadPayments(status, 1);
+        }
+        
+        // Function to load payments
+        async function loadPayments(status, page) {
+            try {
+                const paymentList = document.getElementById('paymentList');
+                paymentList.innerHTML = '<div class="empty-state">Loading payments...</div>';
+                
+                const response = await fetch(`/api/monthly-payments?status=${status}&page=${page}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update pagination
+                    currentPage = data.pagination.currentPage;
+                    totalPages = data.pagination.totalPages;
+                    updatePagination();
+                    
+                    // Display payments
+                    if (data.payments && data.payments.length > 0) {
+                        paymentList.innerHTML = '';
+                        
+                        data.payments.forEach(payment => {
+                            const paymentItem = document.createElement('div');
+                            paymentItem.className = 'payment-item';
+                            
+                            const paymentInfo = document.createElement('div');
+                            paymentInfo.className = 'payment-info';
+                            
+                            const paymentName = document.createElement('div');
+                            paymentName.className = 'payment-name';
+                            paymentName.textContent = payment.userEmail;
+                            
+                            const paymentDetails = document.createElement('div');
+                            paymentDetails.className = 'payment-details';
+                            paymentDetails.textContent = `${payment.month} ${payment.year} • ${new Date(payment.timestamp).toLocaleDateString()} • ${payment.paymentMethod}`;
+                            
+                            paymentInfo.appendChild(paymentName);
+                            paymentInfo.appendChild(paymentDetails);
+                            
+                            const paymentAmount = document.createElement('div');
+                            paymentAmount.className = 'payment-amount';
+                            paymentAmount.textContent = `₱${payment.amount.toFixed(2)}`;
+                            
+                            const paymentActions = document.createElement('div');
+                            paymentActions.className = 'payment-actions';
+                            
+                            const viewButton = document.createElement('button');
+                            viewButton.className = 'view-btn';
+                            viewButton.textContent = 'View';
+                            viewButton.onclick = () => viewPayment(payment._id);
+                            
+                            paymentActions.appendChild(viewButton);
+                            
+                            // Add approve/reject buttons for pending payments
+                            if (status === 'pending') {
+                                const approveButton = document.createElement('button');
+                                approveButton.className = 'approve-btn';
+                                approveButton.textContent = 'Approve';
+                                approveButton.onclick = () => approvePayment(payment._id);
+                                
+                                const rejectButton = document.createElement('button');
+                                rejectButton.className = 'reject-btn';
+                                rejectButton.textContent = 'Reject';
+                                rejectButton.onclick = () => showRejectForm(payment._id);
+                                
+                                paymentActions.appendChild(approveButton);
+                                paymentActions.appendChild(rejectButton);
+                            }
+                            
+                            paymentItem.appendChild(paymentInfo);
+                            paymentItem.appendChild(paymentAmount);
+                            paymentItem.appendChild(paymentActions);
+                            
+                            paymentList.appendChild(paymentItem);
+                        });
+                    } else {
+                        paymentList.innerHTML = `<div class="empty-state">No ${status} payments found</div>`;
+                    }
+                } else {
+                    paymentList.innerHTML = `<div class="empty-state">Error: ${data.message || 'Failed to load payments'}</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading payments:', error);
+                document.getElementById('paymentList').innerHTML = `<div class="empty-state">Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Function to update pagination
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            const prevButton = document.createElement('button');
+            prevButton.textContent = '← Previous';
+            prevButton.disabled = currentPage <= 1;
+            prevButton.onclick = () => {
+                if (currentPage > 1) {
+                    loadPayments(currentStatus, currentPage - 1);
+                }
+            };
+            
+            // Page buttons
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = i === currentPage ? 'active' : '';
+                pageButton.onclick = () => loadPayments(currentStatus, i);
+                pagination.appendChild(pageButton);
+            }
+            
+            // Next button
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next →';
+            nextButton.disabled = currentPage >= totalPages;
+            nextButton.onclick = () => {
+                if (currentPage < totalPages) {
+                    loadPayments(currentStatus, currentPage + 1);
+                }
+            };
+            
+            pagination.prepend(prevButton);
+            pagination.appendChild(nextButton);
+        }
+        
+        // Function to view payment details
+        async function viewPayment(paymentId) {
+            try {
+                const response = await fetch(`/api/monthly-payment/${paymentId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const payment = data.payment;
+                    const paymentDetails = document.getElementById('paymentDetails');
+                    
+                    // Format payment details
+                    let detailsHTML = `
+                        <div class="payment-detail-row">
+                            <div class="payment-detail-label">Email:</div>
+                            <div class="payment-detail-value">${payment.userEmail}</div>
+                        </div>
+                        <div class="payment-detail-row">
+                            <div class="payment-detail-label">Amount:</div>
+                            <div class="payment-detail-value">₱${payment.amount.toFixed(2)}</div>
+                        </div>
+                        <div class="payment-detail-row">
+                            <div class="payment-detail-label">Payment For:</div>
+                            <div class="payment-detail-value">${payment.month} ${payment.year}</div>
+                        </div>
+                        <div class="payment-detail-row">
+                            <div class="payment-detail-label">Payment Method:</div>
+                            <div class="payment-detail-value">${payment.paymentMethod}</div>
+                        </div>
+                        <div class="payment-detail-row">
+                            <div class="payment-detail-label">Date Submitted:</div>
+                            <div class="payment-detail-value">${new Date(payment.timestamp).toLocaleString()}</div>
+                        </div>
+                    `;
+                    
+                    // Add status information if not pending
+                    if (payment.status !== 'pending') {
+                        detailsHTML += `
+                            <div class="payment-detail-row">
+                                <div class="payment-detail-label">Status:</div>
+                                <div class="payment-detail-value">${payment.status}</div>
+                            </div>
+                            <div class="payment-detail-row">
+                                <div class="payment-detail-label">Reviewed By:</div>
+                                <div class="payment-detail-value">${payment.reviewedBy || 'N/A'}</div>
+                            </div>
+                            <div class="payment-detail-row">
+                                <div class="payment-detail-label">Review Date:</div>
+                                <div class="payment-detail-value">${payment.reviewTimestamp ? new Date(payment.reviewTimestamp).toLocaleString() : 'N/A'}</div>
+                            </div>
+                        `;
+                        
+                        // Add rejection reason if rejected
+                        if (payment.status === 'rejected' && payment.reviewNotes) {
+                            detailsHTML += `
+                                <div class="payment-detail-row">
+                                    <div class="payment-detail-label">Rejection Reason:</div>
+                                    <div class="payment-detail-value">${payment.reviewNotes}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    // Add receipt image
+                    detailsHTML += `
+                        <div class="payment-detail-row">
+                            <div class="payment-detail-label">Receipt:</div>
+                            <div class="payment-detail-value">
+                                <img src="/uploads/${payment.receiptFile}" alt="Payment Receipt" class="receipt-image">
+                            </div>
+                        </div>
+                    `;
+                    
+                    paymentDetails.innerHTML = detailsHTML;
+                    
+                    // Set up modal actions based on payment status
+                    const modalActions = document.getElementById('modalActions');
+                    modalActions.innerHTML = '';
+                    
+                    if (payment.status === 'pending') {
+                        const approveButton = document.createElement('button');
+                        approveButton.className = 'approve-btn';
+                        approveButton.textContent = 'Approve';
+                        approveButton.onclick = () => approvePayment(payment._id);
+                        
+                        const rejectButton = document.createElement('button');
+                        rejectButton.className = 'reject-btn';
+                        rejectButton.textContent = 'Reject';
+                        rejectButton.onclick = () => showRejectForm(payment._id);
+                        
+                        modalActions.appendChild(approveButton);
+                        modalActions.appendChild(rejectButton);
+                    }
+                    
+                    // Store current payment ID
+                    currentPaymentId = payment._id;
+                    
+                    // Show modal
+                    document.getElementById('paymentModal').style.display = 'flex';
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to load payment details'));
+                }
+            } catch (error) {
+                console.error('Error viewing payment:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Function to approve payment
+        async function approvePayment(paymentId) {
+            if (confirm('Are you sure you want to approve this payment? This will update the homeowner\'s account status to compliant.')) {
+                try {
+                    const response = await fetch('/api/review-monthly-payment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            paymentId: paymentId,
+                            action: 'approve'
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Payment approved successfully');
+                        closeModal();
+                        loadPayments(currentStatus, currentPage);
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to approve payment'));
+                    }
+                } catch (error) {
+                    console.error('Error approving payment:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        // Function to show reject form
+        function showRejectForm(paymentId) {
+            currentPaymentId = paymentId;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectForm').style.display = 'block';
+            document.getElementById('modalActions').style.display = 'none';
+        }
+        
+        // Function to confirm rejection
+        async function confirmReject() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            
+            if (!reason) {
+                alert('Please provide a reason for rejection');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/review-monthly-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        paymentId: currentPaymentId,
+                        action: 'reject',
+                        notes: reason
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Payment rejected successfully');
+                    closeModal();
+                    loadPayments(currentStatus, currentPage);
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to reject payment'));
+                }
+            } catch (error) {
+                console.error('Error rejecting payment:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Function to close modal
+        function closeModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+            document.getElementById('rejectForm').style.display = 'none';
+            document.getElementById('modalActions').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

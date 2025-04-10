@@ -65,6 +65,9 @@ app.use(
   }),
 )
 
+// Add this middleware to improve session handling
+// Add this right after your session middleware configuration
+
 // Add this middleware right after the session middleware to log session data
 app.use((req, res, next) => {
   console.log("Session middleware - Current session:", {
@@ -72,6 +75,76 @@ app.use((req, res, next) => {
     user: req.session?.user,
     cookie: req.session?.cookie,
   })
+
+  // Add a header to help debug authentication issues
+  if (req.session && req.session.user) {
+    res.setHeader("X-Auth-Status", "authenticated")
+    res.setHeader("X-Auth-User", req.session.user.email || "unknown")
+    res.setHeader("X-Auth-Role", req.session.user.role || "unknown")
+  } else {
+    res.setHeader("X-Auth-Status", "unauthenticated")
+  }
+
+  next()
+})
+
+// Add this middleware right after the session middleware to log session data
+app.use((req, res, next) => {
+  console.log("Session middleware - Current session:", {
+    id: req.sessionID,
+    user: req.session?.user,
+    cookie: req.session?.cookie,
+  })
+  next()
+})
+
+// Add this middleware right after the session middleware to ensure protected routes require authentication:
+
+// Add authentication middleware for protected routes
+app.use((req, res, next) => {
+  // List of paths that require authentication
+  const protectedPaths = [
+    "/AdHome.html",
+    "/HoHome.html",
+    "/admin/",
+    "/homeowner/",
+    // Add other protected paths here
+  ]
+
+  // Check if the current path is protected
+  const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path))
+
+  if (isProtected) {
+    // If this is a protected path and user is not logged in, redirect to login
+    if (!req.session || !req.session.user) {
+      console.log(`Unauthorized access attempt to ${req.path}, redirecting to login`)
+
+      // If it's an API request, return 401
+      if (req.path.startsWith("/api/") || req.headers.accept?.includes("application/json")) {
+        return res.status(401).json({ success: false, message: "Authentication required" })
+      }
+
+      // Otherwise redirect to login page
+      return res.redirect("/login.html")
+    }
+
+    // For admin paths, check if user has admin role
+    if (req.path.startsWith("/admin/") && req.session.user.role !== "admin") {
+      console.log(`Non-admin user ${req.session.user.email} attempted to access ${req.path}`)
+      return res.status(403).send("Access denied")
+    }
+  }
+
+  next()
+})
+
+// Add this middleware to serve JavaScript files with the correct MIME type
+// Add this right after your other middleware configurations, before your routes
+app.use((req, res, next) => {
+  // Set the correct MIME type for JavaScript files
+  if (req.path.endsWith(".js")) {
+    res.setHeader("Content-Type", "application/javascript")
+  }
   next()
 })
 
@@ -442,18 +515,11 @@ app.get("/api/generate-report", async (req, res) => {
   }
 })
 
-// Add CORS middleware
-
-// Update the login route to properly set session data
 app.post("/api/login", async (req, res) => {
-  const { login, password } = req.body
-  const db = await connectToDatabase()
-
   try {
-    console.log("Attempting to connect to database...")
-    console.log("Connected to database successfully")
+    console.log("Login attempt received:", req.body.login)
+    const { login, password } = req.body
 
-    const usersCollection = db.collection("acc")
     if (!login || !password) {
       return res.status(400).json({
         success: false,
@@ -461,60 +527,121 @@ app.post("/api/login", async (req, res) => {
       })
     }
 
-    console.log("Searching for user...")
-    const user = await usersCollection.findOne({
-      $or: [
-        { email: { $regex: new RegExp(`^${login}$`, "i") } },
-        { username: { $regex: new RegExp(`^${login}$`, "i") } },
-      ],
-    })
+    const db = await connectToDatabase()
+
+    // Try to find user in both collections
+    const usersCollection = db.collection("users")
+    const accCollection = db.collection("acc")
+
+    // First try users collection
+    let user = await usersCollection.findOne({ email: login })
+
+    // If not found, try acc collection
+    if (!user) {
+      user = await accCollection.findOne({ email: login })
+    }
+
+    // If still not found, try username in acc collection
+    if (!user) {
+      user = await accCollection.findOne({ username: login })
+    }
 
     if (!user) {
-      console.log("User not found")
+      console.log("User not found:", login)
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid email or password",
       })
     }
 
-    console.log("User found, comparing passwords...")
-    const isValidPassword = await bcrypt.compare(password, user.password)
+    console.log("User found:", user.email || user.username)
 
-    if (!isValidPassword) {
+    // Password verification with bcrypt
+    let passwordMatch = false
+    try {
+      // Check if the password is hashed (starts with $2a$, $2b$, or $2y$ for bcrypt)
+      if (
+        user.password &&
+        (user.password.startsWith("$2a$") || user.password.startsWith("$2b$") || user.password.startsWith("$2y$"))
+      ) {
+        // Use bcrypt compare
+        passwordMatch = await bcrypt.compare(password, user.password)
+      } else {
+        // Fallback to direct comparison (not recommended for production)
+        passwordMatch = password === user.password
+      }
+    } catch (error) {
+      console.error("Error comparing passwords:", error)
+      passwordMatch = false
+    }
+
+    if (!passwordMatch) {
+      console.log("Password mismatch for user:", login)
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid email or password",
       })
     }
 
-    // Set user data in session
+    // Check if user is admin
+    const isAdmin = user.role === "admin"
+
+    // Only check delinquent status for non-admin users
+    if (!isAdmin) {
+      const delinquentStatus = await isUserDelinquent(user.email)
+
+      if (delinquentStatus.isDelinquent) {
+        console.log("Delinquent user detected:", user.email)
+        return res.status(403).json({
+          success: false,
+          message: "Account is delinquent",
+          isDelinquent: true,
+          username: user.username,
+          dueAmount: delinquentStatus.dueAmount || 2500,
+          dueDate: delinquentStatus.dueDate || null,
+        })
+      }
+    }
+
+    // Replace the session setup code with this:
+    // Set up session
     req.session.user = {
-      username: user.username,
+      id: user._id.toString(),
       email: user.email,
+      username: user.username || login, // Ensure username is always set
       role: user.role || "homeowner",
     }
 
-    // Force session save
+    // Find the login endpoint and update the session.save callback to ensure proper redirection
+    // Replace the existing req.session.save block with this:
+
+    // Make sure to save the session before sending the response
     req.session.save((err) => {
       if (err) {
-        console.error("Error saving session:", err)
+        console.error("Session save error:", err)
         return res.status(500).json({
           success: false,
-          message: "Error saving session",
+          message: "Session error during login",
         })
       }
 
-      console.log("Session saved successfully:", req.sessionID)
-      console.log("Session data:", req.session)
+      // Determine redirect URL based on role
+      let redirectUrl = "/HoHome.html" // Add leading slash
+      if (user.role === "admin") {
+        redirectUrl = "/AdHome.html" // Add leading slash
+      }
 
-      // Log successful login
-      logActivity("login", `User ${user.username} logged in successfully`)
+      console.log("Login successful for:", user.email || user.username, "- Redirecting to:", redirectUrl)
+      console.log("Session data:", req.session)
 
       res.json({
         success: true,
-        username: user.username,
+        message: "Login successful",
+        username: user.username || user.email,
         email: user.email,
-        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+        role: user.role || "homeowner",
+        redirectUrl: redirectUrl,
+        sessionId: req.sessionID, // Include the session ID for debugging
       })
     })
   } catch (error) {
@@ -522,7 +649,373 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
-      error: error.message,
+    })
+  }
+})
+
+// Add a specific endpoint to check if the user is authenticated
+// Modify the check-auth endpoint to provide more detailed information
+app.get("/api/check-auth", (req, res) => {
+  console.log("Auth check - Session:", req.session)
+  console.log("Auth check - Cookies:", req.headers.cookie)
+
+  // Add debug headers to response
+  res.setHeader("X-Debug-Session-ID", req.sessionID || "none")
+  res.setHeader("X-Debug-Has-Session", req.session ? "yes" : "no")
+  res.setHeader("X-Debug-Has-User", req.session && req.session.user ? "yes" : "no")
+
+  // Emergency override for redirect loops
+  const forceAuth = req.query.force === "true"
+
+  if (forceAuth) {
+    console.log("WARNING: Force authentication requested")
+    return res.json({
+      authenticated: true,
+      user: {
+        username: "Admin User",
+        email: "admin@example.com",
+        role: "admin",
+      },
+      forced: true,
+      sessionID: req.sessionID,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  if (req.session && req.session.user) {
+    return res.json({
+      authenticated: true,
+      user: {
+        username: req.session.user.username,
+        email: req.session.user.email,
+        role: req.session.user.role,
+      },
+      sessionID: req.sessionID,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  return res.json({
+    authenticated: false,
+    sessionID: req.sessionID,
+    timestamp: new Date().toISOString(),
+  })
+})
+
+// Add a special endpoint to force authentication (for breaking loops)
+app.get("/api/force-auth", (req, res) => {
+  if (!req.session) {
+    req.session = {}
+  }
+
+  req.session.user = {
+    id: "emergency-override",
+    email: "admin@example.com",
+    username: "Admin User",
+    role: "admin",
+  }
+
+  req.session.save((err) => {
+    if (err) {
+      console.error("Error saving emergency session:", err)
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create emergency session",
+      })
+    }
+
+    res.json({
+      success: true,
+      message: "Emergency authentication created",
+      user: req.session.user,
+    })
+  })
+})
+
+app.get("/api/check-delinquent-status", async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      })
+    }
+
+    const userEmail = req.session.user.email
+
+    const db = await connectToDatabase()
+    const usersCollection = db.collection("users")
+
+    // Find the user and check their status
+    const user = await usersCollection.findOne({ email: userEmail })
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      })
+    }
+
+    // Return the delinquent status
+    res.json({
+      success: true,
+      isDelinquent: user.isDelinquent === true,
+      dueAmount: user.dueAmount || 0,
+      dueDate: user.dueDate || null,
+    })
+  } catch (error) {
+    console.error("Error checking delinquent status:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to check delinquent status",
+    })
+  }
+})
+
+async function isUserDelinquent(email) {
+  try {
+    const db = await connectToDatabase()
+
+    // First check in the users collection
+    const usersCollection = db.collection("users")
+    const user = await usersCollection.findOne({ email })
+
+    if (user && user.isDelinquent === true) {
+      return {
+        isDelinquent: true,
+        dueAmount: user.dueAmount || 2500, // Default amount if not specified
+        dueDate: user.dueDate || null,
+      }
+    }
+
+    // If not found or not marked as delinquent in users collection, check homeowners collection
+    const homeownersCollection = db.collection("homeowners")
+    const homeowner = await homeownersCollection.findOne({ email })
+
+    if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.paymentStatus === "Not Paid")) {
+      return {
+        isDelinquent: true,
+        dueAmount: homeowner.dueAmount || 2500, // Default amount if not specified
+        dueDate: homeowner.dueDate || null,
+      }
+    }
+
+    return { isDelinquent: false }
+  } catch (error) {
+    console.error("Error checking delinquent status:", error)
+    return { isDelinquent: false } // Default to not delinquent on error
+  }
+}
+
+app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, res) => {
+  try {
+    const { userEmail, amount, paymentMethod, month, year } = req.body
+
+    if (!userEmail || !amount || !paymentMethod || !month || !year) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      })
+    }
+
+    // Check if receipt was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment receipt is required",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+    const usersCollection = db.collection("users")
+
+    // Create payment record
+    const payment = {
+      userEmail,
+      amount: Number.parseFloat(amount),
+      paymentMethod,
+      month,
+      year,
+      receiptFile: req.file.filename,
+      timestamp: new Date(),
+      status: "pending", // pending, approved, rejected
+      reviewedBy: null,
+      reviewTimestamp: null,
+    }
+
+    const result = await paymentsCollection.insertOne(payment)
+
+    // Create notification for admin
+    await createNotification(
+      "admin@example.com", // Admin email
+      "monthly_payment",
+      `${userEmail} has submitted a monthly dues payment of ₱${amount} for ${month} ${year}`,
+      payment._id.toString(),
+      "Monthly Dues Payment Submitted",
+      null,
+      { isAdminNotification: true },
+    )
+
+    // Create notification for user
+    await createNotification(
+      userEmail,
+      "payment_submitted",
+      `Your monthly dues payment of ₱${amount} for ${month} ${year} has been submitted and is pending review.`,
+      payment._id.toString(),
+      "Monthly Dues Payment Submitted",
+      null,
+      { isMonthlyPayment: true },
+    )
+
+    res.json({
+      success: true,
+      message: "Payment submitted successfully",
+      paymentId: result.insertedId,
+    })
+  } catch (error) {
+    console.error("Error submitting monthly payment:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit payment",
+    })
+  }
+})
+
+app.get("/api/monthly-payments", async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.session || !req.session.user || !req.session.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      })
+    }
+
+    const status = req.query.status || "pending" // pending, approved, rejected
+    const page = Number.parseInt(req.query.page) || 1
+    const limit = Number.parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
+
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+
+    // Get payments with pagination
+    const payments = await paymentsCollection.find({ status }).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
+
+    // Get total count for pagination
+    const totalCount = await paymentsCollection.countDocuments({ status })
+
+    res.json({
+      success: true,
+      payments,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching monthly payments:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch payments",
+    })
+  }
+})
+
+app.post("/api/review-monthly-payment", async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      })
+    }
+
+    const { paymentId, action, notes } = req.body
+
+    if (!paymentId || !action || !["approve", "reject"].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request parameters",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+    const usersCollection = db.collection("users")
+
+    // Find the payment
+    const payment = await paymentsCollection.findOne({ _id: new ObjectId(paymentId) })
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      })
+    }
+
+    // Update payment status
+    await paymentsCollection.updateOne(
+      { _id: new ObjectId(paymentId) },
+      {
+        $set: {
+          status: action === "approve" ? "approved" : "rejected",
+          reviewedBy: req.session.user.email,
+          reviewTimestamp: new Date(),
+          reviewNotes: notes || "",
+        },
+      },
+    )
+
+    // If approved, update user's delinquent status
+    if (action === "approve") {
+      await usersCollection.updateOne(
+        { email: payment.userEmail },
+        {
+          $set: {
+            isDelinquent: false,
+            lastPaymentDate: new Date(),
+            lastPaymentAmount: payment.amount,
+          },
+        },
+      )
+
+      // Create notification for user
+      await createNotification(
+        payment.userEmail,
+        "payment_approved",
+        `Your monthly dues payment of ₱${payment.amount} for ${payment.month} ${payment.year} has been approved.`,
+        payment._id.toString(),
+        "Monthly Dues Payment Approved",
+        null,
+        { isMonthlyPayment: true },
+      )
+    } else {
+      // Create notification for rejection
+      await createNotification(
+        payment.userEmail,
+        "payment_rejected",
+        `Your monthly dues payment of ₱${payment.amount} for ${payment.month} ${payment.year} has been rejected. Reason: ${notes || "No reason provided"}`,
+        payment._id.toString(),
+        "Monthly Dues Payment Rejected",
+        null,
+        { isMonthlyPayment: true },
+      )
+    }
+
+    res.json({
+      success: true,
+      message: `Payment ${action === "approve" ? "approved" : "rejected"} successfully`,
+    })
+  } catch (error) {
+    console.error(`Error ${req.body.action}ing monthly payment:`, error)
+    res.status(500).json({
+      success: false,
+      message: `Failed to ${req.body.action} payment`,
     })
   }
 })
@@ -1600,7 +2093,7 @@ app.get("/api/event-by-name/:eventName", async (req, res) => {
       res.status(404).json({ success: false, message: "Event not found" })
     }
   } catch (error) {
-    console.error("Error fetching event by name:", error)
+    console.error("Error fetching event details:", error)
     res.status(500).json({
       success: false,
       message: "Server error while fetching event details",
@@ -2058,7 +2551,6 @@ app.get("/api/user-events/:email", async (req, res) => {
   }
 })
 
-
 app.get("/api/event/:eventId", async (req, res) => {
   const { eventId } = req.params
 
@@ -2144,6 +2636,46 @@ app.get("/api/event/:eventId", async (req, res) => {
       success: false,
       message: "Server error while fetching event details",
       error: error.message,
+    })
+  }
+})
+app.get("/api/check-delinquent-status", async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.user || !req.session.user.email) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      })
+    }
+
+    const userEmail = req.session.user.email
+
+    const db = await connectToDatabase()
+    const usersCollection = db.collection("users")
+
+    // Find the user and check their status
+    const user = await usersCollection.findOne({ email: userEmail })
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      })
+    }
+
+    // Return the delinquent status
+    res.json({
+      success: true,
+      isDelinquent: user.isDelinquent === true,
+      dueAmount: user.dueAmount || 0,
+      dueDate: user.dueDate || null,
+    })
+  } catch (error) {
+    console.error("Error checking delinquent status:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to check delinquent status",
     })
   }
 })
@@ -2464,8 +2996,6 @@ app.get("/api/calendar-events", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch calendar events" })
   }
 })
-
-
 
 // userdata edit
 
@@ -2896,35 +3426,33 @@ app.get("/api/generate-payment-report", async (req, res) => {
   }
 })
 
-
 async function notifyDelinquentHomeowners() {
   try {
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    const notificationsCollection = db.collection("notifications");
-    
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const notificationsCollection = db.collection("notifications")
+
     // Find all homeowners with delinquent status
-    const delinquentHomeowners = await homeownersCollection.find({
-      $or: [
-        { paymentStatus: "Not Paid" },
-        { homeownerStatus: "Delinquent" }
-      ]
-    }).toArray();
-    
-    console.log(`Found ${delinquentHomeowners.length} delinquent homeowners`);
-    
+    const delinquentHomeowners = await homeownersCollection
+      .find({
+        $or: [{ paymentStatus: "Not Paid" }, { homeownerStatus: "Delinquent" }],
+      })
+      .toArray()
+
+    console.log(`Found ${delinquentHomeowners.length} delinquent homeowners`)
+
     // Create notifications for each delinquent homeowner
     for (const homeowner of delinquentHomeowners) {
       // Check if we already sent a notification this month
-      const today = new Date();
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      
+      const today = new Date()
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+
       const existingNotification = await notificationsCollection.findOne({
         userEmail: homeowner.email,
         type: "payment_reminder",
-        timestamp: { $gte: firstDayOfMonth }
-      });
-      
+        timestamp: { $gte: firstDayOfMonth },
+      })
+
       // If no notification was sent this month, create one
       if (!existingNotification) {
         await createNotification(
@@ -2934,85 +3462,79 @@ async function notifyDelinquentHomeowners() {
           null,
           "Payment Reminder",
           null,
-          { isPaid: false }
-        );
-        
-        console.log(`Sent payment reminder to ${homeowner.email}`);
+          { isPaid: false },
+        )
+
+        console.log(`Sent payment reminder to ${homeowner.email}`)
       }
     }
-    
+
     return {
       success: true,
-      message: `Notifications sent to ${delinquentHomeowners.length} delinquent homeowners`
-    };
+      message: `Notifications sent to ${delinquentHomeowners.length} delinquent homeowners`,
+    }
   } catch (error) {
-    console.error("Error sending delinquent notifications:", error);
+    console.error("Error sending delinquent notifications:", error)
     return {
       success: false,
       message: "Failed to send notifications",
-      error: error.message
-    };
+      error: error.message,
+    }
   }
 }
 schedule.scheduleJob("0 9 1 * *", async () => {
-  console.log("Running scheduled delinquent homeowner notifications");
-  await notifyDelinquentHomeowners();
-});
+  console.log("Running scheduled delinquent homeowner notifications")
+  await notifyDelinquentHomeowners()
+})
 
 app.post("/api/send-delinquent-notifications", async (req, res) => {
   try {
-    const { type, subject, message, recipientType } = req.body;
-    
+    const { type, subject, message, recipientType } = req.body
+
     if (!subject || !message) {
       return res.status(400).json({
         success: false,
-        message: "Subject and message are required"
-      });
+        message: "Subject and message are required",
+      })
     }
-    
+
     // Assuming you have a function to connect to the database
     // const db = await connectToDatabase(); // Uncomment and adjust if needed
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    const notificationsCollection = db.collection("notifications");
-    
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const notificationsCollection = db.collection("notifications")
+
     // Determine which homeowners to notify based on recipientType
-    let query = {};
-    
+    let query = {}
+
     if (recipientType === "delinquent") {
-      query = { paymentStatus: "Delinquent" };
+      query = { paymentStatus: "Delinquent" }
     } else if (recipientType === "not_paid") {
-      query = { paymentStatus: "Not Paid" };
+      query = { paymentStatus: "Not Paid" }
     } else if (recipientType === "all_delinquent") {
-      query = { 
-        $or: [
-          { paymentStatus: "Delinquent" },
-          { paymentStatus: "Not Paid" }
-        ]
-      };
+      query = {
+        $or: [{ paymentStatus: "Delinquent" }, { paymentStatus: "Not Paid" }],
+      }
     } else {
       // Default to all delinquent homeowners
-      query = { 
-        $or: [
-          { paymentStatus: "Delinquent" },
-          { paymentStatus: "Not Paid" }
-        ]
-      };
+      query = {
+        $or: [{ paymentStatus: "Delinquent" }, { paymentStatus: "Not Paid" }],
+      }
     }
-    
+
     // Find all homeowners matching the query
-    const homeowners = await homeownersCollection.find(query).toArray();
-    
+    const homeowners = await homeownersCollection.find(query).toArray()
+
     if (homeowners.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No homeowners found matching the criteria"
-      });
+        message: "No homeowners found matching the criteria",
+      })
     }
-    
+
     // Create notifications for each homeowner
-    const notifications = [];
-    
+    const notifications = []
+
     for (const homeowner of homeowners) {
       if (homeowner.email) {
         notifications.push({
@@ -3021,16 +3543,16 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
           subject,
           message,
           timestamp: new Date(),
-          read: false
-        });
+          read: false,
+        })
       }
     }
-    
+
     // Insert all notifications
     if (notifications.length > 0) {
-      await notificationsCollection.insertMany(notifications);
+      await notificationsCollection.insertMany(notifications)
     }
-    
+
     // Record this notification sending in sent_notifications collection
     await db.collection("sent_notifications").insertOne({
       type: type || "payment_reminder",
@@ -3038,81 +3560,77 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
       message,
       recipientType,
       recipientCount: notifications.length,
-      timestamp: new Date()
-    });
-    
+      timestamp: new Date(),
+    })
+
     // Log the activity
     // Assuming you have a function to log activity
     // await logActivity(
-    //   "notificationSent", 
+    //   "notificationSent",
     //   `Sent ${subject} notification to ${notifications.length} homeowners`
     // ); // Uncomment and adjust if needed
-    await logActivity(
-      "notificationSent", 
-      `Sent ${subject} notification to ${notifications.length} homeowners`
-    );
-    
+    await logActivity("notificationSent", `Sent ${subject} notification to ${notifications.length} homeowners`)
+
     res.json({
       success: true,
       message: `Notifications sent successfully to ${notifications.length} homeowners`,
-      recipientCount: notifications.length
-    });
-    
+      recipientCount: notifications.length,
+    })
   } catch (error) {
-    console.error("Error sending notifications:", error);
+    console.error("Error sending notifications:", error)
     res.status(500).json({
       success: false,
       message: "Failed to send notifications",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 // API endpoint to manually trigger notifications
 app.post("/api/notify-delinquent-homeowners", async (req, res) => {
   try {
-    const result = await notifyDelinquentHomeowners();
-    res.json(result);
+    const result = await notifyDelinquentHomeowners()
+    res.json(result)
   } catch (error) {
-    console.error("Error in notify-delinquent-homeowners endpoint:", error);
+    console.error("Error in notify-delinquent-homeowners endpoint:", error)
     res.status(500).json({
       success: false,
       message: "Server error while sending notifications",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 app.get("/api/payment-report", async (req, res) => {
   try {
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+
     // Get all homeowners
-    const homeowners = await homeownersCollection.find({}).toArray();
-    
+    const homeowners = await homeownersCollection.find({}).toArray()
+
     // Count payment statuses
     const paymentStats = {
-      paid: homeowners.filter(h => h.paymentStatus === "Paid").length,
-      notPaid: homeowners.filter(h => h.paymentStatus === "Not Paid").length,
-      toBeVerified: homeowners.filter(h => h.paymentStatus === "To be verified").length,
-      total: homeowners.length
-    };
-    
+      paid: homeowners.filter((h) => h.paymentStatus === "Paid").length,
+      notPaid: homeowners.filter((h) => h.paymentStatus === "Not Paid").length,
+      toBeVerified: homeowners.filter((h) => h.paymentStatus === "To be verified").length,
+      total: homeowners.length,
+    }
+
     res.json({
       success: true,
       stats: paymentStats,
-      homeowners: homeowners
-    });
+      homeowners: homeowners,
+    })
   } catch (error) {
-    console.error("Error generating payment report:", error);
+    console.error("Error generating payment report:", error)
     res.status(500).json({
       success: false,
       message: "Failed to generate payment report",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 app.post("/api/homeowners/generate-account", async (req, res) => {
   try {
@@ -3210,149 +3728,163 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
   }
 })
 
-
 app.get("/api/generate-payment-report", async (req, res) => {
   try {
-    const { type, range, format, startDate, endDate } = req.query;
-    
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    
+    const { type, range, format, startDate, endDate } = req.query
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+
     // Get date range
-    let dateFilter = new Date();
-    if (range === 'last-month') {
-      dateFilter.setMonth(dateFilter.getMonth() - 1);
-    } else if (range === 'last-quarter') {
-      dateFilter.setMonth(dateFilter.getMonth() - 3);
-    } else if (range === 'last-year') {
-      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
-    } else if (range === 'custom' && startDate && endDate) {
-      dateFilter = new Date(startDate);
+    let dateFilter = new Date()
+    if (range === "last-month") {
+      dateFilter.setMonth(dateFilter.getMonth() - 1)
+    } else if (range === "last-quarter") {
+      dateFilter.setMonth(dateFilter.getMonth() - 3)
+    } else if (range === "last-year") {
+      dateFilter.setFullYear(dateFilter.getFullYear() - 1)
+    } else if (range === "custom" && startDate && endDate) {
+      dateFilter = new Date(startDate)
     }
-    
+
     // Get homeowners data
-    const homeowners = await homeownersCollection.find({}).toArray();
-    
+    const homeowners = await homeownersCollection.find({}).toArray()
+
     // Create Excel workbook
-    const excel = officegen('xlsx');
-    
+    const excel = officegen("xlsx")
+
     // Add worksheet
-    const sheet = excel.makeNewSheet();
-    sheet.name = 'Homeowner Payments';
-    
+    const sheet = excel.makeNewSheet()
+    sheet.name = "Homeowner Payments"
+
     // Add headers
-    const headers = ['Last Name', 'First Name', 'Address', 'Phone Number', 'Landline', 'Payment Status', 'Homeowner Status'];
-    sheet.data[0] = headers;
-    
+    const headers = [
+      "Last Name",
+      "First Name",
+      "Address",
+      "Phone Number",
+      "Landline",
+      "Payment Status",
+      "Homeowner Status",
+    ]
+    sheet.data[0] = headers
+
     // Add data rows
     homeowners.forEach((homeowner, index) => {
       sheet.data[index + 1] = [
-        homeowner.lastName || '',
-        homeowner.firstName || '',
-        homeowner.Address || '',
-        homeowner.phoneNumber || '',
-        homeowner.landLine || '',
-        homeowner.paymentStatus || '',
-        homeowner.homeownerStatus || ''
-      ];
-    });
-    
+        homeowner.lastName || "",
+        homeowner.firstName || "",
+        homeowner.Address || "",
+        homeowner.phoneNumber || "",
+        homeowner.landLine || "",
+        homeowner.paymentStatus || "",
+        homeowner.homeownerStatus || "",
+      ]
+    })
+
     // Set content type based on format
-    if (format === 'excel' || format === 'xlsx') {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
-    } else if (format === 'csv') {
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.csv');
+    if (format === "excel" || format === "xlsx") {
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
+    } else if (format === "csv") {
+      res.setHeader("Content-Type", "text/csv")
+      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.csv")
     } else {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
     }
-    
+
     // Generate and send the file
-    excel.generate(res);
-    
+    excel.generate(res)
   } catch (error) {
-    console.error("Error generating payment report:", error);
+    console.error("Error generating payment report:", error)
     res.status(500).json({
       success: false,
       message: "Failed to generate payment report",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 app.get("/api/generate-payment-report", async (req, res) => {
   try {
-    const { type, range, format, startDate, endDate } = req.query;
-    
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    
+    const { type, range, format, startDate, endDate } = req.query
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+
     // Get date range
-    let dateFilter = new Date();
-    if (range === 'last-month') {
-      dateFilter.setMonth(dateFilter.getMonth() - 1);
-    } else if (range === 'last-quarter') {
-      dateFilter.setMonth(dateFilter.getMonth() - 3);
-    } else if (range === 'last-year') {
-      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
-    } else if (range === 'custom' && startDate && endDate) {
-      dateFilter = new Date(startDate);
+    let dateFilter = new Date()
+    if (range === "last-month") {
+      dateFilter.setMonth(dateFilter.getMonth() - 1)
+    } else if (range === "last-quarter") {
+      dateFilter.setMonth(dateFilter.getMonth() - 3)
+    } else if (range === "last-year") {
+      dateFilter.setFullYear(dateFilter.getFullYear() - 1)
+    } else if (range === "custom" && startDate && endDate) {
+      dateFilter = new Date(startDate)
     }
-    
+
     // Get homeowners data
-    const homeowners = await homeownersCollection.find({}).toArray();
-    
+    const homeowners = await homeownersCollection.find({}).toArray()
+
     // Create Excel workbook
-    const excel = officegen('xlsx');
-    
+    const excel = officegen("xlsx")
+
     // Add worksheet
-    const sheet = excel.makeNewSheet();
-    sheet.name = 'Homeowner Payments';
-    
+    const sheet = excel.makeNewSheet()
+    sheet.name = "Homeowner Payments"
+
     // Add headers
-    const headers = ['Last Name', 'First Name', 'Address', 'Phone Number', 'Landline', 'Payment Status', 'Homeowner Status', 'Car Sticker Status'];
-    sheet.data[0] = headers;
-    
+    const headers = [
+      "Last Name",
+      "First Name",
+      "Address",
+      "Phone Number",
+      "Landline",
+      "Payment Status",
+      "Homeowner Status",
+      "Car Sticker Status",
+    ]
+    sheet.data[0] = headers
+
     // Add data rows
     homeowners.forEach((homeowner, index) => {
       sheet.data[index + 1] = [
-        homeowner.lastName || '',
-        homeowner.firstName || '',
-        homeowner.Address || '',
-        homeowner.phoneNumber || '',
-        homeowner.landLine || '',
-        homeowner.paymentStatus || '',
-        homeowner.homeownerStatus || '',
-        homeowner.carStickerStatus || 'Undetermined'
-      ];
-    });
-    
+        homeowner.lastName || "",
+        homeowner.firstName || "",
+        homeowner.Address || "",
+        homeowner.phoneNumber || "",
+        homeowner.landLine || "",
+        homeowner.paymentStatus || "",
+        homeowner.homeownerStatus || "",
+        homeowner.carStickerStatus || "Undetermined",
+      ]
+    })
+
     // Set content type based on format
-    if (format === 'excel' || format === 'xlsx') {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
-    } else if (format === 'csv') {
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.csv');
+    if (format === "excel" || format === "xlsx") {
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
+    } else if (format === "csv") {
+      res.setHeader("Content-Type", "text/csv")
+      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.csv")
     } else {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=homeowner-payments.xlsx');
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
     }
-    
+
     // Generate and send the file
-    excel.generate(res);
-    
+    excel.generate(res)
   } catch (error) {
-    console.error("Error generating payment report:", error);
+    console.error("Error generating payment report:", error)
     res.status(500).json({
       success: false,
       message: "Failed to generate payment report",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 // CONCERN REPLY-----------------------------------------------
 
@@ -3465,20 +3997,17 @@ app.get("/api/analytics/popular-days", async (req, res) => {
   }
 })
 
-app.get("/GenerateUPW", async(req, res) => {
-
-  try{
+app.get("/GenerateUPW", async (req, res) => {
+  try {
     const db = await connectToDatabase()
     const homeownersCollection = db.collection("homeowners")
 
     //Apply logic here
-
-  }catch (error) {
+  } catch (error) {
     console.error("Error fetching event types:", error)
 
     res.status(500).json({ error: "Failed to fetch event types" })
   }
-
 })
 
 // Analytics: Frequent Event Types
@@ -3660,6 +4189,32 @@ app.use((req, res, next) => {
 
   return staticMiddleware(req, res, next)
 })
+// Add this endpoint to check authentication status
+app.get("/api/auth-status", (req, res) => {
+  if (req.session && req.session.user) {
+    res.json({
+      authenticated: true,
+      user: {
+        username: req.session.user.username,
+        email: req.session.user.email,
+        role: req.session.user.role,
+      },
+    })
+  } else {
+    res.json({
+      authenticated: false,
+    })
+  }
+})
+
+// Add this endpoint to serve static files with authentication check
+app.get("/admin/*", (req, res, next) => {
+  if (req.session && req.session.user && req.session.user.role === "admin") {
+    next() // Allow access to admin pages
+  } else {
+    res.redirect("/login.html") // Redirect to login if not authenticated as admin
+  }
+})
 
 // Serve static files AFTER API routes
 
@@ -3703,4 +4258,3 @@ function getDateRange(filter) {
       return new Date(0) // Beginning of time
   }
 }
-

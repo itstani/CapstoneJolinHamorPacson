@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monthly Dues Payment</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f3f3f3;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .payment-container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        color: #333;
+      }
+      h2 {
+        color: #af2630;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .detail {
+        margin: 15px 0;
+      }
+      .detail p {
+        margin: 10px 0;
+        display: flex;
+        justify-content: space-between;
+      }
+      .detail p strong {
+        margin-right: 10px;
+      }
+      .payment-method {
+        margin: 20px 0;
+      }
+      .payment-method h3 {
+        color: #af2630;
+        margin-bottom: 10px;
+      }
+      .payment-method label {
+        display: block;
+        margin: 10px 0;
+        cursor: pointer;
+      }
+      .payment-method input[type="radio"] {
+        margin-right: 10px;
+      }
+      .qr-container {
+        margin: 20px 0;
+        text-align: center;
+      }
+      .qr-container img {
+        max-width: 150px;
+        height: auto;
+      }
+      .file-upload {
+        margin: 20px 0;
+      }
+      .file-upload input[type="file"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .total-amount {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin: 20px 0;
+        text-align: right;
+      }
+      .proceed-button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        width: 100%;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .proceed-button:hover {
+        background-color: #8f1d25;
+      }
+      .proceed-button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+      .error-message {
+        color: #af2630;
+        margin-top: 10px;
+        text-align: center;
+      }
+      .success-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+      }
+      .success-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 400px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      .success-content h3 {
+        color: #4CAF50;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="payment-container">
+      <h2>Monthly Dues Payment</h2>
+      <div class="detail">
+        <p><strong>User Email:</strong> <span id="userEmail"></span></p>
+        <p><strong>Homeowner Name:</strong> <span id="userName"></span></p>
+        <p><strong>Outstanding Amount:</strong> ₱<span id="dueAmount">0.00</span></p>
+      </div>
+
+      <div class="payment-method">
+        <h3>Choose Payment Method:</h3>
+        <label>
+          <input type="radio" name="paymentMethod" value="gcash" />
+          GCash
+        </label>
+        <label>
+          <input type="radio" name="paymentMethod" value="bank" />
+          Bank Transfer
+        </label>
+        <label>
+          <input type="radio" name="paymentMethod" value="cash" />
+          Cash
+        </label>
+      </div>
+
+      <div class="qr-container">
+        <h3>QR Code for Payment:</h3>
+        <img src="/images/exqrcode.png" alt="QR Code" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNhYWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5RUiBDb2RlPC90ZXh0Pjwvc3ZnPg=='" />
+      </div>
+
+      <form id="duesPaymentForm">
+        <div class="file-upload">
+          <h3>Upload Payment Proof:</h3>
+          <input type="file" name="receipt" id="receiptUpload" accept="image/*" required />
+        </div>
+        
+        <p class="total-amount">
+          <strong>Total Amount:</strong> ₱<span id="totalAmount">0.00</span>
+        </p>
+        
+        <input type="hidden" id="finalAmountInput" name="finalAmount" value="0" />
+        <input type="hidden" name="userEmail" id="userEmailInput" />
+        <input type="hidden" name="userName" id="userNameInput" />
+        
+        <button type="submit" id="proceedButton" class="proceed-button" disabled>
+          Submit Payment
+        </button>
+      </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="success-modal">
+      <div class="success-content">
+        <h3>Payment Submitted Successfully!</h3>
+        <p>Your payment proof has been submitted for review.</p>
+        <p>You will receive an email once your payment has been verified by the administrator.</p>
+        <button class="proceed-button" onclick="window.location.href='login.html'">
+          Return to Login
+        </button>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Get user data from localStorage
+        const userEmail = localStorage.getItem('email') || '';
+        const userName = localStorage.getItem('username') || '';
+        const dueAmount = localStorage.getItem('dueAmount') || '0.00';
+        
+        console.log('User data loaded:', { userEmail, userName, dueAmount });
+
+        // Populate form fields
+        document.getElementById('userEmail').textContent = userEmail;
+        document.getElementById('userName').textContent = userName;
+        document.getElementById('dueAmount').textContent = dueAmount;
+        document.getElementById('totalAmount').textContent = dueAmount;
+        
+        // Set hidden input values
+        document.getElementById('finalAmountInput').value = dueAmount;
+        document.getElementById('userEmailInput').value = userEmail;
+        document.getElementById('userNameInput').value = userName;
+
+        // Handle file upload and payment method selection
+        const receiptUpload = document.getElementById('receiptUpload');
+        const proceedButton = document.getElementById('proceedButton');
+        const paymentMethods = document.getElementsByName('paymentMethod');
+
+        // Enable submit button only when both payment method and file are selected
+        function checkFormValidity() {
+          const fileSelected = receiptUpload.files.length > 0;
+          const methodSelected = document.querySelector('input[name="paymentMethod"]:checked') !== null;
+          proceedButton.disabled = !(fileSelected && methodSelected);
+        }
+
+        receiptUpload.addEventListener('change', checkFormValidity);
+        
+        paymentMethods.forEach(method => {
+          method.addEventListener('change', checkFormValidity);
+        });
+
+        // Handle form submission
+        document.getElementById('duesPaymentForm').addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          // Show loading state
+          proceedButton.disabled = true;
+          proceedButton.textContent = 'Processing...';
+          
+          // For demo purposes, simulate a successful submission
+          setTimeout(() => {
+            // Show success modal
+            document.getElementById('successModal').style.display = 'block';
+          }, 2000);
+        });
+
+        // If no user data is found, show error
+        if (!userEmail || !userName) {
+          const container = document.querySelector('.payment-container');
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'error-message';
+          errorDiv.innerHTML = `
+            <h3>Error: Missing User Information</h3>
+            <p>We couldn't find your account details.</p>
+            <p>Please go back and try again.</p>
+            <button onclick="window.location.href='login.html'" class="proceed-button" style="margin-top: 10px;">
+              Back to Login
+            </button>
+          `;
+          container.innerHTML = '';
+          container.appendChild(errorDiv);
+        }
+      });
+    </script>
+  </body>
+</html>
