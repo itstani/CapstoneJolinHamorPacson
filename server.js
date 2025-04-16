@@ -23,6 +23,32 @@ app.use(express.json())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
+// Add this middleware BEFORE the authentication middleware to ensure it runs first
+// Place this right after the app.use(bodyParser.urlencoded({ extended: true })) line
+
+// Special middleware to allow access to MDPayment.html for delinquent users
+app.use((req, res, next) => {
+  // List of paths that should be accessible even for delinquent users
+  const publicPaths = [
+    "/login.html",
+    "/MDPayment.html",
+    "/api/monthly-dues-payment",
+    "/api/submit-monthly-payment",
+    "/images/",
+    "/CSS/",
+  ]
+
+  // Check if the current path should be allowed without authentication
+  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
+
+  if (isPublicPath) {
+    console.log(`Public path accessed: ${req.path}`)
+    return next()
+  }
+
+  next()
+})
+
 // 2. CORS configuration - single declaration
 app.use(
   cors({
@@ -68,6 +94,8 @@ app.use(
 // Add this middleware to improve session handling
 // Add this right after your session middleware configuration
 
+// Add this middleware right after your session middleware configuration
+
 // Add this middleware right after the session middleware to log session data
 app.use((req, res, next) => {
   console.log("Session middleware - Current session:", {
@@ -100,7 +128,15 @@ app.use((req, res, next) => {
 
 // Add this middleware right after the session middleware to ensure protected routes require authentication:
 
-// Add authentication middleware for protected routes
+// Modify the authentication middleware to check the public paths first
+// Find the existing authentication middleware that looks like this:
+// app.use((req, res, next) => {
+//   // List of paths that require authentication
+//   const protectedPaths = [ ... ]
+//   ...
+// });
+
+// And replace it with this:
 app.use((req, res, next) => {
   // List of paths that require authentication
   const protectedPaths = [
@@ -110,6 +146,23 @@ app.use((req, res, next) => {
     "/homeowner/",
     // Add other protected paths here
   ]
+
+  // List of paths that should be accessible without authentication
+  const publicPaths = [
+    "/login.html",
+    "/MDPayment.html",
+    "/api/monthly-dues-payment",
+    "/api/submit-monthly-payment",
+    "/images/",
+    "/CSS/",
+  ]
+
+  // Check if the current path is public (always allowed)
+  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
+
+  if (isPublicPath) {
+    return next()
+  }
 
   // Check if the current path is protected
   const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path))
@@ -133,6 +186,29 @@ app.use((req, res, next) => {
       console.log(`Non-admin user ${req.session.user.email} attempted to access ${req.path}`)
       return res.status(403).send("Access denied")
     }
+  }
+
+  next()
+})
+
+// Add this middleware right after the authentication middleware to allow access to MDPayment.html for delinquent users
+app.use((req, res, next) => {
+  // List of paths that should be accessible even for delinquent users
+  const allowedForDelinquentPaths = [
+    "/MDPayment.html",
+    "/api/monthly-dues-payment",
+    "/api/submit-monthly-payment",
+    "/images/",
+    "/CSS/",
+  ]
+
+  // Check if the current path should be allowed for delinquent users
+  const isAllowedForDelinquent = allowedForDelinquentPaths.some(
+    (path) => req.path === path || req.path.startsWith(path),
+  )
+
+  if (isAllowedForDelinquent) {
+    return next()
   }
 
   next()
@@ -168,7 +244,7 @@ const client = new MongoClient(uri, {
 })
 
 let database
-let activityLogsCollection
+let activityLogsCollection = null
 
 const allowedOrigins = ["https://capstone-jolin-hamor-pacson.vercel.app", "http://localhost:3000"]
 
@@ -202,17 +278,6 @@ function formatTime(timeString) {
   const formattedMinute = minute ? minute.padStart(2, "00") : "00"
 
   return `${formattedHour}:${formattedMinute} ${period}`
-}
-
-async function connectToDatabase() {
-  try {
-    await client.connect()
-    console.log("Connected successfully to server")
-    return client.db("avidadb") // Replace with your database name
-  } catch (error) {
-    console.error("Error connecting to database:", error)
-    throw error // Re-throw the error to be handled by the calling function
-  }
 }
 
 // Add debug logging to track request flow:
@@ -515,146 +580,93 @@ app.get("/api/generate-report", async (req, res) => {
   }
 })
 
+// Update the login route to check for delinquent status
 app.post("/api/login", async (req, res) => {
+  const { login, password } = req.body;
+  
   try {
-    console.log("Login attempt received:", req.body.login)
-    const { login, password } = req.body
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("acc");
+    const homeownersCollection = db.collection("homeowners");
 
     if (!login || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
-      })
+      });
     }
 
-    const db = await connectToDatabase()
-
-    // Try to find user in both collections
-    const usersCollection = db.collection("users")
-    const accCollection = db.collection("acc")
-
-    // First try users collection
-    let user = await usersCollection.findOne({ email: login })
-
-    // If not found, try acc collection
-    if (!user) {
-      user = await accCollection.findOne({ email: login })
-    }
-
-    // If still not found, try username in acc collection
-    if (!user) {
-      user = await accCollection.findOne({ username: login })
-    }
+    // Find the user
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
+      ],
+    });
 
     if (!user) {
-      console.log("User not found:", login)
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
-      })
+        message: "Invalid credentials",
+      });
     }
 
-    console.log("User found:", user.email || user.username)
-
-    // Password verification with bcrypt
-    let passwordMatch = false
-    try {
-      // Check if the password is hashed (starts with $2a$, $2b$, or $2y$ for bcrypt)
-      if (
-        user.password &&
-        (user.password.startsWith("$2a$") || user.password.startsWith("$2b$") || user.password.startsWith("$2y$"))
-      ) {
-        // Use bcrypt compare
-        passwordMatch = await bcrypt.compare(password, user.password)
-      } else {
-        // Fallback to direct comparison (not recommended for production)
-        passwordMatch = password === user.password
-      }
-    } catch (error) {
-      console.error("Error comparing passwords:", error)
-      passwordMatch = false
-    }
-
-    if (!passwordMatch) {
-      console.log("Password mismatch for user:", login)
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
-      })
+        message: "Invalid credentials",
+      });
     }
 
-    // Check if user is admin
-    const isAdmin = user.role === "admin"
-
-    // Only check delinquent status for non-admin users
-    if (!isAdmin) {
-      const delinquentStatus = await isUserDelinquent(user.email)
-
-      if (delinquentStatus.isDelinquent) {
-        console.log("Delinquent user detected:", user.email)
-        return res.status(403).json({
+    // Check if user is a homeowner
+    if (user.role !== "admin") {
+      // Check if homeowner is delinquent
+      const homeowner = await homeownersCollection.findOne({ email: user.email });
+      
+      if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
+        // User is delinquent, return special response
+        console.log(`User ${user.email} is delinquent, returning delinquent status`);
+        return res.json({
           success: false,
-          message: "Account is delinquent",
           isDelinquent: true,
           username: user.username,
-          dueAmount: delinquentStatus.dueAmount || 2500,
-          dueDate: delinquentStatus.dueDate || null,
-        })
+          email: user.email,
+          dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
+          message: "Account is delinquent. Please pay your monthly dues."
+        });
       }
     }
 
-    // Replace the session setup code with this:
-    // Set up session
+    // User is not delinquent, proceed with normal login
     req.session.user = {
-      id: user._id.toString(),
+      username: user.username,
       email: user.email,
-      username: user.username || login, // Ensure username is always set
+      role: user.role || "homeowner"
+    };
+
+    // Log successful login
+    await logActivity("login", `User ${user.username} logged in successfully`);
+
+    res.json({
+      success: true,
+      username: user.username,
+      email: user.email,
       role: user.role || "homeowner",
-    }
-
-    // Find the login endpoint and update the session.save callback to ensure proper redirection
-    // Replace the existing req.session.save block with this:
-
-    // Make sure to save the session before sending the response
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save error:", err)
-        return res.status(500).json({
-          success: false,
-          message: "Session error during login",
-        })
-      }
-
-      // Determine redirect URL based on role
-      let redirectUrl = "/HoHome.html" // Add leading slash
-      if (user.role === "admin") {
-        redirectUrl = "/AdHome.html" // Add leading slash
-      }
-
-      console.log("Login successful for:", user.email || user.username, "- Redirecting to:", redirectUrl)
-      console.log("Session data:", req.session)
-
-      res.json({
-        success: true,
-        message: "Login successful",
-        username: user.username || user.email,
-        email: user.email,
-        role: user.role || "homeowner",
-        redirectUrl: redirectUrl,
-        sessionId: req.sessionID, // Include the session ID for debugging
-      })
-    })
+      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+    });
   } catch (error) {
-    console.error("Login error:", error)
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
-    })
+      error: error.message
+    });
   }
-})
+});
 
-// Add a specific endpoint to check if the user is authenticated
-// Modify the check-auth endpoint to provide more detailed information
 app.get("/api/check-auth", (req, res) => {
   console.log("Auth check - Session:", req.session)
   console.log("Auth check - Cookies:", req.headers.cookie)
@@ -732,195 +744,337 @@ app.get("/api/force-auth", (req, res) => {
   })
 })
 
-app.get("/api/check-delinquent-status", async (req, res) => {
+app.post("/api/check-delinquent-status", async (req, res) => {
+  const { login, password } = req.body
+
   try {
-    // Check if user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authenticated",
-      })
-    }
-
-    const userEmail = req.session.user.email
-
     const db = await connectToDatabase()
-    const usersCollection = db.collection("users")
+    const usersCollection = db.collection("acc")
+    const homeownersCollection = db.collection("homeowners")
 
-    // Find the user and check their status
-    const user = await usersCollection.findOne({ email: userEmail })
+    // Find user by email or username
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
+      ],
+    })
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
-        message: "User not found",
+        message: "Invalid credentials",
       })
     }
 
-    // Return the delinquent status
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password)
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      })
+    }
+
+    // Check if user is a homeowner
+    if (user.role === "homeowner" || !user.role) {
+      // Check delinquent status
+      const homeowner = await homeownersCollection.findOne({ email: user.email })
+
+      if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
+        // User is delinquent, return special response
+        return res.json({
+          success: false,
+          isDelinquent: true,
+          username: user.username,
+          dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
+          message: "Your account has outstanding dues that need to be paid.",
+        })
+      }
+    }
+
+    // Normal successful login
+    req.session.user = {
+      username: user.username,
+      email: user.email,
+      role: user.role || "homeowner",
+    }
+
+    await logActivity("login", `User ${user.username} logged in successfully`)
+
     res.json({
       success: true,
-      isDelinquent: user.isDelinquent === true,
-      dueAmount: user.dueAmount || 0,
-      dueDate: user.dueDate || null,
+      username: user.username,
+      email: user.email,
+      role: user.role || "homeowner",
+      redirectUrl: user.role === "admin" ? "/AdHome.html" : "/HoHome.html",
     })
   } catch (error) {
-    console.error("Error checking delinquent status:", error)
+    console.error("Login error:", error)
     res.status(500).json({
       success: false,
-      message: "Failed to check delinquent status",
+      message: "An error occurred during login",
+      error: error.message,
     })
   }
 })
 
-async function isUserDelinquent(email) {
+app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res) => {
   try {
-    const db = await connectToDatabase()
-
-    // First check in the users collection
-    const usersCollection = db.collection("users")
-    const user = await usersCollection.findOne({ email })
-
-    if (user && user.isDelinquent === true) {
-      return {
-        isDelinquent: true,
-        dueAmount: user.dueAmount || 2500, // Default amount if not specified
-        dueDate: user.dueDate || null,
-      }
-    }
-
-    // If not found or not marked as delinquent in users collection, check homeowners collection
-    const homeownersCollection = db.collection("homeowners")
-    const homeowner = await homeownersCollection.findOne({ email })
-
-    if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.paymentStatus === "Not Paid")) {
-      return {
-        isDelinquent: true,
-        dueAmount: homeowner.dueAmount || 2500, // Default amount if not specified
-        dueDate: homeowner.dueDate || null,
-      }
-    }
-
-    return { isDelinquent: false }
-  } catch (error) {
-    console.error("Error checking delinquent status:", error)
-    return { isDelinquent: false } // Default to not delinquent on error
-  }
-}
-
-app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, res) => {
-  try {
-    const { userEmail, amount, paymentMethod, month, year } = req.body
-
-    if (!userEmail || !amount || !paymentMethod || !month || !year) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-      })
-    }
-
-    // Check if receipt was uploaded
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Payment receipt is required",
+        message: "No receipt file uploaded",
       })
     }
 
-    const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
-    const usersCollection = db.collection("users")
+    // Read the uploaded file
+    const filePath = req.file.path
+    const fileBuffer = fs.readFileSync(filePath)
 
-    // Create payment record
-    const payment = {
-      userEmail,
-      amount: Number.parseFloat(amount),
-      paymentMethod,
-      month,
-      year,
-      receiptFile: req.file.filename,
+    // Convert the file to Base64
+    const base64Image = fileBuffer.toString("base64")
+    const mimeType = req.file.mimetype
+
+    // Construct the MongoDB document
+    const paymentData = {
+      userEmail: req.body.userEmail,
+      userName: req.body.userName,
+      amount: req.body.finalAmount,
+      paymentMethod: req.body.paymentMethod,
+      receiptImage: `data:${mimeType};base64,${base64Image}`,
+      status: "pending", // Initial status is pending until admin approves
       timestamp: new Date(),
-      status: "pending", // pending, approved, rejected
-      reviewedBy: null,
-      reviewTimestamp: null,
     }
 
-    const result = await paymentsCollection.insertOne(payment)
+    // Save to MongoDB
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+    const result = await paymentsCollection.insertOne(paymentData)
+
+    // Update homeowner status if payment is submitted
+    const homeownersCollection = db.collection("homeowners")
+    await homeownersCollection.updateOne(
+      { email: paymentData.userEmail },
+      {
+        $set: {
+          paymentStatus: "pending",
+          lastPaymentId: result.insertedId,
+          lastPaymentDate: new Date(),
+        },
+      },
+    )
+
+    // Cleanup the temporary file
+    fs.unlinkSync(filePath)
 
     // Create notification for admin
     await createNotification(
-      "admin@example.com", // Admin email
+      "admin@avidadb.com", // Admin email
       "monthly_payment",
-      `${userEmail} has submitted a monthly dues payment of ₱${amount} for ${month} ${year}`,
-      payment._id.toString(),
-      "Monthly Dues Payment Submitted",
-      null,
-      { isAdminNotification: true },
+      `New monthly payment submitted by ${paymentData.userName} (${paymentData.userEmail})`,
+      result.insertedId,
     )
 
-    // Create notification for user
-    await createNotification(
-      userEmail,
-      "payment_submitted",
-      `Your monthly dues payment of ₱${amount} for ${month} ${year} has been submitted and is pending review.`,
-      payment._id.toString(),
-      "Monthly Dues Payment Submitted",
-      null,
-      { isMonthlyPayment: true },
-    )
+    res.status(200).json({
+      success: true,
+      message: "Payment submitted successfully! Admin will review your payment.",
+    })
+  } catch (err) {
+    console.error("Error handling monthly payment:", err)
 
-    res.json({
+    // Cleanup the temporary file if it exists
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path)
+      } catch (unlinkErr) {
+        console.error("Error deleting temporary file:", unlinkErr)
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Error processing payment. Please try again.",
+    })
+  }
+})
+
+app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, res) => {
+  try {
+    const { userEmail, userName, finalAmount, paymentMethod } = req.body
+
+    if (!userEmail || !finalAmount || !paymentMethod || !req.file) {
+      return res.status(400).json({ success: false, message: "Missing required fields" })
+    }
+
+    // Create payment record
+    const payment = {
+      email: userEmail,
+      username: userName,
+      amount: Number.parseFloat(finalAmount),
+      paymentMethod,
+      receiptPath: `/uploads/receipts/${req.file.filename}`,
+      status: "pending",
+      submittedAt: new Date(),
+    }
+
+    // Insert payment record
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+    const result = await paymentsCollection.insertOne(payment)
+
+    // Create notification for admin
+    await db.collection("notifications").insertOne({
+      recipient: "admin",
+      message: `New monthly dues payment from ${userName} (${userEmail})`,
+      type: "payment",
+      relatedId: result.insertedId,
+      timestamp: new Date(),
+      read: false,
+    })
+
+    return res.json({
       success: true,
       message: "Payment submitted successfully",
       paymentId: result.insertedId,
     })
   } catch (error) {
-    console.error("Error submitting monthly payment:", error)
-    res.status(500).json({
-      success: false,
-      message: "Failed to submit payment",
-    })
+    console.error("Error submitting payment:", error)
+    return res.status(500).json({ success: false, message: "Server error" })
   }
 })
 
 app.get("/api/monthly-payments", async (req, res) => {
   try {
-    // Check if user is authenticated and is admin
-    if (!req.session || !req.session.user || !req.session.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized",
-      })
+    const { status, search } = req.query
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlypayments")
+
+    // Build query based on filters
+    const query = { paymentType: "monthlyDues" }
+
+    if (status && status !== "all") {
+      query.status = status
     }
 
-    const status = req.query.status || "pending" // pending, approved, rejected
-    const page = Number.parseInt(req.query.page) || 1
-    const limit = Number.parseInt(req.query.limit) || 10
-    const skip = (page - 1) * limit
+    if (search) {
+      query.$or = [{ userEmail: { $regex: search, $options: "i" } }, { userName: { $regex: search, $options: "i" } }]
+    }
 
-    const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
-
-    // Get payments with pagination
-    const payments = await paymentsCollection.find({ status }).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
-
-    // Get total count for pagination
-    const totalCount = await paymentsCollection.countDocuments({ status })
+    // Get payments
+    const payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).toArray()
 
     res.json({
       success: true,
       payments,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit),
-        totalCount,
-      },
     })
   } catch (error) {
     console.error("Error fetching monthly payments:", error)
     res.status(500).json({
       success: false,
-      message: "Failed to fetch payments",
+      message: "Error fetching payments",
+      payments: [],
+    })
+  }
+})
+
+app.post("/api/monthly-payments/:id/approve", async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlypayments")
+    const homeownersCollection = db.collection("homeowners")
+
+    // Find the payment
+    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      })
+    }
+
+    // Update payment status
+    await paymentsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: "approved", approvedAt: new Date() } },
+    )
+
+    // Update homeowner status
+    await homeownersCollection.updateOne(
+      { email: payment.userEmail },
+      { $set: { paymentStatus: "active", dueAmount: "0.00" } },
+    )
+
+    // Log the approval
+    await logActivity("paymentApproval", `Monthly dues payment for ${payment.userEmail} approved`)
+
+    // Create notification for the user
+    await createNotification(
+      payment.userEmail,
+      "payment_approved",
+      "Your monthly dues payment has been approved. Your account is now active.",
+      payment._id,
+    )
+
+    res.json({
+      success: true,
+      message: "Payment approved successfully",
+    })
+  } catch (error) {
+    console.error("Error approving payment:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error approving payment",
+    })
+  }
+})
+
+app.post("/api/monthly-payments/:id/reject", async (req, res) => {
+  try {
+    const { id } = req.params
+    const { reason } = req.body
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlypayments")
+
+    // Find the payment
+    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      })
+    }
+
+    // Update payment status
+    await paymentsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: "rejected", rejectedAt: new Date(), rejectionReason: reason } },
+    )
+
+    // Log the rejection
+    await logActivity("paymentRejection", `Monthly dues payment for ${payment.userEmail} rejected: ${reason}`)
+
+    // Create notification for the user
+    await createNotification(
+      payment.userEmail,
+      "payment_rejected",
+      `Your monthly dues payment was rejected. Reason: ${reason}`,
+      payment._id,
+    )
+
+    res.json({
+      success: true,
+      message: "Payment rejected successfully",
+    })
+  } catch (error) {
+    console.error("Error rejecting payment:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error rejecting payment",
     })
   }
 })
@@ -1022,8 +1176,8 @@ app.post("/api/review-monthly-payment", async (req, res) => {
 
 async function logActivity(action, details) {
   try {
+    const db = await connectToDatabase()
     if (!activityLogsCollection) {
-      const db = await connectToDatabase()
       activityLogsCollection = db.collection("activityLogs")
     }
     await activityLogsCollection.insertOne({
@@ -1266,6 +1420,157 @@ app.get("/eventfin", async (req, res) => {
     res.status(500).send("An error occurred while fetching events")
   }
 })
+
+app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No receipt file uploaded",
+      })
+    }
+
+    // Read the uploaded file
+    const filePath = req.file.path
+    const fileBuffer = fs.readFileSync(filePath)
+
+    // Convert the file to Base64
+    const base64Image = fileBuffer.toString("base64")
+    const mimeType = req.file.mimetype
+
+    // Construct the MongoDB document
+    const paymentData = {
+      userEmail: req.body.userEmail,
+      userName: req.body.userName,
+      amount: req.body.finalAmount,
+      paymentMethod: req.body.paymentMethod,
+      receiptImage: `data:${mimeType};base64,${base64Image}`,
+      status: "pending", // Initial status is pending until admin approves
+      timestamp: new Date(),
+    }
+
+    // Save to MongoDB
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+    await paymentsCollection.insertOne(paymentData)
+
+    // Cleanup the temporary file
+    fs.unlinkSync(filePath)
+
+    // Create notification for admin
+    await createNotification(
+      "admin@avidadb.com", // Admin email
+      "monthly_payment",
+      `New monthly payment submitted by ${paymentData.userName} (${paymentData.userEmail})`,
+      paymentData._id,
+    )
+
+    res.status(200).json({
+      success: true,
+      message: "Payment submitted successfully! Admin will review your payment.",
+    })
+  } catch (err) {
+    console.error("Error handling monthly payment:", err)
+
+    // Cleanup the temporary file if it exists
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path)
+      } catch (unlinkErr) {
+        console.error("Error deleting temporary file:", unlinkErr)
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Error processing payment. Please try again.",
+    })
+  }
+})
+
+app.post("/api/process-payment", async (req, res) => {
+  try {
+    // Check if user is authenticated as admin
+    if (!req.session || req.session.role !== "admin") {
+      return res.status(401).json({ success: false, message: "Unauthorized" })
+    }
+
+    const { paymentId, action, reason } = req.body
+
+    if (!paymentId || !action || (action !== "approve" && action !== "reject")) {
+      return res.status(400).json({ success: false, message: "Invalid request parameters" })
+    }
+
+    // Find the payment
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+    const payment = await paymentsCollection.findOne({ _id: ObjectId(paymentId) })
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: "Payment not found" })
+    }
+
+    if (payment.status !== "pending") {
+      return res.status(400).json({ success: false, message: "Payment has already been processed" })
+    }
+
+    const rejectionReason = action === "reject" ? reason || "No reason provided" : null
+
+    // Update payment status
+    await paymentsCollection.updateOne(
+      { _id: ObjectId(paymentId) },
+      {
+        $set: {
+          status: action === "approve" ? "approved" : "rejected",
+          processedAt: new Date(),
+          processedBy: req.session.username,
+          rejectionReason,
+        },
+      },
+    )
+
+    // If approved, update user's delinquent status
+    if (action === "approve") {
+      const homeownersCollection = db.collection("homeowners")
+      await homeownersCollection.updateOne(
+        { email: payment.email },
+        { $set: { isDelinquent: false, lastPaymentDate: new Date() } },
+      )
+    }
+
+    // Create notification for the user
+    const notificationsCollection = db.collection("notifications")
+    await notificationsCollection.insertOne({
+      recipient: payment.email,
+      message:
+        action === "approve"
+          ? "Your monthly dues payment has been approved. You can now log in to the system."
+          : `Your monthly dues payment has been rejected. Reason: ${rejectionReason}`,
+      type: "payment",
+      relatedId: payment._id,
+      timestamp: new Date(),
+      read: false,
+    })
+
+    // Log the activity
+    const activityLogsCollection = db.collection("activityLogs")
+    await activityLogsCollection.insertOne({
+      action: action === "approve" ? "paymentApproval" : "paymentRejection",
+      details: `${action === "approve" ? "Approved" : "Rejected"} payment from ${payment.username} (${payment.email})`,
+      performedBy: req.session.username,
+      timestamp: new Date(),
+    })
+
+    return res.json({
+      success: true,
+      message: action === "approve" ? "Payment approved successfully" : "Payment rejected successfully",
+    })
+  } catch (error) {
+    console.error("Error processing payment:", error)
+    return res.status(500).json({ success: false, message: "Server error" })
+  }
+})
+
 app.post("/gcash-payment", async (req, res) => {
   const { amount, eventName, eventDate } = req.body
   try {
@@ -1923,9 +2228,10 @@ app.get("/receipt-image", async (req, res) => {
   const { eventName, eventDate } = req.query
 
   try {
-    const eventpaymentsCollection = req.db.collection("eventpayments")
+    const db = await connectToDatabase()
+    const eventpaymentsCollection = db.collection("eventpayments")
 
-    const eventsCollection = req.db.collection("events")
+    const eventsCollection = db.collection("events")
 
     // Fetch from `eventpayments` collection
 
@@ -1974,7 +2280,8 @@ app.get("/eventshow", async (req, res) => {
   const { eventName, eventDate } = req.query
 
   try {
-    const eventsCollection = req.db.collection("events")
+    const db = await connectToDatabase()
+    const eventsCollection = db.collection("events")
 
     // Fetch from `events` collection
 
@@ -2294,36 +2601,32 @@ module.exports = app
 app.get("/getRecentActivity", async (req, res) => {
   try {
     const page = Number.parseInt(req.query.page) || 1
-
     const limit = 5
-
     const skip = (page - 1) * limit
+
+    const db = await connectToDatabase()
+    const activityLogsCollection = db.collection("activityLogs")
 
     const totalActivities = await activityLogsCollection.countDocuments()
 
     const recentActivity = await activityLogsCollection
-
       .find({})
-
       .sort({ timestamp: -1 })
-
       .skip(skip)
-
       .limit(limit)
-
       .toArray()
 
     res.json({
       activities: recentActivity,
-
       totalPages: Math.ceil(totalActivities / limit),
-
       currentPage: page,
     })
   } catch (error) {
     console.error("Error fetching recent activity:", error)
-
-    res.status(500).json({ error: "Failed to fetch recent activity" })
+    res.status(500).json({
+      error: "Failed to fetch recent activity",
+      message: error.message,
+    })
   }
 })
 
@@ -2639,46 +2942,6 @@ app.get("/api/event/:eventId", async (req, res) => {
     })
   }
 })
-app.get("/api/check-delinquent-status", async (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authenticated",
-      })
-    }
-
-    const userEmail = req.session.user.email
-
-    const db = await connectToDatabase()
-    const usersCollection = db.collection("users")
-
-    // Find the user and check their status
-    const user = await usersCollection.findOne({ email: userEmail })
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      })
-    }
-
-    // Return the delinquent status
-    res.json({
-      success: true,
-      isDelinquent: user.isDelinquent === true,
-      dueAmount: user.dueAmount || 0,
-      dueDate: user.dueDate || null,
-    })
-  } catch (error) {
-    console.error("Error checking delinquent status:", error)
-    res.status(500).json({
-      success: false,
-      message: "Failed to check delinquent status",
-    })
-  }
-})
 
 // Update the notifications endpoint to include more detailed logging
 app.get("/api/notifications", async (req, res) => {
@@ -2812,36 +3075,6 @@ app.post("/api/markAllNotificationsRead", async (req, res) => {
 
     const userEmail = req.session.user.email
 
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    // Update all notifications for this user to be marked as read
-    const result = await notificationsCollection.updateMany({ userEmail: userEmail }, { $set: { read: true } })
-
-    res.json({
-      success: true,
-      message: "All notifications marked as read",
-      modifiedCount: result.modifiedCount,
-    })
-  } catch (error) {
-    console.error("Error marking notifications as read:", error)
-    res.status(500).json({
-      success: false,
-      error: "Failed to mark notifications as read",
-    })
-  }
-})
-app.post("/api/markSelectedNotificationsRead", async (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
-      return res.status(401).json({
-        success: false,
-        error: "Not authenticated",
-      })
-    }
-
-    const userEmail = req.session.user.email
     const { notificationIds } = req.body
 
     if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
@@ -4074,6 +4307,197 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use(bodyParser.json())
 
+// Add these endpoints for monthly payments management
+// Place this code in an appropriate location in your server.js file
+
+// Endpoint to get monthly payments with filtering
+app.get("/api/monthly-payments", async (req, res) => {
+  try {
+    const { status, search, page = 1, limit = 10 } = req.query
+    const skip = (page - 1) * limit
+
+    const db = await connectToDatabase()
+    const monthlyPaymentsCollection = db.collection("monthlyDuesPayments")
+
+    // Build query based on filters
+    const query = {}
+
+    if (status && status !== "all") {
+      query.status = status
+    }
+
+    if (search) {
+      query.$or = [{ userEmail: { $regex: search, $options: "i" } }, { userName: { $regex: search, $options: "i" } }]
+    }
+
+    // Get total count for pagination
+    const totalPayments = await monthlyPaymentsCollection.countDocuments(query)
+
+    // Get payments with pagination
+    const payments = await monthlyPaymentsCollection
+      .find(query)
+      .sort({ submittedAt: -1 })
+      .skip(skip)
+      .limit(Number.parseInt(limit))
+      .toArray()
+
+    res.json({
+      success: true,
+      payments,
+      currentPage: Number.parseInt(page),
+      totalPages: Math.ceil(totalPayments / limit) || 1,
+      totalPayments,
+    })
+  } catch (error) {
+    console.error("Error fetching monthly payments:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error fetching payments",
+      error: error.message,
+    })
+  }
+})
+
+// Endpoint to approve a payment
+app.post("/api/monthly-payments/:id/approve", async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = await connectToDatabase()
+    const monthlyPaymentsCollection = db.collection("monthlyDuesPayments")
+    const homeownersCollection = db.collection("homeowners")
+
+    // Find the payment
+    const payment = await monthlyPaymentsCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      })
+    }
+
+    // Update payment status
+    await monthlyPaymentsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          status: "approved",
+          approvedAt: new Date(),
+          approvedBy: req.session.user ? req.session.user.email : "admin",
+        },
+      },
+    )
+
+    // Update homeowner status
+    if (payment.userEmail) {
+      await homeownersCollection.updateOne(
+        { email: payment.userEmail },
+        {
+          $set: {
+            paymentStatus: "Compliant",
+            homeownerStatus: "Compliant",
+            lastPaymentDate: new Date(),
+          },
+        },
+      )
+    }
+
+    // Log the activity
+    await logActivity("paymentApproval", `Monthly dues payment for ${payment.userEmail || payment.userName} approved`)
+
+    // Create notification for the user
+    if (payment.userEmail) {
+      await createNotification(
+        payment.userEmail,
+        "payment_approved",
+        "Your monthly dues payment has been approved. Your account is now active.",
+        payment._id.toString(),
+      )
+    }
+
+    res.json({
+      success: true,
+      message: "Payment approved successfully",
+    })
+  } catch (error) {
+    console.error("Error approving payment:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error approving payment",
+      error: error.message,
+    })
+  }
+})
+
+// Endpoint to reject a payment
+app.post("/api/monthly-payments/:id/reject", async (req, res) => {
+  try {
+    const { id } = req.params
+    const { reason } = req.body
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const monthlyPaymentsCollection = db.collection("monthlyDuesPayments")
+
+    // Find the payment
+    const payment = await monthlyPaymentsCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      })
+    }
+
+    // Update payment status
+    await monthlyPaymentsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          status: "rejected",
+          rejectedAt: new Date(),
+          rejectedBy: req.session.user ? req.session.user.email : "admin",
+          rejectionReason: reason,
+        },
+      },
+    )
+
+    // Log the rejection
+    await logActivity(
+      "paymentRejection",
+      `Monthly dues payment for ${payment.userEmail || payment.userName} rejected: ${reason}`,
+    )
+
+    // Create notification for the user
+    if (payment.userEmail) {
+      await createNotification(
+        payment.userEmail,
+        "payment_rejected",
+        `Your monthly dues payment was rejected. Reason: ${reason}`,
+        payment._id.toString(),
+      )
+    }
+
+    res.json({
+      success: true,
+      message: "Payment rejected successfully",
+    })
+  } catch (error) {
+    console.error("Error rejecting payment:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error rejecting payment",
+      error: error.message,
+    })
+  }
+})
+
 //generate otp
 
 const generateOTP = () => {
@@ -4166,7 +4590,7 @@ app.use((req, res, next) => {
   res.json = (data) => {
     console.log("Response data:", JSON.stringify(data))
 
-    oldJson.apply(res, arguments)
+    oldJson.apply(res, [data]) // Fix: Pass data as an array
   }
 
   next()
@@ -4258,3 +4682,39 @@ function getDateRange(filter) {
       return new Date(0) // Beginning of time
   }
 }
+
+// Fix: Declare db outside the scope of the try block
+let db
+
+async function connectToDatabase() {
+  try {
+    const client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      },
+    })
+
+    await client.connect()
+    console.log("Connected successfully to server")
+    db = client.db(dbName) // Assign the database connection to the 'db' variable
+    return db
+  } catch (error) {
+    console.error("Error connecting to database:", error)
+    throw error // Re-throw the error to be handled by the calling function
+  }
+}
+
+app.use((req, res, next) => {
+  const oldJson = res.json
+
+  res.json = (data) => {
+    console.log("Response data:", JSON.stringify(data))
+
+    const dataToSend = Array.isArray(data) ? data : [data]
+    oldJson.apply(res, dataToSend)
+  }
+
+  next()
+})

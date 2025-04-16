@@ -1,304 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Form</title>
-    <style>
-        body {
-            padding-top: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f8f8f8;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Form</title>
+  <style>
+      body {
+          padding-top: 60px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+          background-color: #f8f8f8;
+      }
 
-        .top-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 60px;
-            background-color: #AF2630;
-            z-index: 1000;
-        }
+      .top-bar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 60px;
+          background-color: #AF2630;
+          z-index: 1000;
+      }
 
-        .container {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+      .container {
+          margin-top: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+      }
 
-        .column {
-            margin-bottom: 20px;
-        }
+      .column {
+          margin-bottom: 20px;
+      }
 
-        .col-12 {
-            width: 100%; 
-            text-align: center;
-        }
+      .col-12 {
+          width: 100%; 
+          text-align: center;
+      }
 
-        .Welcome img {
-            width: 700px;
-            height: 250px;
-            margin-bottom: 20px;
-        }
+      .Welcome img {
+          width: 700px;
+          height: 250px;
+          margin-bottom: 20px;
+      }
 
-        .rounded-input {
-            border-radius: 20px;
-            border: 2px solid #ccc;
-            padding: 20px;
-            width: 300px;
-            font-size: 25px;
-            font-weight: 600;
-            font-family: 'inter';
-            text-align: center;
-            margin-bottom: 15px;
-        }
+      .rounded-input {
+          border-radius: 20px;
+          border: 2px solid #ccc;
+          padding: 20px;
+          width: 300px;
+          font-size: 25px;
+          font-weight: 600;
+          font-family: 'inter';
+          text-align: center;
+          margin-bottom: 15px;
+      }
 
-        .Loginbutton {
-            text-align: center;
-            margin-top: 20px;
-        }
+      .Loginbutton {
+          text-align: center;
+          margin-top: 20px;
+      }
 
-        .Login {
-            padding: 20px;
-            width: 200px;
-            font-size: 25px;
-            font-family: 'inter';
-            border-radius: 20px;
-            border: 2px solid #ccc;
-            color: white;
-            background-color: #AF2630;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .fbbutton, .gbutton{
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-        }
+      .Login {
+          padding: 20px;
+          width: 200px;
+          font-size: 25px;
+          font-family: 'inter';
+          border-radius: 20px;
+          border: 2px solid #ccc;
+          color: white;
+          background-color: #AF2630;
+          cursor: pointer;
+          font-weight: bold;
+      }
+      .fbbutton, .gbutton{
+          background-color: transparent;
+          border: none;
+          cursor: pointer;
+      }
 
-        .fbbutton img{
-            width: 50px;
-            height: 50px;
-            
-        }
-        .gbutton img{
-            width: 50px;
-            height: 50px;
-            
-        }
+      .fbbutton img{
+          width: 50px;
+          height: 50px;
+          
+      }
+      .gbutton img{
+          width: 50px;
+          height: 50px;
+          
+      }
+      
+      .altLogin{
+          font-size: 20px;
+          font-family: 'inter';
+          text-align: center;
+      }
+      .regis-here {
+          font-size: 20px;
+          font-family: 'inter';
+          margin-top: 15px;
+          cursor: pointer;
+          color: #AF2630;
+          text-decoration: underline;
+          padding-left: 5px;
+          text-align: center;
+      }
+      .fpw {
+          font-size: 20px;
+          font-family: 'inter';
+          margin-top: 15px;
+          cursor: pointer;
+          color: #AF2630;
+          text-decoration: underline;
+          padding-left: 5px;
+          text-align: center;
+      }
+      .custom-alert {
+          display: none;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          z-index: 1001;
+      }
+
+      .custom-alert-content {
+          text-align: center;
+      }
+
+      .custom-alert-header {
+          font-size: 18px;
+          font-weight: bold;
+          margin-bottom: 10px;
+          color: #AF2630;
+      }
+
+      .custom-alert-body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+      }
+
+      .custom-alert button {
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          padding: 8px 15px;
+          border-radius: 5px;
+          cursor: pointer;
+      }
+      
+      /* Delinquent Modal Styles */
+      .delinquent-modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 9999;
+      }
+
+      .delinquent-content {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: #fff;
+          padding: 30px;
+          border-radius: 10px;
+          width: 80%;
+          max-width: 500px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          text-align: center;
+      }
+
+      .close-modal {
+          position: absolute;
+          top: 10px;
+          right: 15px;
+          font-size: 24px;
+          font-weight: bold;
+          color: #333;
+          cursor: pointer;
+      }
+
+      .delinquent-content h2 {
+          font-size: 24px;
+          margin-bottom: 15px;
+          color: #AF2630;
+      }
+
+      .delinquent-content p {
+          font-size: 16px;
+          margin: 10px 0;
+          line-height: 1.5;
+      }
+
+      .delinquent-content .amount {
+          font-size: 22px;
+          font-weight: bold;
+          color: #AF2630;
+          margin: 15px 0;
+      }
+
+      .pay-now-btn {
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 5px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          margin-top: 15px;
+          transition: background-color 0.3s;
+      }
+
+      .pay-now-btn:hover {
+          background-color: #8f1d25;
+      }
+      
+      /* Debug panel styles */
+      #debug-panel {
+          display: none;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background-color: rgba(0, 0, 0, 0.8);
+          color: #00ff00;
+          font-family: monospace;
+          padding: 10px;
+          max-height: 200px;
+          overflow-y: auto;
+          z-index: 9999;
+      }
+      
+      #debug-panel pre {
+          margin: 0;
+          white-space: pre-wrap;
+      }
+      
+      #debug-toggle {
+          position: fixed;
+          bottom: 10px;
+          right: 10px;
+          background-color: #333;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          font-size: 16px;
+          cursor: pointer;
+          z-index: 10000;
+      }
+      
+      /* Emergency login button */
+      #emergency-login {
+          position: fixed;
+          bottom: 10px;
+          left: 10px;
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          padding: 8px 15px;
+          font-size: 14px;
+          cursor: pointer;
+          z-index: 10000;
+          display: none;
+      }
+      
+      /* Session info panel */
+      #session-info {
+          position: fixed;
+          top: 70px;
+          right: 10px;
+          background-color: rgba(0, 0, 0, 0.7);
+          color: #00ff00;
+          padding: 10px;
+          border-radius: 5px;
+          font-family: monospace;
+          font-size: 12px;
+          max-width: 300px;
+          z-index: 9999;
+          display: none;
+      }
+  </style>
+  <script>
+    
+document.addEventListener("DOMContentLoaded", () => {
+  // Check if user is already logged in
+  checkAlreadyLoggedIn()
+
+  const loginForm = document.getElementById("loginForm")
+  const errorMessage = document.getElementById("errorMessage")
+  const delinquentModal = document.getElementById("delinquentModal")
+
+  // Function to perform login
+  async function performLogin(email, password) {
+    try {
+      console.log(`Attempting login with: ${email}`)
+
+      const response = await fetch("/api/check-delinquent-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          login: email,
+          password: password,
+        }),
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log(`Login response:`, data)
+
+      if (data.success) {
+        // Store user info in localStorage
+        localStorage.setItem("username", data.username)
+        localStorage.setItem("email", data.email)
+        localStorage.setItem("role", data.role || "homeowner")
+      } else if (data.isDelinquent) {
+        // Store delinquent user info for the payment page
+        localStorage.setItem("username", data.username || "")
+        localStorage.setItem("email", email)
+        localStorage.setItem("dueAmount", data.dueAmount || "0.00")
+      }
+
+      return data
+    } catch (error) {
+      console.error(`Login error:`, error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Handle login form submission
+  document.getElementById('loginForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    try {
+      const formData = new FormData(this);
+      const email = formData.get('login');
+      const password = formData.get('password');
+      
+      // Show loading indicator
+      const errorMessage = document.getElementById('errorMessage');
+      errorMessage.textContent = "Logging in...";
+      errorMessage.style.display = "block";
+      errorMessage.style.color = "#333";
+      
+      // Send login request to server
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          login: email,
+          password: password
+        }),
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      console.log("Login response:", data); // Debug log
+      
+      if (data.success) {
+        // Store user info in localStorage
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('email', data.email);
         
-        .altLogin{
-            font-size: 20px;
-            font-family: 'inter';
-            text-align: center;
-        }
-        .regis-here {
-            font-size: 20px;
-            font-family: 'inter';
-            margin-top: 15px;
-            cursor: pointer;
-            color: #AF2630;
-            text-decoration: underline;
-            padding-left: 5px;
-            text-align: center;
-        }
-        .fpw {
-            font-size: 20px;
-            font-family: 'inter';
-            margin-top: 15px;
-            cursor: pointer;
-            color: #AF2630;
-            text-decoration: underline;
-            padding-left: 5px;
-            text-align: center;
-        }
-        .custom-alert {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1001;
-        }
-
-        .custom-alert-content {
-            text-align: center;
-        }
-
-        .custom-alert-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #AF2630;
-        }
-
-        .custom-alert-body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .custom-alert button {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+        errorMessage.textContent = "Login successful! Redirecting...";
+        errorMessage.style.color = "green";
         
-        /* Delinquent Modal Styles */
-        .delinquent-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-        }
-
-        .delinquent-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            width: 80%;
-            max-width: 500px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            cursor: pointer;
-        }
-
-        .delinquent-content h2 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            color: #AF2630;
-        }
-
-        .delinquent-content p {
-            font-size: 16px;
-            margin: 10px 0;
-            line-height: 1.5;
-        }
-
-        .delinquent-content .amount {
-            font-size: 22px;
-            font-weight: bold;
-            color: #AF2630;
-            margin: 15px 0;
-        }
-
-        .pay-now-btn {
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: background-color 0.3s;
-        }
-
-        .pay-now-btn:hover {
-            background-color: #8f1d25;
-        }
+        // Redirect based on role
+        window.location.href = data.redirectUrl;
+      } else if (data.isDelinquent) {
+        // User is delinquent - store info and redirect to payment page
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('email', data.email);
+        localStorage.setItem('dueAmount', data.dueAmount);
         
-        /* Debug panel styles */
-        #debug-panel {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: #00ff00;
-            font-family: monospace;
-            padding: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 9999;
-        }
+        console.log("User is delinquent, showing modal"); // Debug log
         
-        #debug-panel pre {
-            margin: 0;
-            white-space: pre-wrap;
-        }
-        
-        #debug-toggle {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background-color: #333;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            font-size: 16px;
-            cursor: pointer;
-            z-index: 10000;
-        }
-        
-        /* Emergency login button */
-        #emergency-login {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background-color: #AF2630;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 15px;
-            font-size: 14px;
-            cursor: pointer;
-            z-index: 10000;
-            display: none;
-        }
-        
-        /* Session info panel */
-        #session-info {
-            position: fixed;
-            top: 70px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: #00ff00;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-            max-width: 300px;
-            z-index: 9999;
-            display: none;
-        }
-    </style>
-    <script>
+        // Show delinquent modal
+        document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount}`;
+        document.getElementById('delinquentModal').style.display = 'block';
+      } else {
+        // Regular login failure
+        errorMessage.textContent = data.message || 'Invalid credentials';
+        errorMessage.style.color = "#AF2630";
+        errorMessage.style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+      document.getElementById('errorMessage').style.color = "#AF2630";
+      document.getElementById('errorMessage').style.display = 'block';
+    }
+  });
+  
+  // Handle "Pay Now" button click
+  document.getElementById('payNowBtn').addEventListener('click', function() {
+    console.log("Pay Now button clicked"); // Debug log
+    window.location.href = 'MDPayment.html';
+  });
+
+  // Close delinquent modal when clicking the X
+  document.getElementById("closeDelinquentModal").addEventListener("click", () => {
+    delinquentModal.style.display = "none"
+  })
+})
+
 // Function to check if user is already logged in
 async function checkAlreadyLoggedIn() {
   try {
@@ -306,441 +436,166 @@ async function checkAlreadyLoggedIn() {
       method: "GET",
       credentials: "include",
       headers: {
-        "Accept": "application/json",
-        "Cache-Control": "no-cache"
-      }
-    });
-    
+        Accept: "application/json",
+        "Cache-Control": "no-cache",
+      },
+    })
+
     if (!response.ok) {
-      return false;
+      return false
     }
-    
-    const data = await response.json();
-    
+
+    const data = await response.json()
+
     if (data.authenticated) {
       // User is already logged in, redirect to appropriate page
-      const redirectUrl = data.user.role === "admin" ? "/AdHome.html" : "/HoHome.html";
-      debugLog(`User already logged in, redirecting to ${redirectUrl}`);
-      window.location.href = redirectUrl;
-      return true;
+      const redirectUrl = data.user.role === "admin" ? "/AdHome.html" : "/HoHome.html"
+      console.log(`User already logged in, redirecting to ${redirectUrl}`)
+      window.location.href = redirectUrl
+      return true
     }
-    
-    return false;
+
+    return false
   } catch (error) {
-    debugLog(`Error checking login status: ${error.message}`);
-    return false;
+    console.error(`Error checking login status: ${error.message}`)
+    return false
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  // Check if user is already logged in
-  checkAlreadyLoggedIn();
+// Function to navigate after login
+function navigateAfterLogin(data) {
+  if (!data || !data.success) {
+    debugLog("Cannot navigate: Login was not successful")
+    return false
+  }
+
+  const redirectUrl = data.redirectUrl || (data.role === "admin" ? "/AdHome.html" : "/HoHome.html")
+  debugLog(`Navigating to: ${redirectUrl}`)
+
+  // Use direct assignment for more reliable navigation
+  window.location.href = redirectUrl
+  return true
+}
+
+// Debug logging function
+function debugLog(message) {
+  console.log(message)
+  const debugPanel = document.getElementById("debug-panel")
+  if (debugPanel) {
+    const logEntry = document.createElement("div")
+    logEntry.textContent = `[${new Date().toISOString()}] ${message}`
+    debugPanel.appendChild(logEntry)
+    debugPanel.scrollTop = debugPanel.scrollHeight
+  }
+}
+
   
-    const loginForm = document.getElementById('loginForm');
-    const errorMessage = document.getElementById('errorMessage');
-    const delinquentModal = document.getElementById('delinquentModal');
-    const debugPanel = document.getElementById('debug-panel');
-    const debugToggle = document.getElementById('debug-toggle');
-    const emergencyLogin = document.getElementById('emergency-login');
-    const sessionInfo = document.getElementById('session-info');
-    const clearSessionBtn = document.getElementById('clear-session');
-    
-    // Clear all session data and cookies on page load
-    clearAllSessionData();
-    
-    // Show emergency login button after 5 seconds
-    setTimeout(() => {
-        emergencyLogin.style.display = 'block';
-    }, 5000);
-    
-    // Function to clear all session data
-    function clearAllSessionData() {
-        // Clear sessionStorage
-        sessionStorage.clear();
-        
-        // Clear localStorage
-        localStorage.removeItem('redirectCount');
-        localStorage.removeItem('redirectedFrom');
-        localStorage.removeItem('preventRedirectLoop');
-        
-        // Clear cookies by setting expiration in the past
-        document.cookie.split(";").forEach(function(c) {
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-        
-        debugLog("All session data cleared");
-    }
-    
-    // Toggle debug panel visibility
-    if (debugToggle) {
-        debugToggle.addEventListener('click', function() {
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        });
-    }
-    
-    // Emergency login button handler
-    if (emergencyLogin) {
-        emergencyLogin.addEventListener('click', function() {
-            forceAuthentication();
-        });
-    }
-    
-    // Clear session button handler
-    if (clearSessionBtn) {
-        clearSessionBtn.addEventListener('click', function() {
-            clearAllSessionData();
-            showCustomAlert("All session data cleared");
-        });
-    }
-    
-    // Function to log to debug panel
-    function debugLog(message) {
-        if (debugPanel) {
-            const logEntry = document.createElement('div');
-            logEntry.textContent = `[${new Date().toISOString()}] ${message}`;
-            debugPanel.appendChild(logEntry);
-            debugPanel.scrollTop = debugPanel.scrollHeight;
-        }
-        console.log(message);
-    }
-    
-    // Function to force authentication
-    async function forceAuthentication() {
-        try {
-            debugLog("Attempting emergency authentication...");
-            
-            const response = await fetch("/api/force-auth", {
-                method: "GET",
-                credentials: "include",
-                headers: {
-                    "Accept": "application/json",
-                    "Cache-Control": "no-cache"
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            debugLog(`Emergency auth response: ${JSON.stringify(data)}`);
-            
-            if (data.success) {
-                // Store user info in localStorage
-                localStorage.setItem("username", data.user.username);
-                localStorage.setItem("email", data.user.email);
-                localStorage.setItem("role", data.user.role);
-                
-                // Navigate to admin page
-                debugLog("Emergency auth successful, redirecting to admin page");
-                showCustomAlert("Emergency authentication successful. Redirecting to admin page...");
-                
-                setTimeout(() => {
-                    window.location.href = "/AdHome.html";
-                }, 2000);
-            } else {
-                throw new Error("Emergency authentication failed");
-            }
-        } catch (error) {
-            debugLog(`Emergency auth error: ${error.message}`);
-            showCustomAlert(`Emergency authentication failed: ${error.message}`);
-        }
-    }
-    
-    // Function to check session status
-    async function checkSessionStatus() {
-        try {
-            const response = await fetch("/api/check-auth", {
-                method: "GET",
-                credentials: "include",
-                headers: {
-                    "Accept": "application/json",
-                    "Cache-Control": "no-cache"
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Update session info panel
-            if (sessionInfo) {
-                sessionInfo.innerHTML = `
-                    <div>Session ID: ${data.sessionID || 'None'}</div>
-                    <div>Authenticated: ${data.authenticated ? 'Yes' : 'No'}</div>
-                    ${data.authenticated ? `<div>User: ${data.user.username}</div><div>Role: ${data.user.role}</div>` : ''}
-                    <div>Timestamp: ${data.timestamp}</div>
-                `;
-                sessionInfo.style.display = 'block';
-            }
-            
-            return data;
-        } catch (error) {
-            debugLog(`Session check error: ${error.message}`);
-            return { authenticated: false, error: error.message };
-        }
-    }
-    
-    // Function to perform login using your existing API
-    async function performLogin(email, password) {
-        try {
-            debugLog(`Attempting login with: ${email}`);
-            
-            // Use your existing login API endpoint
-            const response = await fetch("/api/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    login: email,
-                    password: password,
-                }),
-                credentials: "include",
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            debugLog(`Login response: ${JSON.stringify(data)}`);
-            
-            if (data.success) {
-                // Store user info in localStorage
-                localStorage.setItem("username", data.username || '');
-                localStorage.setItem("email", data.email || '');
-                localStorage.setItem("role", data.role || "homeowner");
-                localStorage.setItem("sessionId", data.sessionId || '');
-                
-                // Check if user is delinquent (this would be part of your API response)
-                if (data.isDelinquent) {
-                    return {
-                        success: false,
-                        isDelinquent: true,
-                        username: data.username,
-                        dueAmount: data.dueAmount || 5000, // Default amount if not provided
-                        message: "Your account is delinquent. Please pay your monthly dues."
-                    };
-                }
-                
-                // Debug log to verify role is set correctly
-                debugLog(`User role set to: ${data.role || "homeowner"}`);
-                return data;
-            } else {
-                // For testing delinquent functionality - remove in production
-                if (email.toLowerCase().includes('delinquent')) {
-                    return {
-                        success: false,
-                        isDelinquent: true,
-                        username: email.split('@')[0],
-                        dueAmount: 5000,
-                        message: "Your account is delinquent. Please pay your monthly dues."
-                    };
-                }
-                
-                return data;
-            }
-        } catch (error) {
-            debugLog(`Login error: ${error.message}`);
-            
-            // For testing delinquent functionality - remove in production
-            if (email.toLowerCase().includes('delinquent')) {
-                return {
-                    success: false,
-                    isDelinquent: true,
-                    username: email.split('@')[0],
-                    dueAmount: 5000,
-                    message: "Your account is delinquent. Please pay your monthly dues."
-                };
-            }
-            
-            return { success: false, error: error.message };
-        }
-    }
-    
-    // Function to navigate after login
-    function navigateAfterLogin(data) {
-        if (!data || !data.success) {
-            debugLog("Cannot navigate: Login was not successful");
-            return false;
-        }
-        
-        // Force redirect to the correct admin page for admin users
-        if (data.role === "admin") {
-            debugLog("Admin user detected, redirecting to AdHome.html");
-            window.location.href = "/AdHome.html";
-            return true;
-        }
-        
-        // For homeowners, use the standard redirect
-        const redirectUrl = data.redirectUrl || "/HoHome.html";
-        debugLog(`Navigating to: ${redirectUrl}`);
-        
-        // Use direct assignment for more reliable navigation
-        window.location.href = redirectUrl;
-        return true;
-    }
-    
-    // Handle login form submission
-    loginForm.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        
-        try {
-            const formData = new FormData(loginForm);
-            const email = formData.get('login');
-            const password = formData.get('password');
-            
-            // Show loading indicator
-            errorMessage.textContent = "Logging in...";
-            errorMessage.style.display = "block";
-            errorMessage.style.color = "#333";
-            
-            // For testing - direct admin login
-            if (email.toLowerCase().includes('admin')) {
-                debugLog("Admin login detected, bypassing normal flow for testing");
-                localStorage.setItem("username", "Admin User");
-                localStorage.setItem("email", email);
-                localStorage.setItem("role", "admin");
-                
-                errorMessage.textContent = "Admin login successful! Redirecting...";
-                errorMessage.style.color = "green";
-                
-                setTimeout(() => {
-                    window.location.href = "/AdHome.html";
-                }, 1000);
-                return;
-            }
-            
-            // Perform login
-            const result = await performLogin(email, password);
-            
-            if (result.success) {
-                errorMessage.textContent = "Login successful! Redirecting...";
-                errorMessage.style.color = "green";
-                
-                // Add a longer delay to ensure the session is properly set
-                setTimeout(() => {
-                    navigateAfterLogin(result);
-                }, 2000);
-            } else {
-                // Check if the account is delinquent
-                if (result.isDelinquent) {
-                    // Store email for the payment page
-                    localStorage.setItem('username', result.username || '');
-                    localStorage.setItem('email', email);
-                    localStorage.setItem('dueAmount', result.dueAmount || 5000);
-                    
-                    // Show delinquent modal
-                    document.getElementById('delinquentAmount').textContent = `₱${result.dueAmount || 5000}`;
-                    delinquentModal.style.display = 'block';
-                } else {
-                    // Show regular error message
-                    errorMessage.textContent = result.message || 'Login failed. Please try again.';
-                    errorMessage.style.color = "#AF2630";
-                    errorMessage.style.display = 'block';
-                }
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            errorMessage.textContent = 'An error occurred. Please try again.';
-            errorMessage.style.color = "#AF2630";
-            errorMessage.style.display = 'block';
-        }
-    });
-    
-    // Close delinquent modal when clicking the X
-    document.getElementById('closeDelinquentModal').addEventListener('click', function() {
-        delinquentModal.style.display = 'none';
-    });
-    
-    // Handle "Pay Now" button click
-    document.getElementById('payNowBtn').addEventListener('click', function() {
-        // Store the due amount in localStorage for the payment page
-        const dueAmount = document.getElementById('delinquentAmount').textContent.replace('₱', '');
-        localStorage.setItem('dueAmount', dueAmount);
-        window.location.href = 'MDPayment.html';
-    });
-    
-    // Check session status on page load and periodically
-    checkSessionStatus();
-    setInterval(checkSessionStatus, 5000);
-});
+
+  
+  // Check session status on page load and periodically
+  checkSessionStatus();
+  setInterval(checkSessionStatus, 5000);
+
 
 function closeCustomAlert() {
-    document.getElementById('customAlert').style.display = 'none';
+  document.getElementById('customAlert').style.display = 'none';
 }
 
 function showCustomAlert(message) {
-    const alertElement = document.getElementById('customAlert');
-    const messageElement = document.getElementById('customAlertMessage');
-    if (alertElement && messageElement) {
-        messageElement.textContent = message;
-        alertElement.style.display = 'block';
-    }
+  const alertElement = document.getElementById('customAlert');
+  const messageElement = document.getElementById('customAlertMessage');
+  if (alertElement && messageElement) {
+      messageElement.textContent = message;
+      alertElement.style.display = 'block';
+  }
+}
+
+// Update the checkSessionStatus function to handle undefined error
+function checkSessionStatus() {
+  try {
+    fetch("/api/check-auth", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache",
+      },
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Update session info if available
+      const sessionInfo = document.getElementById("session-info");
+      if (sessionInfo) {
+        if (data.authenticated) {
+          sessionInfo.textContent = `Logged in as: ${data.user.email} (${data.user.role})`;
+          sessionInfo.style.display = "block";
+        } else {
+          sessionInfo.style.display = "none";
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Error checking session:", error);
+    });
+  } catch (error) {
+    console.error("Error in checkSessionStatus:", error);
+  }
 }
 </script>
 </head>
 <body>
-    <div class="top-bar"></div>
-    
-    <div class="container">
-        <div class="Welcome">
-            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="this.onerror=null; this.src='/images/placeholder.png';">
-        </div>
+  <div class="top-bar"></div>
+  
+  <div class="container">
+      <div class="Welcome">
+          <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="this.onerror=null; this.src='/images/placeholder.png';">
+      </div>
 
-        <form id="loginForm">
-            <div class="column">
-                <div class="col-12">
-                    <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="login" required>
-                </div>
-            </div>
-            <div class="column">
-                <div class="col-12">
-                    <input type="password" class="rounded-input" placeholder="Enter Password" id="password" name="password" required>
-                </div>
-            </div>
-            <div class="Loginbutton">
-                <button type="submit" class="Login">Login</button>
-            </div>
-        </form>
-        <div id="errorMessage" style="color: #AF2630; margin-top: 10px; display: none;"></div>
-    </div>
+      <form id="loginForm">
+          <div class="column">
+              <div class="col-12">
+                  <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="login" required>
+              </div>
+          </div>
+          <div class="column">
+              <div class="col-12">
+                  <input type="password" class="rounded-input" placeholder="Enter Password" id="password" name="password" required>
+              </div>
+          </div>
+          <div class="Loginbutton">
+              <button type="submit" class="Login">Login</button>
+          </div>
+      </form>
+      <div id="errorMessage" style="color: #AF2630; margin-top: 10px; display: none;"></div>
+  </div>
 
-    <!-- Delinquent Account Modal -->
-    <div id="delinquentModal" class="delinquent-modal">
-        <div class="delinquent-content">
-            <span id="closeDelinquentModal" class="close-modal">&times;</span>
-            <h2>Account Delinquent</h2>
-            <p>Your account has outstanding monthly dues that need to be paid before you can access the system.</p>
-            <p>Outstanding Amount:</p>
-            <div class="amount" id="delinquentAmount">₱0.00</div>
-            <p>Please settle your dues to regain access to all features.</p>
-            <button id="payNowBtn" class="pay-now-btn">Pay Now</button>
-        </div>
-    </div>
+  <!-- Delinquent Account Modal -->
+  <div id="delinquentModal" class="delinquent-modal">
+      <div class="delinquent-content">
+          <span id="closeDelinquentModal" class="close-modal">&times;</span>
+          <h2>Account Delinquent</h2>
+          <p>Your account has outstanding monthly dues that need to be paid before you can access the system.</p>
+          <p>Outstanding Amount:</p>
+          <div class="amount" id="delinquentAmount">₱0.00</div>
+          <p>Please settle your dues to regain access to all features.</p>
+          <button id="payNowBtn" class="pay-now-btn">Pay Now</button>
+      </div>
+  </div>
 
-    <div id="customAlert" class="custom-alert">
-        <div class="custom-alert-content">
-            <div class="custom-alert-header">Notice</div>
-            <div class="custom-alert-body">
-                <p id="customAlertMessage"></p>
-                <button onclick="closeCustomAlert()">OK</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Debug panel -->
-    <div id="debug-panel"></div>
-    <button id="debug-toggle">D</button>
-    
-    <!-- Emergency login button -->
-    <button id="emergency-login">Emergency Admin Login</button>
-    
-    <!-- Session info panel -->
-    <div id="session-info"></div>
-    <button id="clear-session" style="position: fixed; bottom: 10px; left: 150px; background-color: #333; color: white; border: none; border-radius: 5px; padding: 8px 15px; font-size: 14px; cursor: pointer; z-index: 10000;">Clear Session</button>
+  <div id="customAlert" class="custom-alert">
+      <div class="custom-alert-content">
+          <div class="custom-alert-header">Notice</div>
+          <div class="custom-alert-body">
+              <p id="customAlertMessage"></p>
+              <button onclick="closeCustomAlert()">OK</button>
+          </div>
+      </div>
+  </div>
+
 </body>
 </html>

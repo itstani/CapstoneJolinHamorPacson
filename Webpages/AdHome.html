@@ -11,8 +11,6 @@
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
       rel="stylesheet"
     />
-    <!-- Add the auth debug script -->
-    <script src="/auth-debug.js"></script>
     <style>
       .top-bar {
         background-color: #af2630;
@@ -394,12 +392,6 @@
       .modal-content {
         background-color: #fefefe;
         margin: 15% auto;
-        padding: (0,0,0.4);
-      }
-
-      .modal-content {
-        background-color: #fefefe;
-        margin: 15% auto;
         padding: 20px;
         border: 1px solid #888;
         width: 80%;
@@ -547,41 +539,36 @@
         color: #383d41;
         border: 1px solid #d6d8db;
       }
-      
-      /* Debug panel styles */
-      #debug-panel {
-        display: none;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #00ff00;
-        font-family: monospace;
-        padding: 10px;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 9999;
+
+      .MonthlyPayments {
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        font-family: "Inter";
+        padding-top: 5px;
       }
-      
-      #debug-panel pre {
-        margin: 0;
-        white-space: pre-wrap;
-      }
-      
-      #debug-toggle {
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        background-color: #333;
-        color: white;
+
+      .MonthlyPayments button {
+        background-color: #d9d9d9;
+        margin: 0 auto;
         border: none;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        font-size: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+      }
+
+      .MonthlyPayments button:hover {
+        background-color: #ccc;
         cursor: pointer;
-        z-index: 10000;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .MonthlyPayments img {
+        width: 60px;
+        height: 60px;
       }
     </style>
   </head>
@@ -635,6 +622,18 @@
           <img src="/images/Calendar.png" alt="Calendar" />
         </button>
         <p>Calendar</p>
+      </div>
+      <div class="MonthlyPayments">
+        <button
+          type="button"
+          id="MonthlyPaymentsButton"
+          name="MonthlyPaymentsButton"
+          aria-label="Monthly Payments"
+          onclick="window.location.href='Monthly-payments.html'"
+        >
+          <img src="/images/payment.png" alt="Monthly Payments" onerror="this.src='/images/Documents.png';" />
+        </button>
+        <p>Monthly Payments</p>
       </div>
       <button id="logoutButton" class="logoutButton">Logout</button>
     </div>
@@ -719,7 +718,7 @@
           <input type="text" id="subject" name="subject" required />
 
           <label for="message">Message:</label>
-          <textarea id="message" name="message" rows="5" required /></textarea>
+          <textarea id="message" name="message" rows="5" required></textarea>
 
           <label for="fileInput">Attach File (optional):</label>
           <input type="file" id="fileInput" name="fileInput" />
@@ -742,10 +741,6 @@
         </div>
       </div>
     </div>
-    
-    <!-- Debug panel -->
-    <div id="debug-panel"></div>
-    <button id="debug-toggle">D</button>
 
     <script>
       // Global variables
@@ -754,18 +749,6 @@
       let activityPage = 1;
       let eventsPage = 1;
       const concernsPerPage = 5;
-      
-      // Function to log to debug panel
-      function debugLog(message) {
-        const debugPanel = document.getElementById("debug-panel");
-        if (debugPanel) {
-          const logEntry = document.createElement('div');
-          logEntry.textContent = `[${new Date().toISOString()}] ${message}`;
-          debugPanel.appendChild(logEntry);
-          debugPanel.scrollTop = debugPanel.scrollHeight;
-        }
-        console.log(message);
-      }
 
       // Function to show custom alert
       function showCustomAlert(message) {
@@ -797,13 +780,11 @@
           }
           
           // Log the request for debugging
-          debugLog(`Fetching concerns from: /getConcerns?page=${page}&limit=${concernsPerPage}`);
+          console.log(`Fetching concerns from: /getConcerns?page=${page}&limit=${concernsPerPage}`);
           
-          fetch(`/getConcerns?page=${page}&limit=${concernsPerPage}`, {
-            credentials: 'include' // Include cookies in the request
-          })
+          fetch(`/getConcerns?page=${page}&limit=${concernsPerPage}`)
             .then(response => {
-              debugLog("Response status: " + response.status);
+              console.log("Response status:", response.status);
               if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
               }
@@ -812,13 +793,13 @@
                 try {
                   return JSON.parse(text);
                 } catch (e) {
-                  debugLog("Failed to parse JSON response: " + text);
+                  console.error("Failed to parse JSON response:", text);
                   throw new Error("Invalid JSON response from server");
                 }
               });
             })
             .then(data => {
-              debugLog("Received concerns data: " + JSON.stringify(data).substring(0, 200) + "...");
+              console.log("Received concerns data:", data);
               
               // Check if data has the expected structure
               if (data && (data.success || data.concerns)) {
@@ -849,7 +830,7 @@
                         try {
                           dateStr = new Date(concern.createdAt).toLocaleString();
                         } catch (e) {
-                          debugLog("Error formatting date: " + e.message);
+                          console.error("Error formatting date:", e);
                         }
                       }
                       
@@ -875,19 +856,19 @@
                 if (concernsBox) {
                   concernsBox.innerHTML = '<div class="error">Failed to load concerns: Invalid response format.</div>';
                 }
-                debugLog("Invalid response format: " + JSON.stringify(data));
+                console.error("Invalid response format:", data);
                 showCustomAlert("Failed to load concerns: Invalid response format");
               }
             })
             .catch(error => {
-              debugLog("Error loading concerns: " + error.message);
+              console.error("Error loading concerns:", error);
               if (concernsBox) {
                 concernsBox.innerHTML = `<div class="error">Error loading concerns: ${error.message}</div>`;
               }
               showCustomAlert("Error loading concerns: " + error.message);
             });
         } catch (error) {
-          debugLog("Exception in loadConcerns: " + error.message);
+          console.error("Exception in loadConcerns:", error);
           showCustomAlert("Exception loading concerns: " + error.message);
         }
       }
@@ -896,28 +877,27 @@
       async function createTestConcern() {
         try {
           const response = await fetch('/createTestConcern', {
-            method: 'POST',
-            credentials: 'include'
+            method: 'POST'
           });
           
           if (response.ok) {
             const result = await response.json();
             if (result.success) {
-              debugLog("Created test concern: " + JSON.stringify(result));
+              console.log("Created test concern:", result);
               loadConcerns(1); // Reload concerns
               return true;
             }
           }
           return false;
         } catch (error) {
-          debugLog("Error creating test concern: " + error.message);
+          console.error("Error creating test concern:", error);
           return false;
         }
       }
 
       // Function to show concern modal
       function showConcernModal(concernId) {
-        debugLog("Opening modal for concern ID: " + concernId);
+        console.log("Opening modal for concern ID:", concernId);
         
         if (!concernId) {
           showCustomAlert("Invalid concern ID");
@@ -932,13 +912,13 @@
           return;
         }
         
-        debugLog("Found concern: " + JSON.stringify(concern));
+        console.log("Found concern:", concern);
         
         const modal = document.getElementById("concernModal");
         const modalContent = document.getElementById("modalContent");
         
         if (!modal || !modalContent) {
-          debugLog("Modal elements not found");
+          console.error("Modal elements not found");
           return;
         }
         
@@ -948,7 +928,7 @@
           try {
             dateStr = new Date(concern.createdAt).toLocaleString();
           } catch (e) {
-            debugLog("Error formatting date: " + e.message);
+            console.error("Error formatting date:", e);
           }
         }
         
@@ -987,14 +967,12 @@
         document.getElementById("updateStatus").onclick = async () => {
           const newStatus = document.getElementById("concernStatus").value;
           try {
-            debugLog(`Updating concern status to: ${newStatus}`);
             const response = await fetch(`/updateConcernStatus/${concern._id}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({ status: newStatus }),
-              credentials: 'include'
             });
             const result = await response.json();
             if (result.success) {
@@ -1005,7 +983,7 @@
               showCustomAlert("Failed to update concern status: " + (result.message || "Unknown error"));
             }
           } catch (error) {
-            debugLog("Error updating concern status: " + error.message);
+            console.error("Error updating concern status:", error);
             showCustomAlert("Error updating concern status: " + error.message);
           }
         };
@@ -1016,7 +994,7 @@
           const popup = document.getElementById("adminPopup");
           
           if (!popup) {
-            debugLog("Popup element not found!");
+            console.error("Popup element not found!");
             return;
           }
           
@@ -1063,7 +1041,6 @@
         }
         
         try {
-          debugLog(`Sending reply to concern ${concernId}`);
           const formData = new FormData();
           formData.append("subject", subject);
           formData.append("message", message);
@@ -1082,8 +1059,7 @@
               subject: subject,
               message: message,
               concernId: concernId
-            }),
-            credentials: 'include'
+            })
           });
           
           const result = await response.json();
@@ -1097,7 +1073,7 @@
             showCustomAlert("Failed to send the reply: " + (result.message || "Unknown error"));
           }
         } catch (error) {
-          debugLog("Error sending reply: " + error.message);
+          console.error("Error sending reply:", error);
           showCustomAlert("Error sending reply: " + error.message);
         }
       };
@@ -1122,10 +1098,8 @@
 
       async function resolveConcern(concernId) {
         try {
-          debugLog(`Resolving concern: ${concernId}`);
           const response = await fetch(`/resolveConcern/${concernId}`, {
             method: "POST",
-            credentials: 'include'
           });
           const result = await response.json();
           if (result.success) {
@@ -1136,7 +1110,7 @@
             showCustomAlert("Failed to resolve concern");
           }
         } catch (error) {
-          debugLog("Error resolving concern: " + error.message);
+          console.error("Error resolving concern:", error);
           showCustomAlert("Error resolving concern");
         }
       }
@@ -1148,16 +1122,12 @@
             activityBox.innerHTML = '<div class="loading">Loading activity...</div>';
           }
           
-          debugLog(`Fetching recent activity for page ${page}`);
-          const response = await fetch(`/getRecentActivity?page=${page}`, {
-            credentials: 'include'
-          });
+          const response = await fetch(`/getRecentActivity?page=${page}`);
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
           
           const data = await response.json();
-          debugLog(`Received ${data.activities ? data.activities.length : 0} activities`);
           
           if (activityBox) {
             if (!data.activities || data.activities.length === 0) {
@@ -1205,7 +1175,7 @@
           
           updatePagination("activity", data.currentPage || 1, data.totalPages || 1);
         } catch (error) {
-          debugLog("Error loading recent activity: " + error.message);
+          console.error("Error loading recent activity:", error);
           const activityBox = document.getElementById("recent-activity-box");
           if (activityBox) {
             activityBox.innerHTML = '<div class="error">Error loading activity. Please try again.</div>';
@@ -1213,7 +1183,6 @@
         }
       }
 
-      // Fix the loadUpcomingEvents function by removing the duplicate catch block
       async function loadUpcomingEvents(page = 1) {
         try {
           const eventsBox = document.getElementById("upcoming-events-box");
@@ -1221,16 +1190,12 @@
             eventsBox.innerHTML = '<div class="loading">Loading events...</div>';
           }
           
-          debugLog(`Fetching upcoming events for page ${page}`);
-          const response = await fetch(`/getUpcomingEvents?page=${page}`, {
-            credentials: 'include'
-          });
+          const response = await fetch(`/getUpcomingEvents?page=${page}`);
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
           
           const data = await response.json();
-          debugLog(`Received ${data.events ? data.events.length : 0} events`);
           
           if (eventsBox) {
             if (!data.events || data.events.length === 0) {
@@ -1248,7 +1213,7 @@
                   try {
                     dateStr = new Date(event.eventDate).toLocaleDateString();
                   } catch (e) {
-                    debugLog("Error formatting date: " + e.message);
+                    console.error("Error formatting date:", e);
                   }
                 }
                 
@@ -1265,7 +1230,7 @@
           
           updatePagination("events", data.currentPage || 1, data.totalPages || 1);
         } catch (error) {
-          debugLog("Error loading upcoming events: " + error.message);
+          console.error("Error loading upcoming events:", error);
           const eventsBox = document.getElementById("upcoming-events-box");
           if (eventsBox) {
             eventsBox.innerHTML = '<div class="error">Error loading events. Please try again.</div>';
@@ -1286,16 +1251,13 @@
             `;
           }
           
-          debugLog("Fetching currently reserved amenities");
-          const response = await fetch("/getCurrentlyReservedAmenities", {
-            credentials: 'include'
-          });
+          const response = await fetch("/getCurrentlyReservedAmenities");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           
           const data = await response.json();
-          debugLog("Received amenities data: " + JSON.stringify(data));
+          console.log("Received amenities data:", data); // Debug log
 
           if (Array.isArray(data) && data.length > 0) {
             reservedAmenities = data;
@@ -1323,7 +1285,7 @@
             }
           }
         } catch (error) {
-          debugLog("Error loading currently reserved amenities: " + error.message);
+          console.error("Error loading currently reserved amenities:", error);
           const container = document.getElementById("currently-reserved-amenity");
           if (container) {
             container.innerHTML = `
@@ -1341,7 +1303,7 @@
 
         if (amenity && imageElement && nameElement) {
           imageElement.onerror = function () {
-            debugLog("Failed to load image: " + this.src);
+            console.error("Failed to load image:", this.src);
             this.src = "/images/placeholder.jpg";
           };
 
@@ -1349,9 +1311,9 @@
           imageElement.alt = `${amenity.name || "Amenity"} Image`;
           nameElement.textContent = amenity.name || "Unknown Amenity";
 
-          debugLog("Displaying amenity: " + JSON.stringify(amenity));
+          console.log("Displaying amenity:", amenity);
         } else {
-          debugLog("No amenity to display or elements not found");
+          console.error("No amenity to display or elements not found");
           if (imageElement) {
             imageElement.src = "/images/placeholder.jpg";
             imageElement.alt = "No amenity available";
@@ -1422,135 +1384,55 @@
         }
       }
 
-      // Toggle debug panel visibility
-      const debugToggle = document.getElementById("debug-toggle");
-      const debugPanel = document.getElementById("debug-panel");
-      if (debugToggle && debugPanel) {
-        debugToggle.addEventListener("click", function() {
-          debugPanel.style.display = debugPanel.style.display === "none" ? "block" : "none";
-        });
-      }
-
-      // Modify the DOMContentLoaded event handler to include authentication check
-      document.addEventListener("DOMContentLoaded", async function() {
-        debugLog("Page loaded, checking authentication...");
-        
-        // EMERGENCY LOOP BREAKER: If we detect we're in a loop, skip auth check
-        const redirectCount = parseInt(sessionStorage.getItem('redirectCount') || '0');
-        if (redirectCount > 2) {
-          debugLog("EMERGENCY: Breaking potential redirect loop. Continuing without auth check.");
-          sessionStorage.removeItem('redirectCount');
-          
-          // Set username from localStorage as fallback
-          const usernameElement = document.getElementById("username");
-          if (usernameElement) {
-            usernameElement.textContent = localStorage.getItem('username') || 'Admin User';
-          }
-          
-          // Load page content anyway
-          loadConcerns(concernsPage);
-          loadRecentActivity(activityPage);
-          loadUpcomingEvents(eventsPage);
-          loadCurrentlyReservedAmenities();
-          
-          // Set up logout button
-          setupLogoutButton();
-          return;
-        }
-        
-        // Increment redirect count to detect loops
-        sessionStorage.setItem('redirectCount', (redirectCount + 1).toString());
-        
-        // Check authentication status
-        try {
-          const authStatus = await window.authUtils.checkAuthStatus();
-          debugLog("Auth status: " + JSON.stringify(authStatus));
-          
-          if (!authStatus.authenticated) {
-            // Only redirect if we're not in a potential loop
-            if (redirectCount <= 2) {
-              debugLog("Not authenticated, redirecting to login");
-              // Store the current page URL to redirect back after login
-              sessionStorage.setItem('redirectedFrom', window.location.pathname);
-              window.location.href = "/login.html";
-              return;
-            } else {
-              debugLog("Skipping redirect to login due to potential loop");
-              // Continue loading the page even without authentication
-            }
-          } else {
-            // Reset redirect count on successful authentication
-            sessionStorage.removeItem('redirectCount');
-            
-            if (authStatus.user && authStatus.user.role !== 'admin') {
-              debugLog("Not an admin user, redirecting to appropriate page");
-              window.location.href = "/HoHome.html";
-              return;
-            }
-            
-            // Set username in the welcome message
-            const usernameElement = document.getElementById("username");
-            if (usernameElement && authStatus.user) {
-              usernameElement.textContent = authStatus.user.username || authStatus.user.email;
-            }
-            
-            debugLog("Authentication verified, loading page content");
-          }
-        } catch (error) {
-          debugLog("Error checking authentication: " + error.message);
-          // Don't redirect to login on error to avoid potential loops
-        }
-        
-        // Load page content regardless of authentication status to break potential loops
+      // Modify the DOMContentLoaded event handler to include a fallback
+      document.addEventListener("DOMContentLoaded", function() {
+        // Try to load concerns
         loadConcerns(concernsPage);
+        
+        // Set up a fallback if concerns don't load
+        setTimeout(() => {
+          const concernsBox = document.getElementById("recent-concerns-box");
+          if (concernsBox && concernsBox.querySelector('.error')) {
+            console.log("Concerns failed to load, trying alternative approach...");
+            
+            // Try to create a test concern if none exist
+            createTestConcern().then(success => {
+              if (!success) {
+                // If creating a test concern fails, show a message with instructions
+                concernsBox.innerHTML = `
+                  <div class="no-concerns">
+                    <p>No concerns found or unable to connect to the database.</p>
+                    <p>Please check your server connection and ensure the concerns collection exists.</p>
+                    <button onclick="loadConcerns(1)" style="background-color: #AF2630; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                      Retry Loading Concerns
+                    </button>
+                  </div>
+                `;
+              }
+            });
+          }
+        }, 3000); // Wait 3 seconds before checking
+        
         loadRecentActivity(activityPage);
         loadUpcomingEvents(eventsPage);
         loadCurrentlyReservedAmenities();
         
         // Set up logout button
-        setupLogoutButton();
-      });
-
-      // Extract logout button setup to a separate function
-      function setupLogoutButton() {
         document.getElementById("logoutButton").addEventListener("click", async () => {
           try {
-            debugLog("Logging out...");
-            const response = await fetch("/logout", { 
-              method: "POST",
-              credentials: 'include'
-            });
+            const response = await fetch("/logout", { method: "POST" });
             if (response.ok) {
               localStorage.clear(); // Clear user data
-              sessionStorage.clear(); // Clear session data
-              debugLog("Logout successful, redirecting to login page");
-              window.location.href = "/login.html"; // Redirect to the login page
+              window.location.href = "login.html"; // Redirect to the login page
             } else {
               showCustomAlert("Logout failed. Please try again.");
             }
           } catch (error) {
-            debugLog("Error during logout: " + error.message);
+            console.error("Error during logout:", error);
             showCustomAlert("An error occurred during logout. Please try again.");
           }
         });
-      }
-
-      document.addEventListener('DOMContentLoaded', function() {
-    // Use the authUtils from auth-debug.js
-    if (window.authUtils) {
-        window.authUtils.debugLog("AdHome.html loaded, checking authentication...");
-        window.authUtils.checkAuthStatus().then(status => {
-            if (!status.authenticated) {
-                window.authUtils.debugLog("Not authenticated, redirecting to login page");
-                window.location.replace("/login.html");
-            } else {
-                window.authUtils.debugLog("Authentication verified, user can access this page");
-            }
-        });
-    } else {
-        console.error("authUtils not available. Make sure auth-debug.js is loaded correctly.");
-    }
-});
+      });
     </script>
   </body>
 </html>
