@@ -313,6 +313,12 @@ document.addEventListener('DOMContentLoaded', function() {
       method.addEventListener('change', checkFormValidity);
     });
 
+    document.getElementById('receipt').addEventListener('change', function() {
+        const fileName = this.files[0] ? this.files[0].name : 'No file selected';
+        document.getElementById('fileName').textContent = fileName;
+      });
+      
+
     // Handle form submission
     document.getElementById('duesPaymentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -407,6 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       });
       
+      
       // Handle file input change
       document.getElementById('receipt').addEventListener('change', function() {
         const fileName = this.files[0] ? this.files[0].name : 'No file selected';
@@ -418,21 +425,11 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('paymentForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        let hasError = false;
-        
         // Validate payment method
         if (!document.getElementById('paymentMethod').value) {
-          document.getElementById('methodError').style.display = 'block';
-          hasError = true;
+          alert('Please select a payment method');
+          return;
         }
-        
-        // Validate receipt
-        if (!document.getElementById('receipt').files[0]) {
-          document.getElementById('receiptError').style.display = 'block';
-          hasError = true;
-        }
-        
-        if (hasError) return;
         
         const formData = new FormData(this);
         
@@ -445,19 +442,23 @@ document.addEventListener('DOMContentLoaded', function() {
           const data = await response.json();
           
           if (data.success) {
-            document.getElementById('paymentForm').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'block';
+            alert('Payment submitted successfully! Admin will review your payment.');
             
-            // Clear localStorage items after successful submission
-            setTimeout(() => {
-              localStorage.removeItem('dueAmount');
-              // Redirect to login after 3 seconds
-              setTimeout(() => {
-                window.location.href = '/login.html';
-              }, 3000);
-            }, 1000);
+            // Clear session and local storage
+            sessionStorage.removeItem('isDelinquent');
+            sessionStorage.removeItem('delinquentUsername');
+            sessionStorage.removeItem('delinquentEmail');
+            sessionStorage.removeItem('dueAmount');
+            
+            localStorage.removeItem('delinquentUser');
+            localStorage.removeItem('delinquentUsername');
+            localStorage.removeItem('delinquentEmail');
+            localStorage.removeItem('dueAmount');
+            
+            // Redirect to login after successful submission
+            window.location.href = '/login.html';
           } else {
-            alert('Error: ' + data.message);
+            alert('Error: ' + (data.message || 'Failed to submit payment'));
           }
         } catch (error) {
           console.error('Error submitting payment:', error);
@@ -467,14 +468,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     window.addEventListener('DOMContentLoaded', function() {
-    const isDelinquent = sessionStorage.getItem('isDelinquent');
-    
-    if (!isDelinquent) {
-      // If not a delinquent user, redirect to login
-      console.log('Not a delinquent user, redirecting to login');
-      window.location.href = '/login.html';
-      return;
-    }
+      const isDelinquent = sessionStorage.getItem('isDelinquent');
+      
+      if (!isDelinquent) {
+        console.log('No delinquent flag in sessionStorage, checking localStorage');
+        // Try localStorage as a fallback
+        const isDelinquentLocal = localStorage.getItem('delinquentUser');
+        
+        if (!isDelinquentLocal) {
+          console.log('Not a delinquent user, redirecting to login');
+          window.location.href = '/login.html';
+          return;
+        } else {
+          // Copy from localStorage to sessionStorage for consistency
+          sessionStorage.setItem('isDelinquent', 'true');
+          sessionStorage.setItem('delinquentUsername', localStorage.getItem('delinquentUsername'));
+          sessionStorage.setItem('delinquentEmail', localStorage.getItem('delinquentEmail'));
+          sessionStorage.setItem('dueAmount', localStorage.getItem('dueAmount'));
+        }
+      }
     
     // If we're here, we're a delinquent user
     console.log('Delinquent user confirmed, loading payment page');

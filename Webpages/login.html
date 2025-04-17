@@ -305,70 +305,87 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAlreadyLoggedIn();
 
   // Handle login form submission
-  document.getElementById('loginForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
-    
-    try {
-      const formData = new FormData(this);
-      const email = formData.get('login');
-      const password = formData.get('password');
-      
-      // Show loading indicator
-      const errorMessage = document.getElementById('errorMessage');
-      errorMessage.textContent = "Logging in...";
-      errorMessage.style.display = "block";
-      errorMessage.style.color = "#333";
-      
-      // Send login request to server
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          login: email,
-          password: password
-        }),
-        credentials: 'include'
+  document.addEventListener("DOMContentLoaded", () => {
+      // Handle login form submission
+      document.getElementById('loginForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        try {
+          const login = document.getElementById('login').value;
+          const password = document.getElementById('password').value;
+          
+          // Show loading indicator
+          const errorMessage = document.getElementById('errorMessage');
+          errorMessage.textContent = "Logging in...";
+          errorMessage.style.display = "block";
+          errorMessage.style.color = "#333";
+          
+          // Send login request to server
+          const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              login: login,
+              password: password
+            }),
+            credentials: 'include'
+          });
+          
+          const data = await response.json();
+          console.log("Login response:", data); // Debug log
+          
+          if (data.success) {
+            // Store user info in localStorage
+            localStorage.setItem('username', data.username);
+            localStorage.setItem('email', data.email);
+            
+            errorMessage.textContent = "Login successful! Redirecting...";
+            errorMessage.style.color = "green";
+            
+            // Redirect based on role
+            window.location.href = data.redirectUrl;
+          } else if (data.isDelinquent) {
+            // User is delinquent - store info in sessionStorage
+            sessionStorage.setItem('isDelinquent', 'true');
+            sessionStorage.setItem('delinquentUsername', data.username);
+            sessionStorage.setItem('delinquentEmail', data.email);
+            sessionStorage.setItem('dueAmount', data.dueAmount);
+            
+            // Also store in localStorage as a backup
+            localStorage.setItem('delinquentUser', 'true');
+            localStorage.setItem('delinquentUsername', data.username);
+            localStorage.setItem('delinquentEmail', data.email);
+            localStorage.setItem('dueAmount', data.dueAmount);
+            
+            console.log("User is delinquent, redirecting to payment page");
+            
+            // Redirect directly to payment page
+            window.location.href = '/Webpages/MDPayment.html';
+          } else {
+            // Regular login failure
+            errorMessage.textContent = data.message || 'Invalid credentials';
+            errorMessage.style.color = "#AF2630";
+            errorMessage.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+          document.getElementById('errorMessage').style.color = "#AF2630";
+          document.getElementById('errorMessage').style.display = 'block';
+        }
       });
       
-      const data = await response.json();
-      console.log("Login response:", data); // Debug log
-      
-      if (data.success) {
-        // Store user info in localStorage
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('email', data.email);
-        
-        errorMessage.textContent = "Login successful! Redirecting...";
-        errorMessage.style.color = "green";
-        
-        // Redirect based on role
-        window.location.href = data.redirectUrl;
-      } else if (data.isDelinquent) {
-        // User is delinquent - store info and show modal
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('email', data.email);
-        localStorage.setItem('dueAmount', data.dueAmount);
-        
-        console.log("User is delinquent, showing modal"); // Debug log
-        
-        // Show delinquent modal
-        document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount}`;
-        document.getElementById('delinquentModal').style.display = 'block';
-      } else {
-        // Regular login failure
-        errorMessage.textContent = data.message || 'Invalid credentials';
-        errorMessage.style.color = "#AF2630";
-        errorMessage.style.display = 'block';
+      // Close delinquent modal when clicking the X
+      const closeModalBtn = document.getElementById("closeDelinquentModal");
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener("click", () => {
+          document.getElementById("delinquentModal").style.display = "none";
+        });
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
-      document.getElementById('errorMessage').style.color = "#AF2630";
-      document.getElementById('errorMessage').style.display = 'block';
-    }
-  });
+    });
+
   
   // Handle "Pay Now" button click - Make sure this is working correctly
   document.getElementById('payNowBtn').addEventListener('click', function() {
@@ -434,8 +451,9 @@ async function checkAlreadyLoggedIn() {
 }
 
 function closeCustomAlert() {
-  document.getElementById('customAlert').style.display = 'none';
-}
+      document.getElementById('customAlert').style.display = 'none';
+    }
+  
 
 function showCustomAlert(message) {
   const alertElement = document.getElementById('customAlert');

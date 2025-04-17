@@ -80,6 +80,15 @@ app.use((req, res, next) => {
   }
 })
 
+app.get("/MDPayment.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "MDPayment.html"))
+})
+
+app.get("/Webpages/MDPayment.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "Webpages", "MDPayment.html"))
+})
+
+
 app.use((req, res, next) => {
   // Check if this is the MDPayment page
   if (req.path === "/MDPayment.html" || req.path === "/Webpages/MDPayment.html") {
@@ -188,19 +197,11 @@ app.use((req, res, next) => {
 
 // And replace it with this:
 app.use((req, res, next) => {
-  // List of paths that require authentication
-  const protectedPaths = [
-    "/AdHome.html",
-    "/HoHome.html",
-    "/admin/",
-    "/homeowner/",
-    // Add other protected paths here
-  ]
-
   // List of paths that should be accessible without authentication
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
+    "/Webpages/MDPayment.html",
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
@@ -213,6 +214,17 @@ app.use((req, res, next) => {
   if (isPublicPath) {
     return next()
   }
+
+  // List of paths that require authentication
+  const protectedPaths = [
+    "/AdHome.html",
+    "/admincalender.html",
+    "/analytics.html",
+    "/hotable.html",
+    "/monthly-payments.html",
+    "/report-generator.html",
+
+  ]
 
   // Check if the current path is protected
   const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path))
