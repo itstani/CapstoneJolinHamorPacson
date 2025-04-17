@@ -567,31 +567,71 @@
       });
 
       // Functions
-      async function loadPayments() {
-        try {
-          paymentsContainer.innerHTML = '<div class="loading">Loading payments...</div>';
-          
-          const url = `/api/monthly-payments?status=${currentStatus}&search=${searchQuery}&page=${currentPage}`;
-          const response = await fetch(url);
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            renderPayments(data.payments);
-            renderPagination(data.currentPage, data.totalPages);
-            totalPages = data.totalPages;
-          } else {
-            paymentsContainer.innerHTML = `<div class="error-state">Error: ${data.message || 'Failed to load payments'}</div>`;
-          }
-        } catch (error) {
-          console.error('Error loading payments:', error);
-          paymentsContainer.innerHTML = `<div class="error-state">Error loading payments: ${error.message}</div>`;
-        }
+      document.addEventListener('DOMContentLoaded', () => {
+      loadPayments();
+
+      function loadPayments() {
+        fetch('/api/monthly-payments/') // 🔄 Replace this with your actual route
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json(); // ✅ Correct way to parse JSON
+          })
+          .then(payments => {
+            displayPayments(payments);
+          })
+          .catch(error => {
+            console.error("Error loading payments:", error);
+            showError(`Error loading payments: ${error.message}`);
+          });
       }
+
+      function displayPayments(data) {
+        const container = document.getElementById('paymentsTableContainer');
+        if (!Array.isArray(data)) {
+          showError('Data format is incorrect. Expected an array.');
+          return;
+        }
+
+        if (data.length === 0) {
+          container.innerHTML = '<p>No payments found.</p>';
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(payment => `
+              <tr>
+                <td>${payment.name || ''}</td>
+                <td>${payment.email || ''}</td>
+                <td>₱${payment.amount || '0.00'}</td>
+                <td>${payment.status || 'Pending'}</td>
+                <td>${payment.date || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        `;
+        container.innerHTML = '';
+        container.appendChild(table);
+      }
+
+      function showError(message) {
+        const errorContainer = document.getElementById('errorContainer');
+        errorContainer.textContent = message;
+        errorContainer.style.display = 'block';
+      }
+    });
 
       function renderPayments(payments) {
         if (!payments || payments.length === 0) {

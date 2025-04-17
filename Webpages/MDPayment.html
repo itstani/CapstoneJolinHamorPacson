@@ -1,385 +1,487 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monthly Dues Payment</title>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f8f8f8;
-    }
-
-    .top-bar {
-      background-color: #AF2630;
-      height: 60px;
-      width: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: 80px auto 30px;
-      padding: 30px;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    h1 {
-      color: #AF2630;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .payment-info {
-      margin-bottom: 30px;
-      padding: 20px;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      border-left: 4px solid #AF2630;
-    }
-
-    .payment-info p {
-      margin: 10px 0;
-      font-size: 16px;
-    }
-
-    .amount {
-      font-size: 24px;
-      font-weight: bold;
-      color: #AF2630;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-
-    input[type="text"],
-    input[type="email"],
-    select {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-
-    .file-upload {
-      position: relative;
-      overflow: hidden;
-      margin-top: 10px;
-      background-color: #f5f5f5;
-      border: 2px dashed #ddd;
-      border-radius: 5px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .file-upload input[type="file"] {
-      position: absolute;
-      font-size: 100px;
-      opacity: 0;
-      right: 0;
-      top: 0;
-      cursor: pointer;
-    }
-
-    .file-upload-label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .file-name {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #666;
-    }
-
-    .submit-btn {
-      background-color: #AF2630;
-      color: white;
-      border: none;
-      padding: 14px 20px;
-      font-size: 16px;
-      font-weight: bold;
-      border-radius: 5px;
-      cursor: pointer;
-      width: 100%;
-      transition: background-color 0.3s;
-    }
-
-    .submit-btn:hover {
-      background-color: #8f1d25;
-    }
-
-    .back-link {
-      display: block;
-      text-align: center;
-      margin-top: 20px;
-      color: #AF2630;
-      text-decoration: none;
-    }
-
-    .back-link:hover {
-      text-decoration: underline;
-    }
-
-    .payment-methods {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .payment-method {
-      flex: 1;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      padding: 15px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .payment-method:hover {
-      border-color: #AF2630;
-    }
-
-    .payment-method.selected {
-      border-color: #AF2630;
-      background-color: rgba(175, 38, 48, 0.05);
-    }
-
-    .payment-method img {
-      height: 40px;
-      margin-bottom: 10px;
-    }
-    
-    .error-message {
-      color: #AF2630;
-      background-color: #f8d7da;
-      border: 1px solid #f5c6cb;
-      border-radius: 5px;
-      padding: 10px;
-      margin-bottom: 20px;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Dues Payment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+        }
+        
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #AF2630;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+        }
+        
+        .top-bar h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .payment-container {
+            max-width: 800px;
+            margin: 80px auto 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .payment-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .payment-header h2 {
+            color: #AF2630;
+            margin-bottom: 10px;
+        }
+        
+        .payment-header p {
+            color: #666;
+            margin: 0;
+        }
+        
+        .payment-details {
+            margin-bottom: 30px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .payment-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .payment-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .payment-value {
+            color: #666;
+        }
+        
+        .total-row {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #AF2630;
+        }
+        
+        .payment-methods {
+            margin-bottom: 30px;
+        }
+        
+        .payment-methods h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .method-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .method-option {
+            flex: 1;
+            min-width: 150px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .method-option:hover {
+            border-color: #AF2630;
+            background-color: #fff9f9;
+        }
+        
+        .method-option.selected {
+            border-color: #AF2630;
+            background-color: #fff9f9;
+        }
+        
+        .method-option input {
+            margin-right: 10px;
+        }
+        
+        .method-option label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        
+        .upload-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .upload-box {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-box:hover {
+            border-color: #AF2630;
+            background-color: #fff9f9;
+        }
+        
+        .upload-box p {
+            margin: 10px 0 0;
+            color: #666;
+        }
+        
+        .upload-icon {
+            font-size: 40px;
+            color: #AF2630;
+            margin-bottom: 10px;
+        }
+        
+        .proceed-button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .proceed-button:hover {
+            background-color: #8f1d25;
+        }
+        
+        .proceed-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            text-decoration: none;
+        }
+        
+        .back-link:hover {
+            color: #AF2630;
+        }
+        
+        .error-message {
+            color: #AF2630;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .modal-message {
+            color: #666;
+            margin-bottom: 25px;
+        }
+        
+        .modal-button {
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* File input styling */
+        .custom-file-input {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="top-bar"></div>
-  
-  <div class="container">
-    <h1>Monthly Dues Payment</h1>
-    
-    <div class="payment-info">
-      <p>Account: <span id="userEmailDisplay">Loading...</span></p>
-      <p>Outstanding Amount: <span class="amount" id="dueAmountDisplay">₱0.00</span></p>
-      <p>Please upload your payment receipt to settle your dues.</p>
+    <div class="top-bar">
+        <h1>Monthly Dues Payment</h1>
     </div>
     
-    <div id="errorMessage" class="error-message"></div>
-    
-    <form id="paymentForm" enctype="multipart/form-data">
-      <input type="hidden" id="userEmailInput" name="userEmail">
-      <input type="hidden" id="userNameInput" name="userName">
-      <input type="hidden" id="finalAmountInput" name="finalAmount">
-      
-      <div class="form-group">
-        <label for="paymentMethod">Payment Method:</label>
-        <div class="payment-methods">
-          <div class="payment-method" data-method="GCash">
-            <img src="/images/gcash-logo.png" alt="GCash" onerror="this.src='/images/placeholder.png'; this.alt='GCash';">
-            <div>GCash</div>
-          </div>
-          <div class="payment-method" data-method="Bank Transfer">
-            <img src="/images/bank-transfer.png" alt="Bank Transfer" onerror="this.src='/images/placeholder.png'; this.alt='Bank';">
-            <div>Bank Transfer</div>
-          </div>
-          <div class="payment-method" data-method="Cash">
-            <img src="/images/cash.png" alt="Cash" onerror="this.src='/images/placeholder.png'; this.alt='Cash';">
-            <div>Cash</div>
-          </div>
+    <div class="payment-container">
+        <div class="payment-header">
+            <h2>Monthly Dues Payment</h2>
+            <p>Please complete your payment to regain access to your account</p>
         </div>
-        <input type="hidden" id="paymentMethodInput" name="paymentMethod" value="">
-      </div>
-      
-      <div class="form-group">
-        <label for="receiptUpload">Payment Receipt:</label>
-        <div class="file-upload">
-          <span class="file-upload-label">Click or drag to upload receipt</span>
-          <input type="file" id="receiptUpload" name="receipt" accept="image/*" required>
-          <div class="file-name" id="fileName">No file selected</div>
+        
+        <div class="payment-details">
+            <div class="payment-row">
+                <div class="payment-label">Account Email:</div>
+                <div class="payment-value" id="userEmail">loading...</div>
+            </div>
+            <div class="payment-row">
+                <div class="payment-label">Account Name:</div>
+                <div class="payment-value" id="userName">loading...</div>
+            </div>
+            <div class="payment-row">
+                <div class="payment-label">Due Amount:</div>
+                <div class="payment-value">₱<span id="dueAmount">0.00</span></div>
+            </div>
+            <div class="payment-row total-row">
+                <div class="payment-label">Total Amount Due:</div>
+                <div class="payment-value">₱<span id="totalAmount">0.00</span></div>
+            </div>
         </div>
-      </div>
-      
-      <button type="submit" class="submit-btn" id="submitPaymentBtn">Submit Payment</button>
-    </form>
-    
-    <a href="/login.html" class="back-link">Back to Login</a>
-  </div>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log("MDPayment page loaded");
-      
-      // Get user data from localStorage
-      const isDelinquent = localStorage.getItem('delinquentUser');
-      const userEmail = localStorage.getItem('delinquentEmail') || localStorage.getItem('email') || '';
-      const userName = localStorage.getItem('delinquentUsername') || localStorage.getItem('username') || '';
-      const dueAmount = localStorage.getItem('dueAmount') || '₱5000.00';
-      
-      console.log("User data from localStorage:", { isDelinquent, userEmail, userName, dueAmount });
-      
-      // Check if we have the necessary user information
-      if (!userEmail || !isDelinquent) {
-        console.log("Missing user information, redirecting to login");
-        window.location.href = '/login.html';
-        return;
-      }
-      
-      // Populate the form with user data
-      const userEmailDisplay = document.getElementById('userEmailDisplay');
-      const dueAmountDisplay = document.getElementById('dueAmountDisplay');
-      const userEmailInput = document.getElementById('userEmailInput');
-      const userNameInput = document.getElementById('userNameInput');
-      const finalAmountInput = document.getElementById('finalAmountInput');
-      
-      if (userEmailDisplay) userEmailDisplay.textContent = userEmail;
-      if (dueAmountDisplay) dueAmountDisplay.textContent = dueAmount.startsWith('₱') ? dueAmount : `₱${dueAmount}`;
-      if (userEmailInput) userEmailInput.value = userEmail;
-      if (userNameInput) userNameInput.value = userName;
-      if (finalAmountInput) finalAmountInput.value = dueAmount.replace('₱', '').trim();
-      
-      // Handle payment method selection
-      const paymentMethods = document.querySelectorAll('.payment-method');
-      const paymentMethodInput = document.getElementById('paymentMethodInput');
-      
-      paymentMethods.forEach(method => {
-        method.addEventListener('click', function() {
-          // Remove selected class from all methods
-          paymentMethods.forEach(m => m.classList.remove('selected'));
-          
-          // Add selected class to clicked method
-          this.classList.add('selected');
-          
-          // Set the payment method value
-          if (paymentMethodInput) {
-            paymentMethodInput.value = this.getAttribute('data-method');
-          }
-        });
-      });
-      
-      // Handle file upload
-      const receiptUpload = document.getElementById('receiptUpload');
-      const fileName = document.getElementById('fileName');
-      
-      if (receiptUpload && fileName) {
-        receiptUpload.addEventListener('change', function() {
-          fileName.textContent = this.files[0] ? this.files[0].name : 'No file selected';
-        });
-      }
-      
-      // Handle form submission
-      const paymentForm = document.getElementById('paymentForm');
-      const errorMessage = document.getElementById('errorMessage');
-      
-      if (paymentForm) {
-        paymentForm.addEventListener('submit', async function(e) {
-          e.preventDefault();
-          
-          // Validate payment method
-          if (!paymentMethodInput || !paymentMethodInput.value) {
-            errorMessage.textContent = 'Please select a payment method';
-            errorMessage.style.display = 'block';
-            return;
-          }
-          
-          // Validate file upload
-          if (!receiptUpload || !receiptUpload.files[0]) {
-            errorMessage.textContent = 'Please upload a receipt';
-            errorMessage.style.display = 'block';
-            return;
-          }
-          
-          // Hide error message if validation passes
-          errorMessage.style.display = 'none';
-          
-          // Disable submit button to prevent multiple submissions
-          const submitBtn = document.getElementById('submitPaymentBtn');
-          if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing...';
-          }
-          
-          try {
-            const formData = new FormData(this);
+        
+        <form id="duesPaymentForm" enctype="multipart/form-data">
+            <div class="payment-methods">
+                <h3>Select Payment Method</h3>
+                <div class="method-options">
+                    <div class="method-option">
+                        <label>
+                            <input type="radio" name="paymentMethod" value="gcash">
+                            GCash
+                        </label>
+                    </div>
+                    <div class="method-option">
+                        <label>
+                            <input type="radio" name="paymentMethod" value="bank">
+                            Bank Transfer
+                        </label>
+                    </div>
+                    <div class="method-option">
+                        <label>
+                            <input type="radio" name="paymentMethod" value="cash">
+                            Cash
+                        </label>
+                    </div>
+                </div>
+            </div>
             
-            // Send the form data to the server
-            const response = await fetch('/api/monthly-dues-payment', {
-              method: 'POST',
-              body: formData
+            <div class="upload-section">
+                <h3>Upload Payment Receipt</h3>
+                <label for="receiptUpload" class="upload-box">
+                    <div class="upload-icon">📄</div>
+                    <h4>Click to upload receipt</h4>
+                    <p>Supported formats: JPG, PNG, PDF (Max 5MB)</p>
+                </label>
+                <input type="file" id="receiptUpload" name="receipt" class="custom-file-input" accept="image/jpeg,image/png,application/pdf">
+                <p id="selectedFileName" style="text-align: center; margin-top: 10px; color: #666;"></p>
+            </div>
+            
+            <!-- Hidden inputs for form submission -->
+            <input type="hidden" id="userEmailInput" name="userEmail">
+            <input type="hidden" id="userNameInput" name="userName">
+            <input type="hidden" id="finalAmountInput" name="finalAmount">
+            
+            <button type="submit" id="proceedButton" class="proceed-button" disabled>Submit Payment</button>
+        </form>
+        
+        <a href="login.html" class="back-link">← Back to Login</a>
+    </div>
+    
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <h3 class="modal-title">Payment Submitted Successfully!</h3>
+            <p class="modal-message">Your payment has been submitted and is pending approval. You will be notified once it's approved.</p>
+            <button onclick="window.location.href='login.html'" class="modal-button">Back to Login</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("MDPayment page loaded"); // Debug log
+            
+            // Get user data from localStorage
+            const userEmail = localStorage.getItem('email') || '';
+            const userName = localStorage.getItem('username') || '';
+            const dueAmount = localStorage.getItem('dueAmount') || '0.00';
+            
+            console.log("Retrieved from localStorage:", { userEmail, userName, dueAmount }); // Debug log
+            
+            // Populate form fields
+            document.getElementById('userEmail').textContent = userEmail;
+            document.getElementById('userName').textContent = userName;
+            document.getElementById('dueAmount').textContent = dueAmount;
+            document.getElementById('totalAmount').textContent = dueAmount;
+            
+            // Set hidden input values
+            document.getElementById('finalAmountInput').value = dueAmount;
+            document.getElementById('userEmailInput').value = userEmail;
+            document.getElementById('userNameInput').value = userName;
+            
+            // Handle file upload display
+            const receiptUpload = document.getElementById('receiptUpload');
+            const selectedFileName = document.getElementById('selectedFileName');
+            
+            receiptUpload.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    selectedFileName.textContent = this.files[0].name;
+                } else {
+                    selectedFileName.textContent = '';
+                }
+                checkFormValidity();
             });
             
-            const result = await response.json();
+            // Handle payment method selection
+            const methodOptions = document.querySelectorAll('.method-option');
             
-            if (result.success) {
-              alert('Payment submitted successfully! Admin will review your payment.');
-              
-              // Clear localStorage items
-              localStorage.removeItem('delinquentUser');
-              localStorage.removeItem('delinquentUsername');
-              localStorage.removeItem('delinquentEmail');
-              localStorage.removeItem('dueAmount');
-              
-              // Redirect to login page
-              window.location.href = '/login.html';
-            } else {
-              errorMessage.textContent = 'Error: ' + (result.message || 'Failed to submit payment. Please try again.');
-              errorMessage.style.display = 'block';
-              
-              // Re-enable submit button
-              if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Payment';
-              }
-            }
-          } catch (error) {
-            console.error('Error submitting payment:', error);
-            errorMessage.textContent = 'An error occurred while submitting your payment. Please try again.';
-            errorMessage.style.display = 'block';
+            methodOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Clear previous selection
+                    methodOptions.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Select this option
+                    this.classList.add('selected');
+                    
+                    // Check the radio button
+                    const radio = this.querySelector('input[type="radio"]');
+                    radio.checked = true;
+                    
+                    checkFormValidity();
+                });
+            });
             
-            // Re-enable submit button
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Submit Payment';
+            // Enable submit button only when both payment method and file are selected
+            const proceedButton = document.getElementById('proceedButton');
+            
+            function checkFormValidity() {
+                const fileSelected = receiptUpload.files.length > 0;
+                const methodSelected = document.querySelector('input[name="paymentMethod"]:checked') !== null;
+                proceedButton.disabled = !(fileSelected && methodSelected);
             }
-          }
+            
+            // Handle form submission
+            document.getElementById('duesPaymentForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Show loading state
+                proceedButton.disabled = true;
+                proceedButton.textContent = 'Processing...';
+                
+                try {
+                    // Create a new FormData object for the file upload
+                    const fileFormData = new FormData();
+                    fileFormData.append('receipt', receiptUpload.files[0]);
+                    fileFormData.append('userEmail', userEmail);
+                    fileFormData.append('userName', userName);
+                    fileFormData.append('finalAmount', dueAmount);
+                    fileFormData.append('paymentMethod', document.querySelector('input[name="paymentMethod"]:checked').value);
+                    
+                    console.log("Submitting payment to /api/monthly-dues-payment"); // Debug log
+                    
+                    // Use the existing monthly dues payment endpoint
+                    const response = await fetch('/api/monthly-dues-payment', {
+                        method: 'POST',
+                        body: fileFormData
+                    });
+                    
+                    const result = await response.json();
+                    console.log("Payment response:", result); // Debug log
+                    
+                    if (result.success) {
+                        // Show success modal
+                        document.getElementById('successModal').style.display = 'block';
+                    } else {
+                        alert('Error processing payment: ' + (result.message || 'Please try again.'));
+                        proceedButton.disabled = false;
+                        proceedButton.textContent = 'Submit Payment';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error processing payment. Please try again.');
+                    proceedButton.disabled = false;
+                    proceedButton.textContent = 'Submit Payment';
+                }
+            });
+            
+            // If no user data is found, show error
+            if (!userEmail || !userName) {
+                console.error("Missing user information in localStorage"); // Debug log
+                
+                const container = document.querySelector('.payment-container');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = `
+                    <h3>Error: Missing User Information</h3>
+                    <p>We couldn't find your account details.</p>
+                    <p>Please go back and try again.</p>
+                    <button onclick="window.location.href='login.html'" class="proceed-button" style="margin-top: 10px;">
+                        Back to Login
+                    </button>
+                `;
+                container.innerHTML = '';
+                container.appendChild(errorDiv);
+            }
         });
-      }
-      
-      // Make the file upload div clickable
-      const fileUploadDiv = document.querySelector('.file-upload');
-      if (fileUploadDiv && receiptUpload) {
-        fileUploadDiv.addEventListener('click', function() {
-          receiptUpload.click();
-        });
-      }
-    });
-  </script>
+    </script>
 </body>
 </html>

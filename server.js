@@ -581,85 +581,94 @@ app.get("/api/generate-report", async (req, res) => {
 })
 
 app.post("/api/login", async (req, res) => {
+  const { login, password } = req.body
+
   try {
-    const { login, password } = req.body;
+    console.log(`Login attempt for: ${login}`)
+    const db = await connectToDatabase()
+    const usersCollection = db.collection("acc")
+    const homeownersCollection = db.collection("homeowners")
 
     if (!login || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
-      });
+      })
     }
 
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("acc");
-
-    // Find user by email or username (case insensitive)
+    // Find the user
     const user = await usersCollection.findOne({
       $or: [
-        { email: { $regex: new RegExp(`^${login}`, "i") } },
-        { username: { $regex: new RegExp(`^${login}`, "i") } },
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
-    });
+    })
 
     if (!user) {
+      console.log(`User not found: ${login}`)
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      });
+      })
     }
 
-    // Verify password (assuming you're using bcrypt)
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password)
+
     if (!isValidPassword) {
+      console.log(`Invalid password for user: ${login}`)
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      });
+      })
     }
 
-    // Check if user is a homeowner with delinquent status
-    if (user.role === "homeowner" || !user.role) {
-      const homeownersCollection = db.collection("homeowners");
-      const homeowner = await homeownersCollection.findOne({ email: user.email });
+    // Check if user is a homeowner
+    if (user.role !== "admin") {
+      // Check if homeowner is delinquent
+      const homeowner = await homeownersCollection.findOne({ email: user.email })
 
-      // IMPORTANT: Check both homeownerStatus and paymentStatus
-      // A user is considered delinquent if homeownerStatus is "Delinquent"
-      // OR if paymentStatus is "Delinquent" OR "pending"
-      if (homeowner && (
-          homeowner.homeownerStatus === "Delinquent" || 
-          homeowner.paymentStatus === "Delinquent" ||
-          homeowner.paymentStatus === "pending"
-        )) {
-        // User is delinquent or has a pending payment, return special response
+      if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
+        // User is delinquent, return special response
+        console.log(`User ${user.email} is delinquent, returning delinquent status`)
         return res.json({
           success: false,
           isDelinquent: true,
           username: user.username,
           email: user.email,
           dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
-          message: homeowner.paymentStatus === "pending" 
-            ? "Your payment is pending approval. Please wait for admin confirmation."
-            : "Your account has outstanding dues that need to be paid.",
-        });
+          message: "Account is delinquent. Please pay your monthly dues.",
+        })
       }
     }
-    // Normal successful login
-    return res.json({
+
+    // User is not delinquent, proceed with normal login
+    req.session.user = {
+      username: user.username,
+      email: user.email,
+      role: user.role || "homeowner",
+    }
+
+    // Log successful login
+    await logActivity("login", `User ${user.username} logged in successfully`)
+
+    console.log(`Successful login for: ${login}, role: ${user.role || "homeowner"}`)
+    res.json({
       success: true,
       username: user.username,
       email: user.email,
       role: user.role || "homeowner",
       redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
-    });
+    })
   } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({
+    console.error("Login error:", error)
+    res.status(500).json({
       success: false,
       message: "An error occurred during login",
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 app.get("/api/check-auth", (req, res) => {
   console.log("Auth check - Session:", req.session)
