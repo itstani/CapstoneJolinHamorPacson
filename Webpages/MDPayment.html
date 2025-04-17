@@ -413,68 +413,195 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('fileName').textContent = fileName;
       });
       
-      // Handle form submission
+      
+      // Form submission
       document.getElementById('paymentForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const paymentMethod = document.getElementById('paymentMethod').value;
-        if (!paymentMethod) {
-          showCustomAlert('Please select a payment method');
-          return;
+        let hasError = false;
+        
+        // Validate payment method
+        if (!document.getElementById('paymentMethod').value) {
+          document.getElementById('methodError').style.display = 'block';
+          hasError = true;
         }
         
-        const receipt = document.getElementById('receipt').files[0];
-        if (!receipt) {
-          showCustomAlert('Please upload a receipt image');
-          return;
+        // Validate receipt
+        if (!document.getElementById('receipt').files[0]) {
+          document.getElementById('receiptError').style.display = 'block';
+          hasError = true;
         }
         
-        // Create form data
+        if (hasError) return;
+        
         const formData = new FormData(this);
         
         try {
-          // Show loading message
-          showCustomAlert('Processing your payment...');
-          
-          // Submit the form data
           const response = await fetch('/api/monthly-dues-payment', {
             method: 'POST',
             body: formData
           });
           
-          const result = await response.json();
+          const data = await response.json();
           
-          if (result.success) {
-            showCustomAlert(result.message || 'Payment submitted successfully! You will be redirected to login page.');
+          if (data.success) {
+            document.getElementById('paymentForm').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'block';
             
-            // Redirect to login page after 3 seconds
+            // Clear localStorage items after successful submission
             setTimeout(() => {
               localStorage.removeItem('dueAmount');
-              window.location.href = 'login.html';
-            }, 3000);
+              // Redirect to login after 3 seconds
+              setTimeout(() => {
+                window.location.href = '/login.html';
+              }, 3000);
+            }, 1000);
           } else {
-            showCustomAlert(result.message || 'Error processing payment. Please try again.');
+            alert('Error: ' + data.message);
           }
         } catch (error) {
           console.error('Error submitting payment:', error);
-          showCustomAlert('An error occurred. Please try again later.');
+          alert('An error occurred while submitting your payment. Please try again.');
         }
       });
-      
-      // Custom alert functions
-      window.closeCustomAlert = function() {
-        document.getElementById('customAlert').style.display = 'none';
-      };
-      
-      window.showCustomAlert = function(message) {
-        const alertElement = document.getElementById('customAlert');
-        const messageElement = document.getElementById('customAlertMessage');
-        if (alertElement && messageElement) {
-          messageElement.textContent = message;
-          alertElement.style.display = 'block';
-        }
-      };
     });
+
+    window.addEventListener('DOMContentLoaded', function() {
+    const isDelinquent = sessionStorage.getItem('isDelinquent');
+    
+    if (!isDelinquent) {
+      // If not a delinquent user, redirect to login
+      console.log('Not a delinquent user, redirecting to login');
+      window.location.href = '/login.html';
+      return;
+    }
+    
+    // If we're here, we're a delinquent user
+    console.log('Delinquent user confirmed, loading payment page');
+    
+    // Populate user info from sessionStorage
+    const username = sessionStorage.getItem('delinquentUsername') || '';
+    const email = sessionStorage.getItem('delinquentEmail') || '';
+    const dueAmount = sessionStorage.getItem('dueAmount') || '0.00';
+    
+    // Update any elements that need to display this info
+    const usernameElements = document.querySelectorAll('.user-name');
+    const emailElements = document.querySelectorAll('.user-email');
+    const amountElements = document.querySelectorAll('.due-amount');
+    
+    usernameElements.forEach(el => { el.textContent = username; });
+    emailElements.forEach(el => { el.textContent = email; });
+    amountElements.forEach(el => { el.textContent = dueAmount; });
+    
+    // Set form values if needed
+    const emailInputs = document.querySelectorAll('input[name="userEmail"]');
+    const usernameInputs = document.querySelectorAll('input[name="userName"]');
+    
+    emailInputs.forEach(el => { el.value = email; });
+    usernameInputs.forEach(el => { el.value = username; });
+  });
+
+  (function() {
+      const isDelinquent = localStorage.getItem('delinquentUser');
+      console.log('MDPayment.html loaded, delinquent status:', isDelinquent);
+      
+      // If not a delinquent user and not already redirecting, go to login
+      if (!isDelinquent && !sessionStorage.getItem('redirecting')) {
+        console.log('Not a delinquent user, redirecting to login');
+        sessionStorage.setItem('redirecting', 'true');
+        window.location.replace('/login.html');
+      } else {
+        // Clear the redirecting flag if we're staying on this page
+        sessionStorage.removeItem('redirecting');
+        
+        // Get user info from localStorage
+        const username = localStorage.getItem('delinquentUsername') || '';
+        const email = localStorage.getItem('delinquentEmail') || '';
+        const dueAmount = localStorage.getItem('dueAmount') || '0.00';
+        
+        // Make this info available to the page
+        window.delinquentInfo = {
+          username: username,
+          email: email,
+          dueAmount: dueAmount
+        };
+        
+        console.log('Delinquent user confirmed:', window.delinquentInfo);
+      }
+    })();
+
+    document.addEventListener("DOMContentLoaded", () => {
+  // Check if this is a delinquent user from localStorage
+  const isDelinquent = localStorage.getItem("delinquentUser")
+  const delinquentUsername = localStorage.getItem("delinquentUsername")
+  const delinquentEmail = localStorage.getItem("delinquentEmail")
+  const dueAmount = localStorage.getItem("dueAmount")
+
+  if (isDelinquent) {
+    console.log("Delinquent user detected in MDPayment.html")
+
+    // Populate the payment form with the delinquent user's information
+    if (document.getElementById("userEmail")) {
+      document.getElementById("userEmail").value = delinquentEmail || ""
+    }
+
+    if (document.getElementById("userName")) {
+      document.getElementById("userName").value = delinquentUsername || ""
+    }
+
+    if (document.getElementById("dueAmount")) {
+      document.getElementById("dueAmount").textContent = dueAmount || "₱0.00"
+    }
+
+    // You can also set the final amount field if it exists
+    if (document.getElementById("finalAmount")) {
+      document.getElementById("finalAmount").value = dueAmount ? dueAmount.replace("₱", "") : "0.00"
+    }
+  } else {
+    console.log("No delinquent user detected, checking session...")
+
+    // If no delinquent info in localStorage, check with the server
+    fetch("/api/check-auth")
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.authenticated) {
+          // Not authenticated, redirect to login
+          console.log("User not authenticated, redirecting to login")
+          window.location.href = "/login.html"
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking authentication:", error)
+      })
+  }
+})
+
+
+  document.addEventListener('DOMContentLoaded', function() {
+      // Populate user info from the window.delinquentInfo object
+      if (window.delinquentInfo) {
+        // Update any elements that need to display this info
+        const usernameElements = document.querySelectorAll('.user-name');
+        const emailElements = document.querySelectorAll('.user-email');
+        const amountElements = document.querySelectorAll('.due-amount');
+        
+        usernameElements.forEach(el => { el.textContent = window.delinquentInfo.username; });
+        emailElements.forEach(el => { el.textContent = window.delinquentInfo.email; });
+        amountElements.forEach(el => { el.textContent = window.delinquentInfo.dueAmount; });
+        
+        // Set form values if needed
+        const emailInputs = document.querySelectorAll('input[name="userEmail"]');
+        const usernameInputs = document.querySelectorAll('input[name="userName"]');
+        
+        emailInputs.forEach(el => { el.value = window.delinquentInfo.email; });
+        usernameInputs.forEach(el => { el.value = window.delinquentInfo.username; });
+      }
+    });
+  
+  // Prevent recursive refreshing by checking if page is being reloaded
+  if (performance.navigation.type === 1) {
+    console.log('Page is being reloaded, not redirecting');
+  }
   </script>
 </body>
 </html>

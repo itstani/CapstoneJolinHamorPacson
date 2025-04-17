@@ -49,6 +49,66 @@ app.use((req, res, next) => {
   next()
 })
 
+// Add this middleware right after your session middleware configuration
+// This will specifically handle delinquent users accessing the MDPayment page
+app.use((req, res, next) => {
+  // Check if this is the MDPayment page
+  if (req.path === "/MDPayment.html" || req.path === "/Webpages/MDPayment.html") {
+    console.log("MDPayment page accessed, setting delinquent flag in session")
+
+    // Set a flag in the session to indicate this is a delinquent user accessing the payment page
+    if (!req.session) {
+      req.session = {}
+    }
+
+    // This flag will help prevent redirect loops
+    req.session.isDelinquentPayment = true
+
+    // Force session save to ensure the flag is stored
+    if (typeof req.session.save === "function") {
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving delinquent session flag:", err)
+        }
+        return next()
+      })
+    } else {
+      return next()
+    }
+  } else {
+    next()
+  }
+})
+
+app.use((req, res, next) => {
+  // Check if this is the MDPayment page
+  if (req.path === "/MDPayment.html" || req.path === "/Webpages/MDPayment.html") {
+    console.log("MDPayment page accessed, setting delinquent flag in session")
+
+    // Set a flag in the session to indicate this is a delinquent user accessing the payment page
+    if (!req.session) {
+      req.session = {}
+    }
+
+    // This flag will help prevent redirect loops
+    req.session.isDelinquentPayment = true
+
+    // Force session save to ensure the flag is stored
+    if (typeof req.session.save === "function") {
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving delinquent session flag:", err)
+        }
+        return next()
+      })
+    } else {
+      return next()
+    }
+  } else {
+    next()
+  }
+})
+
 // 2. CORS configuration - single declaration
 app.use(
   cors({
@@ -125,16 +185,6 @@ app.use((req, res, next) => {
   })
   next()
 })
-
-// Add this middleware right after the session middleware to ensure protected routes require authentication:
-
-// Modify the authentication middleware to check the public paths first
-// Find the existing authentication middleware that looks like this:
-// app.use((req, res, next) => {
-//   // List of paths that require authentication
-//   const protectedPaths = [ ... ]
-//   ...
-// });
 
 // And replace it with this:
 app.use((req, res, next) => {
@@ -581,91 +631,112 @@ app.get("/api/generate-report", async (req, res) => {
 })
 
 // Update the login route to check for delinquent status
+// Replace your existing /api/login route with this one
 app.post("/api/login", async (req, res) => {
-  const { login, password } = req.body;
-  
+  const { login, password } = req.body
+
   try {
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("acc");
-    const homeownersCollection = db.collection("homeowners");
+    const db = await connectToDatabase()
+    console.log("Attempting to connect to database...")
+    console.log("Connected to database successfully")
+
+    const usersCollection = db.collection("acc")
+    const homeownersCollection = db.collection("homeowners")
 
     if (!login || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
-      });
+      })
     }
 
+    console.log("Searching for user...")
     // Find the user
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
-    });
+    })
 
     if (!user) {
+      console.log("User not found")
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      });
+      })
     }
 
+    console.log("User found, comparing passwords...")
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    
+    const isValidPassword = await bcrypt.compare(password, user.password)
+
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      });
+      })
     }
 
     // Check if user is a homeowner
     if (user.role !== "admin") {
       // Check if homeowner is delinquent
-      const homeowner = await homeownersCollection.findOne({ email: user.email });
-      
+      const homeowner = await homeownersCollection.findOne({ email: user.email })
+
       if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
         // User is delinquent, return special response
-        console.log(`User ${user.email} is delinquent, returning delinquent status`);
+        console.log(`User ${user.email} is delinquent, returning delinquent status`)
         return res.json({
           success: false,
           isDelinquent: true,
           username: user.username,
           email: user.email,
           dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
-          message: "Account is delinquent. Please pay your monthly dues."
-        });
+          message: "Account is delinquent. Please pay your monthly dues.",
+        })
       }
     }
 
-    // User is not delinquent, proceed with normal login
+    // Set user data in session
     req.session.user = {
       username: user.username,
       email: user.email,
-      role: user.role || "homeowner"
-    };
-
-    // Log successful login
-    await logActivity("login", `User ${user.username} logged in successfully`);
-
-    res.json({
-      success: true,
-      username: user.username,
-      email: user.email,
       role: user.role || "homeowner",
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
-    });
+    }
+
+    // Force session save
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error saving session:", err)
+        return res.status(500).json({
+          success: false,
+          message: "Error saving session",
+        })
+      }
+
+      console.log("Session saved successfully:", req.sessionID)
+      console.log("Session data:", req.session)
+
+      // Log successful login
+      logActivity("login", `User ${user.username} logged in successfully`)
+
+      res.json({
+        success: true,
+        username: user.username,
+        email: user.email,
+        role: user.role || "homeowner",
+        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      })
+    })
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error)
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
-      error: error.message
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 app.get("/api/check-auth", (req, res) => {
   console.log("Auth check - Session:", req.session)
@@ -4718,3 +4789,5 @@ app.use((req, res, next) => {
 
   next()
 })
+
+console.log("Fixed login route and middleware for delinquent users")
