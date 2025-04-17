@@ -620,7 +620,7 @@
         `;
         
         payments.forEach(payment => {
-          const date = new Date(payment.submittedAt || payment.timestamp).toLocaleDateString();
+          const date = new Date(payment.timestamp).toLocaleDateString();
           const statusClass = `status-${payment.status}`;
           
           html += `
@@ -628,7 +628,7 @@
               <td>${date}</td>
               <td>${payment.userName || 'N/A'}</td>
               <td>${payment.userEmail || 'N/A'}</td>
-              <td>₱${payment.amount || payment.finalAmount || '0.00'}</td>
+              <td>₱${payment.amount || '0.00'}</td>
               <td>${payment.paymentMethod || 'N/A'}</td>
               <td><span class="status ${statusClass}">${payment.status}</span></td>
               <td class="action-buttons">
@@ -800,10 +800,10 @@
               <div class="payment-details">
                 <p><strong>Homeowner:</strong> ${payment.userName || 'N/A'}</p>
                 <p><strong>Email:</strong> ${payment.userEmail || 'N/A'}</p>
-                <p><strong>Amount:</strong> ₱${payment.amount || payment.finalAmount || '0.00'}</p>
+                <p><strong>Amount:</strong> ₱${payment.amount || '0.00'}</p>
                 <p><strong>Payment Method:</strong> ${payment.paymentMethod || 'N/A'}</p>
                 <p><strong>Status:</strong> ${payment.status}</p>
-                <p><strong>Submitted:</strong> ${new Date(payment.submittedAt || payment.timestamp).toLocaleString()}</p>
+                <p><strong>Submitted:</strong> ${new Date(payment.timestamp).toLocaleString()}</p>
             `;
             
             if (payment.status === 'approved') {

@@ -581,85 +581,86 @@ app.get("/api/generate-report", async (req, res) => {
 })
 
 app.post("/api/login", async (req, res) => {
-  try {
-    const { login, password } = req.body;
+  const { login, password } = req.body
+  const db = await connectToDatabase()
 
+  try {
+    console.log("Attempting to connect to database...")
+    console.log("Connected to database successfully")
+
+    const usersCollection = db.collection("acc")
     if (!login || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
-      });
+      })
     }
 
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("acc");
-
-    // Find user by email or username (case insensitive)
+    console.log("Searching for user...")
     const user = await usersCollection.findOne({
       $or: [
-        { email: { $regex: new RegExp(`^${login}`, "i") } },
-        { username: { $regex: new RegExp(`^${login}`, "i") } },
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
+        { username: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
-    });
+    })
 
     if (!user) {
+      console.log("User not found")
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      });
+      })
     }
 
-    // Verify password (assuming you're using bcrypt)
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log("User found, comparing passwords...")
+    const isValidPassword = await bcrypt.compare(password, user.password)
+
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      });
+      })
     }
 
-    // Check if user is a homeowner with delinquent status
-    if (user.role === "homeowner" || !user.role) {
-      const homeownersCollection = db.collection("homeowners");
-      const homeowner = await homeownersCollection.findOne({ email: user.email });
-
-      // IMPORTANT: Check both homeownerStatus and paymentStatus
-      // A user is considered delinquent if homeownerStatus is "Delinquent"
-      // OR if paymentStatus is "Delinquent" OR "pending"
-      if (homeowner && (
-          homeowner.homeownerStatus === "Delinquent" || 
-          homeowner.paymentStatus === "Delinquent" ||
-          homeowner.paymentStatus === "pending"
-        )) {
-        // User is delinquent or has a pending payment, return special response
-        return res.json({
-          success: false,
-          isDelinquent: true,
-          username: user.username,
-          email: user.email,
-          dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
-          message: homeowner.paymentStatus === "pending" 
-            ? "Your payment is pending approval. Please wait for admin confirmation."
-            : "Your account has outstanding dues that need to be paid.",
-        });
-      }
-    }
-    // Normal successful login
-    return res.json({
-      success: true,
+    // Set user data in session
+    req.session.user = {
       username: user.username,
       email: user.email,
       role: user.role || "homeowner",
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
-    });
+    }
+
+    // Force session save
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error saving session:", err)
+        return res.status(500).json({
+          success: false,
+          message: "Error saving session",
+        })
+      }
+
+      console.log("Session saved successfully:", req.sessionID)
+      console.log("Session data:", req.session)
+
+      // Log successful login
+      logActivity("login", `User ${user.username} logged in successfully`)
+
+      res.json({
+        success: true,
+        username: user.username,
+        email: user.email,
+        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      })
+    })
   } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({
+    console.error("Login error:", error)
+    res.status(500).json({
       success: false,
       message: "An error occurred during login",
-    });
+      error: error.message,
+    })
   }
-});
+})
 
 app.get("/api/check-auth", (req, res) => {
   console.log("Auth check - Session:", req.session)
@@ -939,50 +940,45 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
   }
 })
 
-app.get("/api/monthly-payments/:id", async (req, res) => {
+app.get("/api/monthly-payments", async (req, res) => {
   try {
-    const { id } = req.params
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment ID is required",
-      })
-    }
-
+    const { status, search } = req.query
     const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
+    const paymentsCollection = db.collection("monthlypayments")
 
-    // Find the payment by ID
-    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
+    // Build query based on filters
+    const query = { paymentType: "monthlyDues" }
 
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: "Payment not found",
-      })
+    if (status && status !== "all") {
+      query.status = status
     }
+
+    if (search) {
+      query.$or = [{ userEmail: { $regex: search, $options: "i" } }, { userName: { $regex: search, $options: "i" } }]
+    }
+
+    // Get payments
+    const payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).toArray()
 
     res.json({
       success: true,
-      payment,
+      payments,
     })
   } catch (error) {
-    console.error("Error fetching payment details:", error)
+    console.error("Error fetching monthly payments:", error)
     res.status(500).json({
       success: false,
-      message: "Error fetching payment details",
+      message: "Error fetching payments",
+      payments: [],
     })
   }
 })
 
-// Approve payment endpoint
 app.post("/api/monthly-payments/:id/approve", async (req, res) => {
   try {
     const { id } = req.params
-
     const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
+    const paymentsCollection = db.collection("monthlypayments")
     const homeownersCollection = db.collection("homeowners")
 
     // Find the payment
@@ -998,25 +994,13 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
     // Update payment status
     await paymentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          status: "approved", 
-          approvedAt: new Date(),
-          approvedBy: req.session?.user?.username || "admin"
-        } 
-      }
+      { $set: { status: "approved", approvedAt: new Date() } },
     )
 
     // Update homeowner status
     await homeownersCollection.updateOne(
       { email: payment.userEmail },
-      { 
-        $set: { 
-          paymentStatus: "Compliant",
-          homeownerStatus: "Compliant",
-          dueAmount: "0.00" 
-        } 
-      }
+      { $set: { paymentStatus: "active", dueAmount: "0.00" } },
     )
 
     // Log the approval
@@ -1043,21 +1027,12 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
   }
 })
 
-// Reject payment endpoint
 app.post("/api/monthly-payments/:id/reject", async (req, res) => {
   try {
     const { id } = req.params
     const { reason } = req.body
-
-    if (!reason) {
-      return res.status(400).json({
-        success: false,
-        message: "Rejection reason is required",
-      })
-    }
-
     const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
+    const paymentsCollection = db.collection("monthlypayments")
 
     // Find the payment
     const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
@@ -1072,14 +1047,7 @@ app.post("/api/monthly-payments/:id/reject", async (req, res) => {
     // Update payment status
     await paymentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          status: "rejected", 
-          rejectedAt: new Date(),
-          rejectedBy: req.session?.user?.username || "admin",
-          rejectionReason: reason 
-        } 
-      }
+      { $set: { status: "rejected", rejectedAt: new Date(), rejectionReason: reason } },
     )
 
     // Log the rejection

@@ -168,47 +168,15 @@
       height: 40px;
       margin-bottom: 10px;
     }
-
-    /* Custom alert styles */
-    .custom-alert {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      z-index: 1001;
-    }
-
-    .custom-alert-content {
-      text-align: center;
-    }
-
-    .custom-alert-header {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 10px;
+    
+    .error-message {
       color: #AF2630;
-    }
-
-    .custom-alert-body {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .custom-alert button {
-      background-color: #AF2630;
-      color: white;
-      border: none;
-      padding: 8px 15px;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
       border-radius: 5px;
-      cursor: pointer;
+      padding: 10px;
+      margin-bottom: 20px;
+      display: none;
     }
   </style>
 </head>
@@ -219,15 +187,17 @@
     <h1>Monthly Dues Payment</h1>
     
     <div class="payment-info">
-      <p>Account: <span id="userEmail">Loading...</span></p>
-      <p>Outstanding Amount: <span class="amount" id="dueAmount">₱0.00</span></p>
+      <p>Account: <span id="userEmailDisplay">Loading...</span></p>
+      <p>Outstanding Amount: <span class="amount" id="dueAmountDisplay">₱0.00</span></p>
       <p>Please upload your payment receipt to settle your dues.</p>
     </div>
     
+    <div id="errorMessage" class="error-message"></div>
+    
     <form id="paymentForm" enctype="multipart/form-data">
       <input type="hidden" id="userEmailInput" name="userEmail">
-      <input type="hidden" id="userName" name="userName">
-      <input type="hidden" id="finalAmount" name="finalAmount">
+      <input type="hidden" id="userNameInput" name="userName">
+      <input type="hidden" id="finalAmountInput" name="finalAmount">
       
       <div class="form-group">
         <label for="paymentMethod">Payment Method:</label>
@@ -245,161 +215,60 @@
             <div>Cash</div>
           </div>
         </div>
-        <input type="hidden" id="paymentMethod" name="paymentMethod" value="">
+        <input type="hidden" id="paymentMethodInput" name="paymentMethod" value="">
       </div>
       
       <div class="form-group">
-        <label for="receipt">Payment Receipt:</label>
+        <label for="receiptUpload">Payment Receipt:</label>
         <div class="file-upload">
           <span class="file-upload-label">Click or drag to upload receipt</span>
-          <input type="file" id="receipt" name="receipt" accept="image/*" required>
+          <input type="file" id="receiptUpload" name="receipt" accept="image/*" required>
           <div class="file-name" id="fileName">No file selected</div>
         </div>
       </div>
       
-      <button type="submit" class="submit-btn">Submit Payment</button>
+      <button type="submit" class="submit-btn" id="submitPaymentBtn">Submit Payment</button>
     </form>
     
-    <a href="login.html" class="back-link">Back to Login</a>
-  </div>
-
-  <div id="customAlert" class="custom-alert">
-    <div class="custom-alert-content">
-      <div class="custom-alert-header">Notice</div>
-      <div class="custom-alert-body">
-        <p id="customAlertMessage"></p>
-        <button onclick="closeCustomAlert()">OK</button>
-      </div>
-    </div>
+    <a href="/login.html" class="back-link">Back to Login</a>
   </div>
 
   <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("MDPayment page loaded"); // Debug log
-    
-    // Get user data from localStorage
-    const userEmail = localStorage.getItem('email') || '';
-    const userName = localStorage.getItem('username') || '';
-    const dueAmount = localStorage.getItem('dueAmount') || '0.00';
-    
-    console.log("Retrieved from localStorage:", { userEmail, userName, dueAmount }); // Debug log
-    
-    // Populate form fields
-    document.getElementById('userEmail').textContent = userEmail;
-    document.getElementById('userName').textContent = userName;
-    document.getElementById('dueAmount').textContent = dueAmount;
-    document.getElementById('totalAmount').textContent = dueAmount;
-    
-    // Set hidden input values
-    document.getElementById('finalAmountInput').value = dueAmount;
-    document.getElementById('userEmailInput').value = userEmail;
-    document.getElementById('userNameInput').value = userName;
-
-    // Handle file upload and payment method selection
-    const receiptUpload = document.getElementById('receiptUpload');
-    const proceedButton = document.getElementById('proceedButton');
-    const paymentMethods = document.getElementsByName('paymentMethod');
-
-    // Enable submit button only when both payment method and file are selected
-    function checkFormValidity() {
-      const fileSelected = receiptUpload.files.length > 0;
-      const methodSelected = document.querySelector('input[name="paymentMethod"]:checked') !== null;
-      proceedButton.disabled = !(fileSelected && methodSelected);
-    }
-
-    receiptUpload.addEventListener('change', checkFormValidity);
-    
-    paymentMethods.forEach(method => {
-      method.addEventListener('change', checkFormValidity);
-    });
-
-    document.getElementById('receipt').addEventListener('change', function() {
-        const fileName = this.files[0] ? this.files[0].name : 'No file selected';
-        document.getElementById('fileName').textContent = fileName;
-      });
-      
-
-    // Handle form submission
-    document.getElementById('duesPaymentForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      // Show loading state
-      proceedButton.disabled = true;
-      proceedButton.textContent = 'Processing...';
-      
-      try {
-        // Create a new FormData object for the file upload
-        const fileFormData = new FormData();
-        fileFormData.append('receipt', receiptUpload.files[0]);
-        fileFormData.append('userEmail', userEmail);
-        fileFormData.append('userName', userName);
-        fileFormData.append('finalAmount', dueAmount);
-        fileFormData.append('paymentMethod', document.querySelector('input[name="paymentMethod"]:checked').value);
-        
-        console.log("Submitting payment to /api/monthly-dues-payment"); // Debug log
-        
-        // Use the existing monthly dues payment endpoint
-        const response = await fetch('/api/monthly-dues-payment', {
-          method: 'POST',
-          body: fileFormData
-        });
-
-        const result = await response.json();
-        console.log("Payment response:", result); // Debug log
-        
-        if (result.success) {
-          // Show success modal
-          document.getElementById('successModal').style.display = 'block';
-        } else {
-          alert('Error processing payment: ' + (result.message || 'Please try again.'));
-          proceedButton.disabled = false;
-          proceedButton.textContent = 'Submit Payment';
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Error processing payment. Please try again.');
-        proceedButton.disabled = false;
-        proceedButton.textContent = 'Submit Payment';
-      }
-    });
-
-    // If no user data is found, show error
-    if (!userEmail || !userName) {
-      console.error("Missing user information in localStorage"); // Debug log
-      
-      const container = document.querySelector('.payment-container');
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'error-message';
-      errorDiv.innerHTML = `
-        <h3>Error: Missing User Information</h3>
-        <p>We couldn't find your account details.</p>
-        <p>Please go back and try again.</p>
-        <button onclick="window.location.href='login.html'" class="proceed-button" style="margin-top: 10px;">
-          Back to Login
-        </button>
-      `;
-      container.innerHTML = '';
-      container.appendChild(errorDiv);
-    }
-  });
-
     document.addEventListener('DOMContentLoaded', function() {
+      console.log("MDPayment page loaded");
+      
       // Get user data from localStorage
-      const userEmail = localStorage.getItem('email') || '';
-      const userName = localStorage.getItem('username') || '';
-      const dueAmount = localStorage.getItem('dueAmount') || '0.00';
+      const isDelinquent = localStorage.getItem('delinquentUser');
+      const userEmail = localStorage.getItem('delinquentEmail') || localStorage.getItem('email') || '';
+      const userName = localStorage.getItem('delinquentUsername') || localStorage.getItem('username') || '';
+      const dueAmount = localStorage.getItem('dueAmount') || '₱5000.00';
       
-      // Display user data
-      document.getElementById('userEmail').textContent = userEmail;
-      document.getElementById('dueAmount').textContent = `₱${dueAmount}`;
+      console.log("User data from localStorage:", { isDelinquent, userEmail, userName, dueAmount });
       
-      // Set hidden form values
-      document.getElementById('userEmailInput').value = userEmail;
-      document.getElementById('userName').value = userName;
-      document.getElementById('finalAmount').value = dueAmount;
+      // Check if we have the necessary user information
+      if (!userEmail || !isDelinquent) {
+        console.log("Missing user information, redirecting to login");
+        window.location.href = '/login.html';
+        return;
+      }
+      
+      // Populate the form with user data
+      const userEmailDisplay = document.getElementById('userEmailDisplay');
+      const dueAmountDisplay = document.getElementById('dueAmountDisplay');
+      const userEmailInput = document.getElementById('userEmailInput');
+      const userNameInput = document.getElementById('userNameInput');
+      const finalAmountInput = document.getElementById('finalAmountInput');
+      
+      if (userEmailDisplay) userEmailDisplay.textContent = userEmail;
+      if (dueAmountDisplay) dueAmountDisplay.textContent = dueAmount.startsWith('₱') ? dueAmount : `₱${dueAmount}`;
+      if (userEmailInput) userEmailInput.value = userEmail;
+      if (userNameInput) userNameInput.value = userName;
+      if (finalAmountInput) finalAmountInput.value = dueAmount.replace('₱', '').trim();
       
       // Handle payment method selection
       const paymentMethods = document.querySelectorAll('.payment-method');
+      const paymentMethodInput = document.getElementById('paymentMethodInput');
+      
       paymentMethods.forEach(method => {
         method.addEventListener('click', function() {
           // Remove selected class from all methods
@@ -409,211 +278,108 @@ document.addEventListener('DOMContentLoaded', function() {
           this.classList.add('selected');
           
           // Set the payment method value
-          document.getElementById('paymentMethod').value = this.dataset.method;
+          if (paymentMethodInput) {
+            paymentMethodInput.value = this.getAttribute('data-method');
+          }
         });
       });
       
+      // Handle file upload
+      const receiptUpload = document.getElementById('receiptUpload');
+      const fileName = document.getElementById('fileName');
       
-      // Handle file input change
-      document.getElementById('receipt').addEventListener('change', function() {
-        const fileName = this.files[0] ? this.files[0].name : 'No file selected';
-        document.getElementById('fileName').textContent = fileName;
-      });
+      if (receiptUpload && fileName) {
+        receiptUpload.addEventListener('change', function() {
+          fileName.textContent = this.files[0] ? this.files[0].name : 'No file selected';
+        });
+      }
       
+      // Handle form submission
+      const paymentForm = document.getElementById('paymentForm');
+      const errorMessage = document.getElementById('errorMessage');
       
-      // Form submission
-      document.getElementById('paymentForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        // Validate payment method
-        if (!document.getElementById('paymentMethod').value) {
-          alert('Please select a payment method');
-          return;
-        }
-        
-        const formData = new FormData(this);
-        
-        try {
-          const response = await fetch('/api/monthly-dues-payment', {
-            method: 'POST',
-            body: formData
-          });
+      if (paymentForm) {
+        paymentForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
           
-          const data = await response.json();
-          
-          if (data.success) {
-            alert('Payment submitted successfully! Admin will review your payment.');
-            
-            // Clear session and local storage
-            sessionStorage.removeItem('isDelinquent');
-            sessionStorage.removeItem('delinquentUsername');
-            sessionStorage.removeItem('delinquentEmail');
-            sessionStorage.removeItem('dueAmount');
-            
-            localStorage.removeItem('delinquentUser');
-            localStorage.removeItem('delinquentUsername');
-            localStorage.removeItem('delinquentEmail');
-            localStorage.removeItem('dueAmount');
-            
-            // Redirect to login after successful submission
-            window.location.href = '/login.html';
-          } else {
-            alert('Error: ' + (data.message || 'Failed to submit payment'));
+          // Validate payment method
+          if (!paymentMethodInput || !paymentMethodInput.value) {
+            errorMessage.textContent = 'Please select a payment method';
+            errorMessage.style.display = 'block';
+            return;
           }
-        } catch (error) {
-          console.error('Error submitting payment:', error);
-          alert('An error occurred while submitting your payment. Please try again.');
-        }
-      });
-    });
-
-    window.addEventListener('DOMContentLoaded', function() {
-      const isDelinquent = sessionStorage.getItem('isDelinquent');
-      
-      if (!isDelinquent) {
-        console.log('No delinquent flag in sessionStorage, checking localStorage');
-        // Try localStorage as a fallback
-        const isDelinquentLocal = localStorage.getItem('delinquentUser');
-        
-        if (!isDelinquentLocal) {
-          console.log('Not a delinquent user, redirecting to login');
-          window.location.href = '/login.html';
-          return;
-        } else {
-          // Copy from localStorage to sessionStorage for consistency
-          sessionStorage.setItem('isDelinquent', 'true');
-          sessionStorage.setItem('delinquentUsername', localStorage.getItem('delinquentUsername'));
-          sessionStorage.setItem('delinquentEmail', localStorage.getItem('delinquentEmail'));
-          sessionStorage.setItem('dueAmount', localStorage.getItem('dueAmount'));
-        }
+          
+          // Validate file upload
+          if (!receiptUpload || !receiptUpload.files[0]) {
+            errorMessage.textContent = 'Please upload a receipt';
+            errorMessage.style.display = 'block';
+            return;
+          }
+          
+          // Hide error message if validation passes
+          errorMessage.style.display = 'none';
+          
+          // Disable submit button to prevent multiple submissions
+          const submitBtn = document.getElementById('submitPaymentBtn');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+          }
+          
+          try {
+            const formData = new FormData(this);
+            
+            // Send the form data to the server
+            const response = await fetch('/api/monthly-dues-payment', {
+              method: 'POST',
+              body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+              alert('Payment submitted successfully! Admin will review your payment.');
+              
+              // Clear localStorage items
+              localStorage.removeItem('delinquentUser');
+              localStorage.removeItem('delinquentUsername');
+              localStorage.removeItem('delinquentEmail');
+              localStorage.removeItem('dueAmount');
+              
+              // Redirect to login page
+              window.location.href = '/login.html';
+            } else {
+              errorMessage.textContent = 'Error: ' + (result.message || 'Failed to submit payment. Please try again.');
+              errorMessage.style.display = 'block';
+              
+              // Re-enable submit button
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Payment';
+              }
+            }
+          } catch (error) {
+            console.error('Error submitting payment:', error);
+            errorMessage.textContent = 'An error occurred while submitting your payment. Please try again.';
+            errorMessage.style.display = 'block';
+            
+            // Re-enable submit button
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Submit Payment';
+            }
+          }
+        });
       }
-    
-    // If we're here, we're a delinquent user
-    console.log('Delinquent user confirmed, loading payment page');
-    
-    // Populate user info from sessionStorage
-    const username = sessionStorage.getItem('delinquentUsername') || '';
-    const email = sessionStorage.getItem('delinquentEmail') || '';
-    const dueAmount = sessionStorage.getItem('dueAmount') || '0.00';
-    
-    // Update any elements that need to display this info
-    const usernameElements = document.querySelectorAll('.user-name');
-    const emailElements = document.querySelectorAll('.user-email');
-    const amountElements = document.querySelectorAll('.due-amount');
-    
-    usernameElements.forEach(el => { el.textContent = username; });
-    emailElements.forEach(el => { el.textContent = email; });
-    amountElements.forEach(el => { el.textContent = dueAmount; });
-    
-    // Set form values if needed
-    const emailInputs = document.querySelectorAll('input[name="userEmail"]');
-    const usernameInputs = document.querySelectorAll('input[name="userName"]');
-    
-    emailInputs.forEach(el => { el.value = email; });
-    usernameInputs.forEach(el => { el.value = username; });
-  });
-
-  (function() {
-      const isDelinquent = localStorage.getItem('delinquentUser');
-      console.log('MDPayment.html loaded, delinquent status:', isDelinquent);
       
-      // If not a delinquent user and not already redirecting, go to login
-      if (!isDelinquent && !sessionStorage.getItem('redirecting')) {
-        console.log('Not a delinquent user, redirecting to login');
-        sessionStorage.setItem('redirecting', 'true');
-        window.location.replace('/login.html');
-      } else {
-        // Clear the redirecting flag if we're staying on this page
-        sessionStorage.removeItem('redirecting');
-        
-        // Get user info from localStorage
-        const username = localStorage.getItem('delinquentUsername') || '';
-        const email = localStorage.getItem('delinquentEmail') || '';
-        const dueAmount = localStorage.getItem('dueAmount') || '0.00';
-        
-        // Make this info available to the page
-        window.delinquentInfo = {
-          username: username,
-          email: email,
-          dueAmount: dueAmount
-        };
-        
-        console.log('Delinquent user confirmed:', window.delinquentInfo);
-      }
-    })();
-
-    document.addEventListener("DOMContentLoaded", () => {
-  // Check if this is a delinquent user from localStorage
-  const isDelinquent = localStorage.getItem("delinquentUser")
-  const delinquentUsername = localStorage.getItem("delinquentUsername")
-  const delinquentEmail = localStorage.getItem("delinquentEmail")
-  const dueAmount = localStorage.getItem("dueAmount")
-
-  if (isDelinquent) {
-    console.log("Delinquent user detected in MDPayment.html")
-
-    // Populate the payment form with the delinquent user's information
-    if (document.getElementById("userEmail")) {
-      document.getElementById("userEmail").value = delinquentEmail || ""
-    }
-
-    if (document.getElementById("userName")) {
-      document.getElementById("userName").value = delinquentUsername || ""
-    }
-
-    if (document.getElementById("dueAmount")) {
-      document.getElementById("dueAmount").textContent = dueAmount || "₱0.00"
-    }
-
-    // You can also set the final amount field if it exists
-    if (document.getElementById("finalAmount")) {
-      document.getElementById("finalAmount").value = dueAmount ? dueAmount.replace("₱", "") : "0.00"
-    }
-  } else {
-    console.log("No delinquent user detected, checking session...")
-
-    // If no delinquent info in localStorage, check with the server
-    fetch("/api/check-auth")
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data.authenticated) {
-          // Not authenticated, redirect to login
-          console.log("User not authenticated, redirecting to login")
-          window.location.href = "/login.html"
-        }
-      })
-      .catch((error) => {
-        console.error("Error checking authentication:", error)
-      })
-  }
-})
-
-
-  document.addEventListener('DOMContentLoaded', function() {
-      // Populate user info from the window.delinquentInfo object
-      if (window.delinquentInfo) {
-        // Update any elements that need to display this info
-        const usernameElements = document.querySelectorAll('.user-name');
-        const emailElements = document.querySelectorAll('.user-email');
-        const amountElements = document.querySelectorAll('.due-amount');
-        
-        usernameElements.forEach(el => { el.textContent = window.delinquentInfo.username; });
-        emailElements.forEach(el => { el.textContent = window.delinquentInfo.email; });
-        amountElements.forEach(el => { el.textContent = window.delinquentInfo.dueAmount; });
-        
-        // Set form values if needed
-        const emailInputs = document.querySelectorAll('input[name="userEmail"]');
-        const usernameInputs = document.querySelectorAll('input[name="userName"]');
-        
-        emailInputs.forEach(el => { el.value = window.delinquentInfo.email; });
-        usernameInputs.forEach(el => { el.value = window.delinquentInfo.username; });
+      // Make the file upload div clickable
+      const fileUploadDiv = document.querySelector('.file-upload');
+      if (fileUploadDiv && receiptUpload) {
+        fileUploadDiv.addEventListener('click', function() {
+          receiptUpload.click();
+        });
       }
     });
-  
-  // Prevent recursive refreshing by checking if page is being reloaded
-  if (performance.navigation.type === 1) {
-    console.log('Page is being reloaded, not redirecting');
-  }
   </script>
 </body>
 </html>

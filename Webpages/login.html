@@ -298,232 +298,6 @@
           display: none;
       }
   </style>
-  <script>
-    
-document.addEventListener("DOMContentLoaded", () => {
-  // Check if user is already logged in
-  checkAlreadyLoggedIn();
-
-  // Handle login form submission
-  document.addEventListener("DOMContentLoaded", () => {
-      // Handle login form submission
-      document.getElementById('loginForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        
-        try {
-          const login = document.getElementById('login').value;
-          const password = document.getElementById('password').value;
-          
-          // Show loading indicator
-          const errorMessage = document.getElementById('errorMessage');
-          errorMessage.textContent = "Logging in...";
-          errorMessage.style.display = "block";
-          errorMessage.style.color = "#333";
-          
-          // Send login request to server
-          const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              login: login,
-              password: password
-            }),
-            credentials: 'include'
-          });
-          
-          const data = await response.json();
-          console.log("Login response:", data); // Debug log
-          
-          if (data.success) {
-            // Store user info in localStorage
-            localStorage.setItem('username', data.username);
-            localStorage.setItem('email', data.email);
-            
-            errorMessage.textContent = "Login successful! Redirecting...";
-            errorMessage.style.color = "green";
-            
-            // Redirect based on role
-            window.location.href = data.redirectUrl;
-          } else if (data.isDelinquent) {
-            // User is delinquent - store info in sessionStorage
-            sessionStorage.setItem('isDelinquent', 'true');
-            sessionStorage.setItem('delinquentUsername', data.username);
-            sessionStorage.setItem('delinquentEmail', data.email);
-            sessionStorage.setItem('dueAmount', data.dueAmount);
-            
-            // Also store in localStorage as a backup
-            localStorage.setItem('delinquentUser', 'true');
-            localStorage.setItem('delinquentUsername', data.username);
-            localStorage.setItem('delinquentEmail', data.email);
-            localStorage.setItem('dueAmount', data.dueAmount);
-            
-            console.log("User is delinquent, redirecting to payment page");
-            
-            // Redirect directly to payment page
-            window.location.href = '/Webpages/MDPayment.html';
-          } else {
-            // Regular login failure
-            errorMessage.textContent = data.message || 'Invalid credentials';
-            errorMessage.style.color = "#AF2630";
-            errorMessage.style.display = 'block';
-          }
-        } catch (error) {
-          console.error('Login error:', error);
-          document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
-          document.getElementById('errorMessage').style.color = "#AF2630";
-          document.getElementById('errorMessage').style.display = 'block';
-        }
-      });
-      
-      // Close delinquent modal when clicking the X
-      const closeModalBtn = document.getElementById("closeDelinquentModal");
-      if (closeModalBtn) {
-        closeModalBtn.addEventListener("click", () => {
-          document.getElementById("delinquentModal").style.display = "none";
-        });
-      }
-    });
-
-  
-  // Handle "Pay Now" button click - Make sure this is working correctly
-  document.getElementById('payNowBtn').addEventListener('click', function() {
-          console.log("Pay Now button clicked, redirecting to MDPayment.html");
-          
-          // Add debugging information
-          const debugInfo = {
-            currentLocation: window.location.href,
-            targetLocation: './MDPayment.html',
-            timestamp: new Date().toISOString()
-          };
-          console.log("Debug info:", debugInfo);
-          
-          // Try both approaches to redirect
-          try {
-            window.location.href = './MDPayment.html';
-            // As a fallback, try after a short delay
-            setTimeout(() => {
-              window.location.replace('./MDPayment.html');
-            }, 100);
-          } catch (error) {
-            console.error("Error during redirect:", error);
-          }
-        });
-
-  // Close delinquent modal when clicking the X
-  document.getElementById("closeDelinquentModal").addEventListener("click", () => {
-    document.getElementById("delinquentModal").style.display = "none";
-  });
-});
-
-// Function to check if user is already logged in
-async function checkAlreadyLoggedIn() {
-  try {
-    const response = await fetch("/api/check-auth", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache",
-      },
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const data = await response.json();
-
-    if (data.authenticated) {
-      // User is already logged in, redirect to appropriate page
-      const redirectUrl = data.user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html";
-      console.log(`User already logged in, redirecting to ${redirectUrl}`);
-      window.location.href = redirectUrl;
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error(`Error checking login status: ${error.message}`);
-    return false;
-  }
-}
-
-function closeCustomAlert() {
-      document.getElementById('customAlert').style.display = 'none';
-    }
-  
-
-function showCustomAlert(message) {
-  const alertElement = document.getElementById('customAlert');
-  const messageElement = document.getElementById('customAlertMessage');
-  if (alertElement && messageElement) {
-      messageElement.textContent = message;
-      alertElement.style.display = 'block';
-  }
-}
-
-// Check session status on page load and periodically
-checkSessionStatus();
-setInterval(checkSessionStatus, 5000);
-
-// Update the checkSessionStatus function to handle undefined error
-function checkSessionStatus() {
-  try {
-    fetch("/api/check-auth", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache",
-      },
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Update session info if available
-      const sessionInfo = document.getElementById("session-info");
-      if (sessionInfo) {
-        if (data.authenticated) {
-          sessionInfo.textContent = `Logged in as: ${data.user.email} (${data.user.role})`;
-          sessionInfo.style.display = "block";
-        } else {
-          sessionInfo.style.display = "none";
-        }
-      }
-    })
-    .catch(error => {
-      console.error("Error checking session:", error);
-    });
-  } catch (error) {
-    console.error("Error in checkSessionStatus:", error);
-  }
-}
-
-document.getElementById("payNowBtn").addEventListener("click", () => {
-  console.log("Pay Now button clicked")
-
-  // Store delinquent info in localStorage before redirect
-  const delinquentUsername = document.getElementById("delinquentUsername").textContent
-  const delinquentEmail = document.getElementById("delinquentEmail").textContent
-  const dueAmount = document.getElementById("delinquentAmount").textContent
-
-  localStorage.setItem("delinquentUser", "true")
-  localStorage.setItem("delinquentUsername", delinquentUsername)
-  localStorage.setItem("delinquentEmail", delinquentEmail)
-  localStorage.setItem("dueAmount", dueAmount)
-
-  // Use window.location.href for the redirect
-  window.location.href = "/Webpages/MDPayment.html"
-})
-
-
-</script>
 </head>
 <body>
   <div class="top-bar"></div>
@@ -559,6 +333,8 @@ document.getElementById("payNowBtn").addEventListener("click", () => {
           <p>Your account has outstanding monthly dues that need to be paid before you can access the system.</p>
           <p>Outstanding Amount:</p>
           <div class="amount" id="delinquentAmount">₱0.00</div>
+          <p id="delinquentUsername" style="display: none;"></p>
+          <p id="delinquentEmail" style="display: none;"></p>
           <p>Please settle your dues to regain access to all features.</p>
           <button id="payNowBtn" class="pay-now-btn">Pay Now</button>
       </div>
@@ -574,5 +350,152 @@ document.getElementById("payNowBtn").addEventListener("click", () => {
       </div>
   </div>
 
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+      // Handle login form submission
+      document.getElementById('loginForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        try {
+          const formData = new FormData(this);
+          const email = formData.get('login');
+          const password = formData.get('password');
+          
+          // Show loading indicator
+          const errorMessage = document.getElementById('errorMessage');
+          errorMessage.textContent = "Logging in...";
+          errorMessage.style.display = "block";
+          errorMessage.style.color = "#333";
+          
+          // Send login request to server
+          const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              login: email,
+              password: password
+            }),
+            credentials: 'include'
+          });
+          
+          const data = await response.json();
+          console.log("Login response:", data); // Debug log
+          
+          if (data.success) {
+            // Store user info in localStorage
+            localStorage.setItem('username', data.username);
+            localStorage.setItem('email', data.email);
+            
+            errorMessage.textContent = "Login successful! Redirecting...";
+            errorMessage.style.color = "green";
+            
+            // Redirect based on role
+            window.location.href = data.redirectUrl;
+          } else if (data.isDelinquent) {
+            // User is delinquent - store info and show modal
+            localStorage.setItem('username', data.username);
+            localStorage.setItem('email', data.email);
+            localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+            localStorage.setItem('delinquentUser', 'true');
+            
+            console.log("User is delinquent, showing modal"); // Debug log
+            
+            // Show delinquent modal with user information
+            document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
+            document.getElementById('delinquentUsername').textContent = data.username;
+            document.getElementById('delinquentEmail').textContent = data.email;
+            document.getElementById('delinquentModal').style.display = 'block';
+          } else {
+            // Regular login failure
+            errorMessage.textContent = data.message || 'Invalid credentials';
+            errorMessage.style.color = "#AF2630";
+            errorMessage.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+          document.getElementById('errorMessage').style.color = "#AF2630";
+          document.getElementById('errorMessage').style.display = 'block';
+        }
+      });
+      window.addEventListener('DOMContentLoaded', () => {
+            const delinquentInfo = JSON.parse(localStorage.getItem('delinquentUser'));
+
+            if (delinquentInfo && delinquentInfo.delinquent === "true") {
+                // Show modal
+                $('#delinquentModal').modal('show');
+                document.getElementById('modalUsername').textContent = delinquentInfo.delinquentUsername;
+                document.getElementById('modalEmail').textContent = delinquentInfo.delinquentEmail;
+                document.getElementById('modalDueAmount').textContent = delinquentInfo.dueAmount;
+            }
+
+            document.getElementById('payNowBtn').addEventListener('click', () => {
+                // Clear delinquent data
+                localStorage.removeItem('delinquentUser');
+
+                // Redirect to the payment page
+                window.location.href = "MDPayment.html"; // Or replace with your intended page after payment
+            });
+        });
+      
+      // Pay Now button click handler - FIXED
+      document.getElementById('payNowBtn').addEventListener('click', function() {
+        console.log("Pay Now button clicked, redirecting to MDPayment.html");
+        
+        // Store delinquent info in localStorage before redirect
+        const username = document.getElementById('delinquentUsername').textContent;
+        const email = document.getElementById('delinquentEmail').textContent;
+        const dueAmount = document.getElementById('delinquentAmount').textContent;
+        
+        localStorage.setItem('delinquentUser', 'true');
+        localStorage.setItem('delinquentUsername', username);
+        localStorage.setItem('delinquentEmail', email);
+        localStorage.setItem('dueAmount', dueAmount);
+        
+        console.log("Stored in localStorage:", {
+          delinquentUser: 'true',
+          delinquentUsername: username,
+          delinquentEmail: email,
+          dueAmount: dueAmount
+        });
+        
+        // Try both paths for the redirect
+        try {
+          window.location.href = '/MDPayment.html';
+          
+          // As a fallback, try the Webpages path after a short delay
+          setTimeout(() => {
+            if (window.location.pathname.includes('/login.html')) {
+              console.log("First redirect failed, trying Webpages path");
+              window.location.href = '/Webpages/MDPayment.html';
+            }
+          }, 200);
+        } catch (error) {
+          console.error("Error during redirect:", error);
+          alert("Error navigating to payment page. Please try again.");
+        }
+      });
+
+      // Close delinquent modal when clicking the X
+      document.getElementById("closeDelinquentModal").addEventListener("click", () => {
+        document.getElementById("delinquentModal").style.display = "none";
+      });
+    });
+
+    function closeCustomAlert() {
+      document.getElementById('customAlert').style.display = 'none';
+    }
+  
+    function showCustomAlert(message) {
+      const alertElement = document.getElementById('customAlert');
+      const messageElement = document.getElementById('customAlertMessage');
+      if (alertElement && messageElement) {
+          messageElement.textContent = message;
+          alertElement.style.display = 'block';
+      }
+    }
+  </script>
 </body>
 </html>
