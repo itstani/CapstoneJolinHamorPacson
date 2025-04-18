@@ -948,6 +948,53 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
   }
 })
 
+// Add this endpoint to server.js after other API endpoints
+app.get("/api/monthly-payments", async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+    const paymentsCollection = db.collection("monthlyPayments")
+
+    // Get query parameters for filtering
+    const status = req.query.status || "all"
+    const page = Number.parseInt(req.query.page) || 1
+    const limit = Number.parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
+    const search = req.query.search || ""
+
+    // Build the query
+    const query = {}
+    if (status !== "all") {
+      query.status = status
+    }
+
+    // Add search functionality
+    if (search) {
+      query.$or = [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }]
+    }
+
+    // Get total count for pagination
+    const totalPayments = await paymentsCollection.countDocuments(query)
+
+    // Get payments with pagination
+    const payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
+
+    res.json({
+      success: true,
+      payments,
+      currentPage: page,
+      totalPages: Math.ceil(totalPayments / limit) || 1,
+      totalPayments,
+    })
+  } catch (error) {
+    console.error("Error fetching monthly payments:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error fetching payments",
+      error: error.message,
+    })
+  }
+})
+
 app.get("/api/monthly-payments/:id", async (req, res) => {
   try {
     const { id } = req.params

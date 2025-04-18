@@ -483,7 +483,7 @@
       let totalPages = 1;
       let currentPaymentId = null;
       let searchQuery = '';
-
+  
       // DOM elements
       const tabs = document.querySelectorAll('.tab');
       const paymentsContainer = document.getElementById('paymentsContainer');
@@ -502,10 +502,10 @@
       const closeViewModal = document.getElementById('closeViewModal');
       const closeViewButton = document.getElementById('closeViewButton');
       const paymentDetails = document.getElementById('paymentDetails');
-
+  
       // Initialize
       loadPayments();
-
+  
       // Tab click event
       tabs.forEach(tab => {
         tab.addEventListener('click', function() {
@@ -516,14 +516,14 @@
           loadPayments();
         });
       });
-
+  
       // Search functionality
       searchButton.addEventListener('click', function() {
         searchQuery = searchInput.value.trim();
         currentPage = 1;
         loadPayments();
       });
-
+  
       searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           searchQuery = searchInput.value.trim();
@@ -531,16 +531,16 @@
           loadPayments();
         }
       });
-
+  
       // Modal events
       closeRejectModal.addEventListener('click', () => rejectModal.style.display = 'none');
       cancelReject.addEventListener('click', () => rejectModal.style.display = 'none');
       
       closeViewModal.addEventListener('click', () => viewModal.style.display = 'none');
       closeViewButton.addEventListener('click', () => viewModal.style.display = 'none');
-
+  
       confirmReject.addEventListener('click', rejectPayment);
-
+  
       // Window click to close modals
       window.addEventListener('click', function(event) {
         if (event.target === rejectModal) {
@@ -550,89 +550,34 @@
           viewModal.style.display = 'none';
         }
       });
-
-      // Logout button
-      document.getElementById('logoutButton').addEventListener('click', async function() {
-        try {
-          const response = await fetch('/logout', { method: 'POST' });
-          if (response.ok) {
-            window.location.href = '/login.html';
-          } else {
-            alert('Logout failed. Please try again.');
-          }
-        } catch (error) {
-          console.error('Error during logout:', error);
-          alert('An error occurred during logout. Please try again.');
-        }
-      });
-
+  
       // Functions
-      document.addEventListener('DOMContentLoaded', () => {
-      loadPayments();
-
       function loadPayments() {
-        fetch('/api/monthly-payments/') // 🔄 Replace this with your actual route
+        paymentsContainer.innerHTML = '<div class="loading">Loading payments...</div>';
+        
+        const url = `/api/monthly-payments?status=${currentStatus}&page=${currentPage}&search=${searchQuery}`;
+        
+        fetch(url)
           .then(response => {
             if (!response.ok) {
               throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            return response.json(); // ✅ Correct way to parse JSON
+            return response.json();
           })
-          .then(payments => {
-            displayPayments(payments);
+          .then(data => {
+            if (data.success) {
+              renderPayments(data.payments);
+              renderPagination(currentPage, data.totalPages);
+            } else {
+              showError(data.message || 'Failed to load payments');
+            }
           })
           .catch(error => {
             console.error("Error loading payments:", error);
             showError(`Error loading payments: ${error.message}`);
           });
       }
-
-      function displayPayments(data) {
-        const container = document.getElementById('paymentsTableContainer');
-        if (!Array.isArray(data)) {
-          showError('Data format is incorrect. Expected an array.');
-          return;
-        }
-
-        if (data.length === 0) {
-          container.innerHTML = '<p>No payments found.</p>';
-          return;
-        }
-
-        const table = document.createElement('table');
-        table.innerHTML = `
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(payment => `
-              <tr>
-                <td>${payment.name || ''}</td>
-                <td>${payment.email || ''}</td>
-                <td>₱${payment.amount || '0.00'}</td>
-                <td>${payment.status || 'Pending'}</td>
-                <td>${payment.date || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        `;
-        container.innerHTML = '';
-        container.appendChild(table);
-      }
-
-      function showError(message) {
-        const errorContainer = document.getElementById('errorContainer');
-        errorContainer.textContent = message;
-        errorContainer.style.display = 'block';
-      }
-    });
-
+  
       function renderPayments(payments) {
         if (!payments || payments.length === 0) {
           paymentsContainer.innerHTML = `
@@ -714,7 +659,7 @@
           });
         });
       }
-
+  
       function renderPagination(currentPage, totalPages) {
         if (totalPages <= 1) {
           pagination.innerHTML = '';
@@ -755,13 +700,21 @@
           }
         });
       }
-
+  
       function changePage(page) {
         if (page < 1 || page > totalPages) return;
         currentPage = page;
         loadPayments();
       }
-
+  
+      function showError(message) {
+        paymentsContainer.innerHTML = `
+          <div class="error-state">
+            <p>${message}</p>
+          </div>
+        `;
+      }
+  
       async function approvePayment(id) {
         try {
           const response = await fetch(`/api/monthly-payments/${id}/approve`, {
@@ -784,13 +737,13 @@
           alert('An error occurred while approving the payment. Please try again.');
         }
       }
-
+  
       function showRejectModal(id) {
         currentPaymentId = id;
         rejectionReason.value = '';
         rejectModal.style.display = 'block';
       }
-
+  
       async function rejectPayment() {
         const reason = rejectionReason.value.trim();
         
@@ -822,7 +775,7 @@
           alert('An error occurred while rejecting the payment. Please try again.');
         }
       }
-
+  
       async function viewPayment(id) {
         try {
           const response = await fetch(`/api/monthly-payments/${id}`);
@@ -884,6 +837,26 @@
         }
       }
     });
+
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+      logoutButton.addEventListener('click', async () => {
+        try {
+          const response = await fetch('/logout', { method: 'POST' });
+          if (response.ok) {
+            localStorage.clear(); // Clear user data
+            window.location.href = 'login.html'; // Redirect to the login page
+          } else {
+            showErrorMessage('Logout failed. Please try again.');
+          }
+        } catch (error) {
+          console.error('Error during logout:', error);
+          showErrorMessage('An error occurred during logout. Please try again.');
+        }
+      });
+    }
+  
   </script>
+  
 </body>
 </html>
