@@ -86,12 +86,6 @@ app.use(
   }),
 )
 
-// Add this middleware to improve session handling
-// Add this right after your session middleware configuration
-
-// Add this middleware right after your session middleware configuration
-
-// Add this middleware right after the session middleware to log session data
 app.use((req, res, next) => {
   console.log("Session middleware - Current session:", {
     id: req.sessionID,
@@ -111,7 +105,6 @@ app.use((req, res, next) => {
   next()
 })
 
-// Add this middleware right after the session middleware to log session data
 app.use((req, res, next) => {
   console.log("Session middleware - Current session:", {
     id: req.sessionID,
@@ -122,13 +115,11 @@ app.use((req, res, next) => {
 })
 
 
-// And replace it with this:
 app.use((req, res, next) => {
   // List of paths that require authentication
   const protectedPaths = [
     "/AdHome.html",
     "/HoHome.html",
-    "/monthly-payments.html",
     "/admin/",
     "/homeowner/",
     // Add other protected paths here
@@ -138,6 +129,7 @@ app.use((req, res, next) => {
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
+    "/monthly-payments.html",
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
