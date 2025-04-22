@@ -26,9 +26,9 @@ app.use((req, res, next) => {
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
-    "/monthly-payments.html", // Add this line
-    "/Webpages/monthly-payments.html", // Add this line
-    "/Webpages/Monthly-payments.html", // Add this line (with capital M)
+    "/monthly-payments.html",
+    "/Webpages/monthly-payments.html", // lowercase m
+    "/Webpages/Monthly-payments.html", // uppercase M
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
@@ -36,10 +36,14 @@ app.use((req, res, next) => {
   ]
 
   // Check if the current path should be allowed without authentication
-  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
+  const isPublicPath = publicPaths.some((path) => {
+    const result = req.path === path || req.path.startsWith(path)
+    if (result) console.log(`[DEBUG] Path ${req.path} matched public path ${path}`)
+    return result
+  })
 
   if (isPublicPath) {
-    console.log(`Public path accessed: ${req.path}`)
+    console.log(`[DEBUG] Public path accessed: ${req.path}`)
     return next()
   }
 
@@ -122,27 +126,37 @@ app.use((req, res, next) => {
     "/login.html",
     "/MDPayment.html",
     "/monthly-payments.html",
-    "/Webpages/monthly-payments.html", // Add this line
-    "/Webpages/Monthly-payments.html", // Add this line (with capital M)
+    "/Webpages/monthly-payments.html", // lowercase m
+    "/Webpages/Monthly-payments.html", // uppercase M
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
     "/CSS/",
   ]
+
   // Check if the current path is public (always allowed)
-  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
+  const isPublicPath = publicPaths.some((path) => {
+    const result = req.path === path || req.path.startsWith(path)
+    if (result) console.log(`[DEBUG] Path ${req.path} matched public path ${path}`)
+    return result
+  })
 
   if (isPublicPath) {
+    console.log(`[DEBUG] Allowing access to public path: ${req.path}`)
     return next() // Allow access to public paths
   }
 
   // Check if the current path is protected
-  const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path))
+  const isProtected = protectedPaths.some((path) => {
+    const result = req.path === path || req.path.startsWith(path)
+    if (result) console.log(`[DEBUG] Path ${req.path} matched protected path ${path}`)
+    return result
+  })
 
   if (isProtected) {
     // If this is a protected path and user is not logged in, redirect to login
     if (!req.session || !req.session.user) {
-      console.log(`Unauthorized access attempt to ${req.path}, redirecting to login`)
+      console.log(`[DEBUG] Unauthorized access attempt to ${req.path}, redirecting to login`)
       return res.redirect("/login.html") // Redirect to login page
     }
   }
@@ -242,6 +256,47 @@ function formatTime(timeString) {
 // Add debug logging to track request flow:
 
 // Specific static file handling with logging
+
+app.get(
+  ["/monthly-payments.html", "/Webpages/monthly-payments.html", "/Webpages/Monthly-payments.html"],
+  (req, res) => {
+    console.log(`[DEBUG] Special monthly payments route accessed: ${req.path}`)
+
+    // Check if user is authenticated as admin
+    if (req.session && req.session.user && req.session.user.role === "admin") {
+      console.log("[DEBUG] Admin user accessing monthly payments page")
+      res.sendFile(path.join(__dirname, "Webpages", "monthly-payments.html"))
+    } else {
+      console.log("[DEBUG] Non-admin user attempting to access monthly payments page")
+      res.redirect("/login.html")
+    }
+  },
+)
+
+// Add a debug endpoint to check file existence
+app.get("/api/debug/file-check", (req, res) => {
+  const filesToCheck = [
+    { path: "/monthly-payments.html", fullPath: path.join(__dirname, "monthly-payments.html") },
+    { path: "/Webpages/monthly-payments.html", fullPath: path.join(__dirname, "Webpages", "monthly-payments.html") },
+    { path: "/Webpages/Monthly-payments.html", fullPath: path.join(__dirname, "Webpages", "Monthly-payments.html") },
+  ]
+
+  const results = filesToCheck.map((file) => {
+    const exists = fs.existsSync(file.fullPath)
+    return {
+      path: file.path,
+      fullPath: file.fullPath,
+      exists: exists,
+    }
+  })
+
+  res.json({
+    success: true,
+    results: results,
+    serverDirectory: __dirname,
+  })
+})
+
 
 app.get("/debug", async (req, res) => {
   try {
