@@ -27,11 +27,12 @@ app.use((req, res, next) => {
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
+    "/monthly-payments.html", // Add this line
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
     "/CSS/",
-  ]
+  ];
 
   // Check if the current path should be allowed without authentication
   const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
@@ -121,13 +122,12 @@ app.use((req, res, next) => {
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
-    "/monthly-payments.html", // Ensure this is included
+    "/monthly-payments.html", // Add this line
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
     "/CSS/",
   ];
-
   // Check if the current path is public (always allowed)
   const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path));
 
