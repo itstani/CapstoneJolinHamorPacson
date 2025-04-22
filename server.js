@@ -105,14 +105,6 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use((req, res, next) => {
-  console.log("Session middleware - Current session:", {
-    id: req.sessionID,
-    user: req.session?.user,
-    cookie: req.session?.cookie,
-  })
-  next()
-})
 
 
 app.use((req, res, next) => {
@@ -123,52 +115,39 @@ app.use((req, res, next) => {
     "/admin/",
     "/homeowner/",
     // Add other protected paths here
-  ]
+  ];
 
   // List of paths that should be accessible without authentication
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
-    "/monthly-payments.html",
+    "/monthly-payments.html", // Ensure this is included
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
     "/CSS/",
-  ]
+  ];
 
   // Check if the current path is public (always allowed)
-  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
+  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path));
 
   if (isPublicPath) {
-    return next()
+    return next(); // Allow access to public paths
   }
 
   // Check if the current path is protected
-  const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path))
+  const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path));
 
   if (isProtected) {
     // If this is a protected path and user is not logged in, redirect to login
     if (!req.session || !req.session.user) {
-      console.log(`Unauthorized access attempt to ${req.path}, redirecting to login`)
-
-      // If it's an API request, return 401
-      if (req.path.startsWith("/api/") || req.headers.accept?.includes("application/json")) {
-        return res.status(401).json({ success: false, message: "Authentication required" })
-      }
-
-      // Otherwise redirect to login page
-      return res.redirect("/login.html")
-    }
-
-    // For admin paths, check if user has admin role
-    if (req.path.startsWith("/admin/") && req.session.user.role !== "admin") {
-      console.log(`Non-admin user ${req.session.user.email} attempted to access ${req.path}`)
-      return res.status(403).send("Access denied")
+      console.log(`Unauthorized access attempt to ${req.path}, redirecting to login`);
+      return res.redirect("/login.html"); // Redirect to login page
     }
   }
 
-  next()
-})
+  next(); // Proceed to the next middleware or route handler
+});
 
 // Add this middleware right after the authentication middleware to allow access to MDPayment.html for delinquent users
 app.use((req, res, next) => {
