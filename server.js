@@ -151,6 +151,7 @@ app.use((req, res, next) => {
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
+    "/monthly-payments.html",
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
