@@ -1115,6 +1115,79 @@
         }
       }
 
+      // Handle admin form submission
+      document.getElementById("adminForm").onsubmit = async function(e) {
+        e.preventDefault();
+        const subject = document.getElementById("subject").value;
+        const message = document.getElementById("message").value;
+        const fileInput = document.getElementById("fileInput");
+        const concernId = this.dataset.concernId; // Get the concern ID from the data attribute
+        
+        if (!subject || !message) {
+          showCustomAlert("Please fill in both subject and message fields");
+          return;
+        }
+        
+        if (!concernId) {
+          showCustomAlert("Error: Missing concern ID");
+          return;
+        }
+        
+        try {
+          const formData = new FormData();
+          formData.append("subject", subject);
+          formData.append("message", message);
+          formData.append("concernId", concernId); // Add the concern ID to the form data
+          
+          if (fileInput.files.length > 0) {
+            formData.append("attachment", fileInput.files[0]);
+          }
+          
+          const response = await fetch("/sendReply", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              subject: subject,
+              message: message,
+              concernId: concernId
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            showCustomAlert("Reply sent successfully!");
+            document.getElementById("adminPopup").style.display = "none";
+            document.getElementById("adminForm").reset();
+            document.getElementById("concernModal").style.display = "none";
+            loadConcerns(concernsPage); // Reload concerns to show updated status
+          } else {
+            showCustomAlert("Failed to send the reply: " + (result.message || "Unknown error"));
+          }
+        } catch (error) {
+          console.error("Error sending reply:", error);
+          showCustomAlert("Error sending reply: " + error.message);
+        }
+      };
+
+      // Close popup when cancel button is clicked
+      document.getElementById("closePopup").addEventListener("click", function() {
+        document.getElementById("adminPopup").style.display = "none";
+      });
+
+      // Close modal when clicking outside
+      window.addEventListener("click", function(event) {
+        const modal = document.getElementById("concernModal");
+        if (event.target === modal) {
+          modal.style.display = "none";
+        }
+        
+        const popup = document.getElementById("adminPopup");
+        if (event.target === popup) {
+          popup.style.display = "none";
+        }
+      });
       async function loadRecentActivity(page = 1) {
         try {
           const activityBox = document.getElementById("recent-activity-box");
@@ -1383,7 +1456,6 @@
             break;
         }
       }
-
       // Modify the DOMContentLoaded event handler to include a fallback
       document.addEventListener("DOMContentLoaded", function() {
         // Try to load concerns

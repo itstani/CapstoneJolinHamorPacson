@@ -21,18 +21,19 @@ app.use(express.json())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-
 app.use((req, res, next) => {
   // List of paths that should be accessible even for delinquent users
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
     "/monthly-payments.html", // Add this line
+    "/Webpages/monthly-payments.html", // Add this line
+    "/Webpages/Monthly-payments.html", // Add this line (with capital M)
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
     "/CSS/",
-  ];
+  ]
 
   // Check if the current path should be allowed without authentication
   const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
@@ -106,8 +107,6 @@ app.use((req, res, next) => {
   next()
 })
 
-
-
 app.use((req, res, next) => {
   // List of paths that require authentication
   const protectedPaths = [
@@ -116,38 +115,40 @@ app.use((req, res, next) => {
     "/admin/",
     "/homeowner/",
     // Add other protected paths here
-  ];
+  ]
 
   // List of paths that should be accessible without authentication
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
-    "/monthly-payments.html", // Add this line
+    "/monthly-payments.html",
+    "/Webpages/monthly-payments.html", // Add this line
+    "/Webpages/Monthly-payments.html", // Add this line (with capital M)
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
     "/CSS/",
-  ];
+  ]
   // Check if the current path is public (always allowed)
-  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path));
+  const isPublicPath = publicPaths.some((path) => req.path === path || req.path.startsWith(path))
 
   if (isPublicPath) {
-    return next(); // Allow access to public paths
+    return next() // Allow access to public paths
   }
 
   // Check if the current path is protected
-  const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path));
+  const isProtected = protectedPaths.some((path) => req.path === path || req.path.startsWith(path))
 
   if (isProtected) {
     // If this is a protected path and user is not logged in, redirect to login
     if (!req.session || !req.session.user) {
-      console.log(`Unauthorized access attempt to ${req.path}, redirecting to login`);
-      return res.redirect("/login.html"); // Redirect to login page
+      console.log(`Unauthorized access attempt to ${req.path}, redirecting to login`)
+      return res.redirect("/login.html") // Redirect to login page
     }
   }
 
-  next(); // Proceed to the next middleware or route handler
-});
+  next() // Proceed to the next middleware or route handler
+})
 
 // Add this middleware right after the authentication middleware to allow access to MDPayment.html for delinquent users
 app.use((req, res, next) => {
@@ -1012,25 +1013,25 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
     // Update payment status
     await paymentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          status: "approved", 
+      {
+        $set: {
+          status: "approved",
           approvedAt: new Date(),
-          approvedBy: req.session?.user?.username || "admin"
-        } 
-      }
+          approvedBy: req.session?.user?.username || "admin",
+        },
+      },
     )
 
     // Update homeowner status
     await homeownersCollection.updateOne(
       { email: payment.userEmail },
-      { 
-        $set: { 
+      {
+        $set: {
           paymentStatus: "Compliant",
           homeownerStatus: "Compliant",
-          dueAmount: "0.00" 
-        } 
-      }
+          dueAmount: "0.00",
+        },
+      },
     )
 
     // Log the approval
@@ -1086,14 +1087,14 @@ app.post("/api/monthly-payments/:id/reject", async (req, res) => {
     // Update payment status
     await paymentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          status: "rejected", 
+      {
+        $set: {
+          status: "rejected",
           rejectedAt: new Date(),
           rejectedBy: req.session?.user?.username || "admin",
-          rejectionReason: reason 
-        } 
-      }
+          rejectionReason: reason,
+        },
+      },
     )
 
     // Log the rejection
