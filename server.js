@@ -17,16 +17,11 @@ const port = process.env.PORT || 3000
 const dbName = process.env.DB_NAME || "avidadb"
 const uri = process.env.MONGODB_URI
 
-// === Middleware Configuration (place this after initial requires) ===
-// 1. Basic middleware
 app.use(express.json())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-// Add this middleware BEFORE the authentication middleware to ensure it runs first
-// Place this right after the app.use(bodyParser.urlencoded({ extended: true })) line
 
-// Special middleware to allow access to MDPayment.html for delinquent users
 app.use((req, res, next) => {
   // List of paths that should be accessible even for delinquent users
   const publicPaths = [
@@ -126,15 +121,6 @@ app.use((req, res, next) => {
   next()
 })
 
-// Add this middleware right after the session middleware to ensure protected routes require authentication:
-
-// Modify the authentication middleware to check the public paths first
-// Find the existing authentication middleware that looks like this:
-// app.use((req, res, next) => {
-//   // List of paths that require authentication
-//   const protectedPaths = [ ... ]
-//   ...
-// });
 
 // And replace it with this:
 app.use((req, res, next) => {
@@ -142,6 +128,7 @@ app.use((req, res, next) => {
   const protectedPaths = [
     "/AdHome.html",
     "/HoHome.html",
+    "/monthly-payments.html",
     "/admin/",
     "/homeowner/",
     // Add other protected paths here
@@ -151,7 +138,6 @@ app.use((req, res, next) => {
   const publicPaths = [
     "/login.html",
     "/MDPayment.html",
-    "/monthly-payments.html",
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
