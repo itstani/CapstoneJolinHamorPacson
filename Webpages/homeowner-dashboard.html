@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homeowner Management</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .top-bar {
+            background-color: #AF2630;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .side-bar {
+            background-color: #D9D9D9;
+            width: 100px;
+            position: fixed;
+            top: 50px;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .side-bar div {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .side-bar img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .side-bar img:hover {
+            transform: scale(1.1);
+        }
+
+        .content {
+            margin-left: 120px;
+            padding: 20px;
+        }
+
+        .welcome {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .welcome h1 {
+            color: #AF2630;
+        }
+
+        .homeowner-table {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        .homeowner-table h2 {
+            color: #AF2630;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f9f9f9;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-compliant {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-delinquent {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-undetermined {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        .status-has-sticker {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-no-sticker {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-filter input, .search-filter select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .search-filter input {
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .side-bar {
+                width: 70px;
+            }
+
+            .side-bar img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .content {
+                margin-left: 90px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .side-bar {
+                width: 60px;
+            }
+
+            .content {
+                margin-left: 80px;
+                padding: 10px;
+            }
+
+            .welcome h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">Admin Dashboard</div>
+    
+    <div class="content">
+        <div class="welcome">
+            <h1>Homeowner Management</h1>
+        </div>
+        
+        <div class="search-filter">
+            <input type="text" id="searchInput" placeholder="Search homeowners..." oninput="filterHomeowners()">
+            <select id="statusFilter" onchange="filterHomeowners()">
+                <option value="all">All Statuses</option>
+                <option value="Compliant">Compliant</option>
+                <option value="Delinquent">Delinquent</option>
+                <option value="Not Paid">Not Paid</option>
+            </select>
+            <select id="stickerFilter" onchange="filterHomeowners()">
+                <option value="all">All Sticker Status</option>
+                <option value="undetermined">Undetermined</option>
+                <option value="Has Sticker">Has Sticker</option>
+                <option value="No Sticker">No Sticker</option>
+            </select>
+        </div>
+        
+        <div class="homeowner-table">
+            <h2>Homeowners</h2>
+            <table id="homeownersTable">
+                <thead>
+                    <tr>
+                        <th>Last Name</th>
+                        <th>First Name</th>
+                        <th>Address</th>
+                        <th>Phone</th>
+                        <th>Payment Status</th>
+                        <th>Homeowner Status</th>
+                        <th>Car Sticker</th>
+                    </tr>
+                </thead>
+                <tbody id="homeownersTableBody">
+                    <!-- Will be populated via JavaScript -->
+                    <tr>
+                        <td colspan="7" style="text-align: center;">Loading homeowners...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let homeowners = [];
+        
+        // Navigate function for sidebar buttons
+        function navigate(url) {
+            window.location.href = url;
+        }
+        
+        // Function to load homeowners
+        async function loadHomeowners() {
+            try {
+                const response = await fetch('/getHomeowners');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                homeowners = await response.json();
+                displayHomeowners(homeowners);
+            } catch (error) {
+                console.error('Error loading homeowners:', error);
+                document.getElementById('homeownersTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: red;">
+                            Failed to load homeowners. Please try again.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+ 
+        
+        // Function to display homeowners
+        function displayHomeowners(homeownersToDisplay) {
+            const tableBody = document.getElementById('homeownersTableBody');
+            tableBody.innerHTML = '';
+            
+            if (homeownersToDisplay.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center;">
+                            No homeowners found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            homeownersToDisplay.forEach(homeowner => {
+                const row = document.createElement('tr');
+                
+                // Payment status class
+                let paymentStatusClass = 'status-compliant';
+                if (homeowner.paymentStatus === 'Delinquent' || homeowner.paymentStatus === 'Not Paid') {
+                    paymentStatusClass = 'status-delinquent';
+                }
+                
+                // Homeowner status class
+                let homeownerStatusClass = 'status-compliant';
+                if (homeowner.homeownerStatus === 'Delinquent') {
+                    homeownerStatusClass = 'status-delinquent';
+                }
+                
+                // Car sticker status class
+                let carStickerClass = 'status-undetermined';
+                if (homeowner.carStickerStatus === 'Has Sticker') {
+                    carStickerClass = 'status-has-sticker';
+                } else if (homeowner.carStickerStatus === 'No Sticker') {
+                    carStickerClass = 'status-no-sticker';
+                }
+                
+                row.innerHTML = `
+                    <td>${homeowner.lastName || ''}</td>
+                    <td>${homeowner.firstName || ''}</td>
+                    <td>${homeowner.Address || ''}</td>
+                    <td>${homeowner.phoneNumber || ''}</td>
+                    <td><span class="status-badge ${paymentStatusClass}">${homeowner.paymentStatus || 'Compliant'}</span></td>
+                    <td><span class="status-badge ${homeownerStatusClass}">${homeowner.homeownerStatus || 'Compliant'}</span></td>
+                    <td><span class="status-badge ${carStickerClass}">${homeowner.carStickerStatus || 'Undetermined'}</span></td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Function to filter homeowners
+        function filterHomeowners() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const stickerFilter = document.getElementById('stickerFilter').value;
+            
+            const filteredHomeowners = homeowners.filter(homeowner => {
+                // Search term filter
+                const matchesSearch = 
+                    (homeowner.firstName && homeowner.firstName.toLowerCase().includes(searchTerm)) ||
+                    (homeowner.lastName && homeowner.lastName.toLowerCase().includes(searchTerm)) ||
+                    (homeowner.Address && homeowner.Address.toLowerCase().includes(searchTerm)) ||
+                    (homeowner.phoneNumber && homeowner.phoneNumber.includes(searchTerm));
+                
+                // Status filter
+                const matchesStatus = statusFilter === 'all' || homeowner.paymentStatus === statusFilter;
+                
+                // Sticker filter
+                const matchesSticker = stickerFilter === 'all' || homeowner.carStickerStatus === stickerFilter;
+                
+                return matchesSearch && matchesStatus && matchesSticker;
+            });
+            
+            displayHomeowners(filteredHomeowners);
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load homeowners
+            loadHomeowners();
+        });
+    </script>
+</body>
+</html>

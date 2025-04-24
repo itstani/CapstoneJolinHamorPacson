@@ -27,8 +27,9 @@ app.use((req, res, next) => {
     "/login.html",
     "/MDPayment.html",
     "/monthly-payments.html",
-    "/Webpages/monthly-payments.html", // lowercase m
-    "/Webpages/Monthly-payments.html", // uppercase M
+    "Webpages/homeowner-dashboard.html",
+    "/Webpages/monthly-payments.html", 
+    "/Webpages/Monthly-payments.html", 
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
@@ -126,6 +127,7 @@ app.use((req, res, next) => {
     "/login.html",
     "/MDPayment.html",
     "/monthly-payments.html",
+    "Webpages/homeowner-dashboard.html",
     "/Webpages/monthly-payments.html", // lowercase m
     "/Webpages/Monthly-payments.html", // uppercase M
     "/api/monthly-dues-payment",
