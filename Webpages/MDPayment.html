@@ -22,6 +22,7 @@
             z-index: 1000;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             padding: 0 20px;
             color: white;
         }
@@ -29,6 +30,23 @@
         .top-bar h1 {
             margin: 0;
             font-size: 20px;
+        }
+        
+        .logout-button {
+            background-color: white;
+            color: #AF2630;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-left: auto;
+            margin-right: 40px;
+        }
+        
+        .logout-button:hover {
+            background-color: #f0f0f0;
         }
         
         .payment-container {
@@ -272,6 +290,7 @@
 <body>
     <div class="top-bar">
         <h1>Monthly Dues Payment</h1>
+        <button class="logout-button" onclick="logout()">Logout</button>
     </div>
     
     <div class="payment-container">
@@ -481,7 +500,56 @@
                 container.innerHTML = '';
                 container.appendChild(errorDiv);
             }
+
+            // Check if redirected as a delinquent user
+            (function() {
+                var delinquentUsername = localStorage.getItem('username');
+                var delinquentEmail = localStorage.getItem('email');
+                var delinquentDueAmount = localStorage.getItem('dueAmount');
+
+                if (delinquentUsername && delinquentEmail && delinquentDueAmount) {
+                    // Try to open a modal if it exists
+                    if (typeof openPaymentModal === 'function') {
+                        openPaymentModal(delinquentUsername, delinquentEmail, delinquentDueAmount);
+                    } else {
+                        // Try to fill in payment form fields if they exist
+                        if (document.getElementById('paymentUsername')) {
+                            document.getElementById('paymentUsername').value = delinquentUsername;
+                        }
+                        if (document.getElementById('paymentEmail')) {
+                            document.getElementById('paymentEmail').value = delinquentEmail;
+                        }
+                        if (document.getElementById('paymentDueAmount')) {
+                            document.getElementById('paymentDueAmount').value = delinquentDueAmount;
+                        }
+                        // Show the payment section if it exists
+                        if (document.getElementById('paymentSection')) {
+                            document.getElementById('paymentSection').style.display = 'block';
+                        }
+                    }
+                    // Optionally clear after use
+                    // localStorage.removeItem('username');
+                    // localStorage.removeItem('email');
+                    // localStorage.removeItem('dueAmount');
+                }
+            })();
         });
+
+        function logout() {
+            fetch('/logout', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        localStorage.clear(); // Clear user data
+                        window.location.href = 'login.html'; // Redirect to the login page
+                    } else {
+                        alert('Logout failed. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during logout:', error);
+                    alert('An error occurred during logout. Please try again.');
+                });
+        }
     </script>
 </body>
 </html>

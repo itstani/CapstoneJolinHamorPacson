@@ -886,11 +886,12 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="accountEmail">Email</label>
+                        <label for="accountPassword">Password</label>
                         <div style="display: flex; align-items: center;">
-                            <input type="text" id="accountEmail" readonly style="flex-grow: 1; background-color: #f0f0f0;">
-                            <button type="button" class="copy-btn" onclick="copyToClipboard('accountEmail')" style="margin-left: 10px;">Copy</button>
+                            <input type="text" id="accountPassword" readonly style="flex-grow: 1; background-color: #f0f0f0;" value="********">
+                            <button type="button" class="copy-btn" onclick="copyToClipboard('accountPassword')" style="margin-left: 10px;">Copy</button>
                         </div>
+                        <small id="passwordNote" style="color: #888; font-size: 12px;">Password is hidden for security. Use Reset Password to generate a new one.</small>
                     </div>
                     
                     <div id="passwordResetSection" style="margin-top: 15px;">
@@ -1012,6 +1013,7 @@
                 }
                 
                 homeowners = await response.json();
+                console.log('Loaded homeowners:', homeowners.length);
                 
                 // Check which homeowners have accounts
                 await checkHomeownerAccounts();
@@ -1029,10 +1031,10 @@
             }
         }
         
-        // Replace the existing checkHomeownerAccounts function with this improved version
         // Function to check which homeowners have accounts
         async function checkHomeownerAccounts() {
             try {
+                console.log('Starting account check...');
                 // Directly fetch all accounts from the acc collection
                 const response = await fetch('/api/get-all-accounts');
                 
@@ -1040,39 +1042,74 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const accounts = await response.json();
+                const data = await response.json();
+                console.log('Received accounts data:', data);
                 
-                if (accounts.success && accounts.accounts) {
+                if (data.success && data.accounts) {
                     // Create a map of emails to accounts for quick lookup
                     const emailToAccount = {};
-                    accounts.accounts.forEach(account => {
+                    data.accounts.forEach(account => {
                         if (account.email) {
-                            emailToAccount[account.email.toLowerCase()] = account;
+                            const email = account.email.toLowerCase().trim();
+                            emailToAccount[email] = account;
+                            console.log(`Mapped account for email: ${email}`, account);
                         }
                     });
                     
-                    // Mark homeowners with accounts and store username
+                    console.log('Email to account mapping:', emailToAccount);
+                    
+                    // Mark homeowners with accounts and store username and password
                     homeowners.forEach(homeowner => {
                         if (homeowner.email) {
-                            const account = emailToAccount[homeowner.email.toLowerCase()];
+                            const email = homeowner.email.toLowerCase().trim();
+                            const account = emailToAccount[email];
+                            console.log(`Checking homeowner ${homeowner.firstName} ${homeowner.lastName}:`, {
+                                email: email,
+                                foundAccount: !!account,
+                                accountDetails: account
+                            });
+                            
                             homeowner.hasAccount = !!account;
                             homeowner.username = account ? account.username : null;
                             homeowner.accountPassword = account ? account.password : null;
+                            
+                            console.log(`Account status for ${homeowner.firstName}:`, {
+                                hasAccount: homeowner.hasAccount,
+                                username: homeowner.username,
+                                hasPassword: !!homeowner.accountPassword
+                            });
                         } else {
+                            console.log(`Homeowner ${homeowner.firstName} ${homeowner.lastName} has no email`);
                             homeowner.hasAccount = false;
                             homeowner.username = null;
+                            homeowner.accountPassword = null;
                         }
                     });
                     
-                    console.log('Homeowner account check completed:', 
-                        homeowners.filter(h => h.hasAccount).length, 'with accounts,',
-                        homeowners.filter(h => !h.hasAccount).length, 'without accounts');
+                    const homeownersWithAccounts = homeowners.filter(h => h.hasAccount);
+                    const homeownersWithoutAccounts = homeowners.filter(h => !h.hasAccount);
+                    
+                    console.log('Account check summary:', {
+                        totalHomeowners: homeowners.length,
+                        withAccounts: homeownersWithAccounts.length,
+                        withoutAccounts: homeownersWithoutAccounts.length,
+                        homeownersWithAccounts: homeownersWithAccounts.map(h => ({
+                            name: `${h.firstName} ${h.lastName}`,
+                            email: h.email,
+                            username: h.username
+                        })),
+                        homeownersWithoutAccounts: homeownersWithoutAccounts.map(h => ({
+                            name: `${h.firstName} ${h.lastName}`,
+                            email: h.email
+                        }))
+                    });
                 } else {
-                    console.error('Failed to get accounts:', accounts.message || 'Unknown error');
+                    console.error('Failed to get accounts:', data.message || 'Unknown error');
                     // Assume no accounts exist if there's an error
                     homeowners.forEach(homeowner => {
                         homeowner.hasAccount = false;
                         homeowner.username = null;
+                        homeowner.accountPassword = null;
                     });
                 }
             } catch (error) {
@@ -1081,6 +1118,7 @@
                 homeowners.forEach(homeowner => {
                     homeowner.hasAccount = false;
                     homeowner.username = null;
+                    homeowner.accountPassword = null;
                 });
             }
         }
@@ -1124,22 +1162,18 @@
                     carStickerClass = 'status-no-sticker';
                 }
                 
-                // Account status
+                // Account status with password
                 let accountStatus = '<span class="status-badge status-delinquent">No</span>';
                 if (homeowner.hasAccount) {
                     if (homeowner.username) {
-                        accountStatus = `<span class="status-badge status-compliant">${homeowner.username}</span>`;
+                        accountStatus = `
+                            <span class="status-badge status-compliant">${homeowner.username}</span>
+                            <br>
+                            <small>Password: ${homeowner.accountPassword || 'N/A'}</small>
+                        `;
                     } else {
                         accountStatus = '<span class="status-badge status-compliant">Yes</span>';
                     }
-                }
-                
-                // Calculate days since becoming delinquent
-                let delinquentDays = '';
-                if ((homeowner.paymentStatus === 'Delinquent' || homeowner.homeownerStatus === 'Delinquent') && 
-                    homeowner.delinquentSince) {
-                    const days = Math.floor((new Date() - new Date(homeowner.delinquentSince)) / (1000 * 60 * 60 * 24));
-                    delinquentDays = ` (${days} days)`;
                 }
                 
                 row.innerHTML = `
@@ -1147,23 +1181,14 @@
                     <td>${homeowner.firstName || ''}</td>
                     <td>${homeowner.Address || ''}</td>
                     <td>${homeowner.phoneNumber || ''}</td>
-                    <td><span class="status-badge ${paymentStatusClass}">${homeowner.paymentStatus || 'Compliant'}${delinquentDays}</span></td>
+                    <td><span class="status-badge ${paymentStatusClass}">${homeowner.paymentStatus || 'Compliant'}</span></td>
                     <td><span class="status-badge ${homeownerStatusClass}">${homeowner.homeownerStatus || 'Compliant'}</span></td>
                     <td><span class="status-badge ${carStickerClass}">${homeowner.carStickerStatus || 'Undetermined'}</span></td>
                     <td>${accountStatus}</td>
                     <td>
                         <button onclick="editHomeowner('${homeowner._id}')" style="background: none; border: none; cursor: pointer;">
-                            <img src="/images/edit.png" alt="Edit" width="20" height="20" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEgNEgxMkM5LjI0IDQgNyA2LjI0IDcgOVYxMUg0QzIuOSAxMSAyIDExLjkgMiAxM1YyMEMyIDIxLjEgMi45IDIyIDQgMjJIMTBDMTEuMSAyMiAxMiAyMS4xIDEyIDIwVjEzQzEyIDExLjkgMTEuMSAxMSAxMCAxMUg5VjlDOSA3LjM0IDEwLjM0IDYgMTIgNkMxMy42NiA2IDE1IDcuMzQgMTUgOVYxMEgxN1Y5QzE3IDYuMjQgMTQuNzYgNCAxMiA0SDExWiIgZmlsbD0iIzY2NiIvPjwvc3ZnPg=='">
+                            <img src="/images/edit.png" alt="Edit" width="20" height="20" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEgNEgxMkM5LjI0IDQgNyA2LjI0IDcgOVYxMUg0QzIuOSAxMSAyIDExLjkgMiAxM1YyMEMyIDIxLjEgMi45IDIyIDQgMjJIMTJDMTMuMSAyMiAxNCAxMS4xIDE0IDIwVjEzQzE0IDExLjkgMTMuMSAxMSAxMiAxMUg5VjlDOSA3LjM0IDEwLjM0IDYgMTIgNkgxM0MxNC42NiA2IDE2IDcuMzQgMTYgOVYxMUgxOFY5QzE4IDYuMjQgMTUuNzYgNCAxMyA0SDExWiIgZmlsbD0iIzMzMyIvPjwvc3ZnPg=='">
                         </button>
-                        ${!homeowner.hasAccount ? `
-                        <button onclick="generateSingleAccount('${homeowner._id}')" style="background: none; border: none; cursor: pointer;">
-                            <img src="/images/user-plus.png" alt="Create Account" width="20" height="20" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgNFYyME0yMCAxMkg0IiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+'">
-                        </button>
-                        ` : `
-                        <button onclick="viewAccount('${homeowner._id}')" style="background: none; border: none; cursor: pointer;">
-                            <img src="/images/user.png" alt="View Account" width="20" height="20" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjAgMjFWMTlDMjAgMTcuOTM5MSAxOS41Nzg2IDE2LjkyMTcgMTguODI4NCAxNi4xNzE2QzE4LjA3ODMgMTUuNDIxNCAxNy4wNjA5IDE1IDE2IDE1SDhDNi45MzkxIDE1IDUuOTIxNzIgMTUuNDIxNCA1LjE3MTU3IDE2LjE3MTZDNC40MjE0MyAxNi45MjE3IDQgMTcuOTM5MSA0IDE5VjIxIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTEyIDExQzE0LjIwOTEgMTEgMTYgOS4yMDkxNCAxNiA3QzE2IDQuNzkwODYgMTQuMjA5MSAzIDEyIDNDOS43OTA4NiAzIDggNC43OTA4NiA4IDdDOCA5LjIwOTE0IDkuNzkwODYgMTEgMTIgMTFaIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+'">
-                        </button>
-                        `}
                     </td>
                 `;
                 
@@ -1173,28 +1198,35 @@
         
         // Function to filter homeowners
         function filterHomeowners() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
             const stickerFilter = document.getElementById('stickerFilter').value;
             const accountFilter = document.getElementById('accountFilter').value;
             
             const filteredHomeowners = homeowners.filter(homeowner => {
-                // Search term filter
+                // Search filter
                 const matchesSearch = 
-                    (homeowner.firstName && homeowner.firstName.toLowerCase().includes(searchTerm)) ||
-                    (homeowner.lastName && homeowner.lastName.toLowerCase().includes(searchTerm)) ||
-                    (homeowner.Address && homeowner.Address.toLowerCase().includes(searchTerm)) ||
-                    (homeowner.phoneNumber && homeowner.phoneNumber.includes(searchTerm));
+                    (homeowner.firstName && homeowner.firstName.toLowerCase().includes(searchInput)) ||
+                    (homeowner.lastName && homeowner.lastName.toLowerCase().includes(searchInput)) ||
+                    (homeowner.Address && homeowner.Address.toLowerCase().includes(searchInput)) ||
+                    (homeowner.phoneNumber && homeowner.phoneNumber.toLowerCase().includes(searchInput)) ||
+                    (homeowner.email && homeowner.email.toLowerCase().includes(searchInput));
                 
                 // Status filter
-                const matchesStatus = statusFilter === 'all' || homeowner.paymentStatus === statusFilter;
+                const matchesStatus = 
+                    statusFilter === 'all' || 
+                    homeowner.paymentStatus === statusFilter || 
+                    homeowner.homeownerStatus === statusFilter;
                 
                 // Sticker filter
-                const matchesSticker = stickerFilter === 'all' || homeowner.carStickerStatus === stickerFilter;
+                const matchesSticker = 
+                    stickerFilter === 'all' || 
+                    homeowner.carStickerStatus === stickerFilter;
                 
                 // Account filter
-                const matchesAccount = accountFilter === 'all' || 
-                    (accountFilter === 'has_account' && homeowner.hasAccount) ||
+                const matchesAccount = 
+                    accountFilter === 'all' || 
+                    (accountFilter === 'has_account' && homeowner.hasAccount) || 
                     (accountFilter === 'no_account' && !homeowner.hasAccount);
                 
                 return matchesSearch && matchesStatus && matchesSticker && matchesAccount;
@@ -1203,116 +1235,63 @@
             displayHomeowners(filteredHomeowners);
         }
         
-        // Add a function to edit homeowner and show account credentials
-        function editHomeowner(homeownerId) {
-            const homeowner = homeowners.find(h => h._id === homeownerId);
-            
-            if (!homeowner) {
-                alert('Homeowner not found');
-                return;
-            }
-            
-            currentHomeowner = homeowner;
-            
-            // Populate form fields
-            document.getElementById('editHomeownerId').value = homeowner._id;
-            document.getElementById('editFirstName').value = homeowner.firstName || '';
-            document.getElementById('editLastName').value = homeowner.lastName || '';
-            document.getElementById('editAddress').value = homeowner.Address || '';
-            document.getElementById('editPhoneNumber').value = homeowner.phoneNumber || '';
-            document.getElementById('editLandLine').value = homeowner.landLine || '';
-            document.getElementById('editPaymentStatus').value = homeowner.paymentStatus || 'Compliant';
-            document.getElementById('editHomeownerStatus').value = homeowner.homeownerStatus || 'Compliant';
-            document.getElementById('editCarStickerStatus').value = homeowner.carStickerStatus || 'undetermined';
-            
-            // Clear previous password reset data
-            document.getElementById('newPasswordContainer').style.display = 'none';
-            document.getElementById('newPassword').value = '';
-            
-            // Fetch account credentials
-            fetchHomeownerCredentials(homeownerId);
-            
-            openModal('editHomeownerModal');
-        }
-        
-        // Function to fetch homeowner credentials
-        async function fetchHomeownerCredentials(homeownerId) {
+        // Function to edit homeowner
+        async function editHomeowner(homeownerId) {
             try {
-                const response = await fetch(`/api/homeowner-credentials/${homeownerId}`);
+                // Find the homeowner in our local array
+                currentHomeowner = homeowners.find(h => h._id === homeownerId);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (!currentHomeowner) {
+                    console.error('Homeowner not found:', homeownerId);
+                    return;
                 }
                 
-                const data = await response.json();
+                // Populate the form
+                document.getElementById('editHomeownerId').value = currentHomeowner._id;
+                document.getElementById('editFirstName').value = currentHomeowner.firstName || '';
+                document.getElementById('editLastName').value = currentHomeowner.lastName || '';
+                document.getElementById('editAddress').value = currentHomeowner.Address || '';
+                document.getElementById('editPhoneNumber').value = currentHomeowner.phoneNumber || '';
+                document.getElementById('editLandLine').value = currentHomeowner.landLine || '';
+                document.getElementById('editPaymentStatus').value = currentHomeowner.paymentStatus || 'Compliant';
+                document.getElementById('editHomeownerStatus').value = currentHomeowner.homeownerStatus || 'Compliant';
+                document.getElementById('editCarStickerStatus').value = currentHomeowner.carStickerStatus || 'undetermined';
                 
-                if (data.success) {
-                    // Populate credential fields
-                    document.getElementById('accountUsername').value = data.username || 'Not available';
-                    document.getElementById('accountEmail').value = data.email || 'Not available';
-                    
-                    // Show account credentials section
-                    document.getElementById('accountCredentialsSection').style.display = 'block';
+                // Populate account credentials if available
+                const accountUsername = document.getElementById('accountUsername');
+                const accountPassword = document.getElementById('accountPassword');
+                const passwordResetSection = document.getElementById('passwordResetSection');
+                
+                if (currentHomeowner.hasAccount) {
+                    accountUsername.value = currentHomeowner.username || '';
+                    accountPassword.value = '********';
+                    passwordResetSection.style.display = 'block';
                 } else {
-                    // Hide account credentials section if no account found
-                    document.getElementById('accountCredentialsSection').style.display = 'none';
-                    showStatusMessage('editStatusMessage', `No account found: ${data.message}`, 'error');
+                    accountUsername.value = 'No account';
+                    accountPassword.value = 'No account';
+                    passwordResetSection.style.display = 'none';
                 }
+                
+                // Hide new password container
+                document.getElementById('newPasswordContainer').style.display = 'none';
+                
+                // Open the modal
+                openModal('editHomeownerModal');
             } catch (error) {
-                console.error('Error fetching homeowner credentials:', error);
-                document.getElementById('accountCredentialsSection').style.display = 'none';
-                showStatusMessage('editStatusMessage', 'Error fetching account credentials', 'error');
+                console.error('Error editing homeowner:', error);
+                alert('Failed to load homeowner details. Please try again.');
             }
         }
         
         // Function to reset homeowner password
         async function resetHomeownerPassword() {
             try {
-                const homeownerId = document.getElementById('editHomeownerId').value;
-                
-                if (!homeownerId) {
-                    showStatusMessage('editStatusMessage', 'Homeowner ID not found', 'error');
+                if (!currentHomeowner || !currentHomeowner._id) {
+                    console.error('No homeowner selected for password reset');
                     return;
                 }
                 
-                // Show loading message
-                showStatusMessage('editStatusMessage', 'Resetting password...', 'info');
-                
-                const response = await fetch(`/api/reset-homeowner-password/${homeownerId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success && data.newPassword) {
-                    // Display the new password
-                    document.getElementById('newPassword').value = data.newPassword;
-                    document.getElementById('newPasswordContainer').style.display = 'block';
-                    
-                    showStatusMessage('editStatusMessage', 'Password reset successfully!', 'success');
-                } else {
-                    showStatusMessage('editStatusMessage', `Failed to reset password: ${data.message}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error resetting password:', error);
-                showStatusMessage('editStatusMessage', 'Error resetting password. Please try again.', 'error');
-            }
-        }
-        
-        // Function to view account details
-        async function viewAccount(homeownerId) {
-            const homeowner = homeowners.find(h => h._id === homeownerId);
-            
-            if (!homeowner) {
-                alert('Homeowner not found');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/homeowner-account/${homeowner.email}`);
+                const response = await fetch(`/api/homeowner-credentials/${currentHomeowner._id}?resetPassword=true`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1320,429 +1299,58 @@
                 
                 const data = await response.json();
                 
-                if (data.success) {
-                    // Show account details in a modal
-                    document.getElementById('generatedUsername').textContent = data.username;
-                    document.getElementById('generatedPassword').textContent = data.password || '********';
-                    document.getElementById('generatedAccount').style.display = 'block';
+                if (data.success && data.newPassword) {
+                    // Show the new password
+                    const newPasswordContainer = document.getElementById('newPasswordContainer');
+                    const newPasswordField = document.getElementById('newPassword');
                     
-                    openModal('generateAccountModal');
-                } else {
-                    alert('Failed to retrieve account details: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error fetching account details:', error);
-                alert('Error fetching account details. Please try again.');
-            }
-        }
-        
-        // Function to generate a single account for a homeowner
-        async function generateSingleAccount(homeownerId) {
-            const homeowner = homeowners.find(h => h._id === homeownerId);
-            
-            if (!homeowner) {
-                alert('Homeowner not found');
-                return;
-            }
-            
-            try {
-                // Show loading message
-                showStatusMessage('accountStatusMessage', 'Generating account...', 'info');
-                
-                // Send request to create homeowner account
-                const response = await fetch('/api/homeowners/generate-account', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        firstName: homeowner.firstName,
-                        lastName: homeowner.lastName,
-                        address: homeowner.Address,
-                        phoneNumber: homeowner.phoneNumber,
-                        landLine: homeowner.landLine,
-                        paymentStatus: homeowner.paymentStatus,
-                        carStickerStatus: homeowner.carStickerStatus
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
+                    newPasswordField.value = data.newPassword;
+                    newPasswordContainer.style.display = 'block';
+                    
                     // Show success message
-                    showStatusMessage('accountStatusMessage', 'Account generated successfully!', 'success');
-                    
-                    // Display generated account details
-                    document.getElementById('generatedUsername').textContent = data.account.username;
-                    document.getElementById('generatedPassword').textContent = data.account.password;
-                    document.getElementById('generatedAccount').style.display = 'block';
-                    
-                    // Mark homeowner as having an account
-                    homeowner.hasAccount = true;
-                    
-                    // Refresh homeowners list
-                    displayHomeowners(homeowners);
-                    
-                    openModal('generateAccountModal');
+                    const statusMessage = document.getElementById('editStatusMessage');
+                    statusMessage.textContent = 'Password reset successfully. Please copy the new password now.';
+                    statusMessage.className = 'status-message success';
+                    statusMessage.style.display = 'block';
                 } else {
-                    showStatusMessage('accountStatusMessage', 'Failed to generate account: ' + data.error, 'error');
+                    // Show error message
+                    const statusMessage = document.getElementById('editStatusMessage');
+                    statusMessage.textContent = data.message || 'Failed to reset password. Please try again.';
+                    statusMessage.className = 'status-message error';
+                    statusMessage.style.display = 'block';
                 }
             } catch (error) {
-                console.error('Error generating account:', error);
-                showStatusMessage('accountStatusMessage', 'Error generating account. Please try again.', 'error');
+                console.error('Error resetting password:', error);
+                const statusMessage = document.getElementById('editStatusMessage');
+                statusMessage.textContent = 'Error resetting password. Please try again.';
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
             }
         }
         
-        // Function to check for homeowners without accounts
-        async function checkMissingAccounts() {
-            try {
-                // Show loading message
-                showStatusMessage('bulkAccountsStatus', 'Checking for homeowners without accounts...', 'info');
-                
-                // Filter homeowners without accounts
-                homeownersWithoutAccounts = homeowners.filter(homeowner => !homeowner.hasAccount);
-                
-                if (homeownersWithoutAccounts.length === 0) {
-                    showStatusMessage('bulkAccountsStatus', 'All homeowners already have accounts.', 'success');
-                    return;
-                }
-                
-                // Display homeowners without accounts
-                const accountsList = document.getElementById('accountsList');
-                accountsList.innerHTML = '';
-                
-                homeownersWithoutAccounts.forEach(homeowner => {
-                    const item = document.createElement('div');
-                    item.className = 'account-item';
-                    item.innerHTML = `
-                        <div class="account-name">${homeowner.firstName} ${homeowner.lastName}</div>
-                        <div class="account-email">${homeowner.email || 'No email'}</div>
-                        <div>Address: ${homeowner.Address || 'N/A'}</div>
-                    `;
-                    accountsList.appendChild(item);
-                });
-                
-                // Show summary
-                document.getElementById('accountsSummary').textContent = `Found ${homeownersWithoutAccounts.length} homeowners without accounts.`;
-                
-                // Show homeowners without accounts section
-                document.getElementById('homeownersWithoutAccounts').style.display = 'block';
-                
-                // Show create accounts button
-                document.getElementById('checkMissingAccountsBtn').style.display = 'none';
-                document.getElementById('createMissingAccountsBtn').style.display = 'block';
-                
-                showStatusMessage('bulkAccountsStatus', `Found ${homeownersWithoutAccounts.length} homeowners without accounts.`, 'success');
-            } catch (error) {
-                console.error('Error checking missing accounts:', error);
-                showStatusMessage('bulkAccountsStatus', 'Error checking for missing accounts. Please try again.', 'error');
-            }
+        // Function to copy text to clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            document.execCommand('copy');
+            
+            // Show temporary tooltip or message
+            const originalText = element.nextElementSibling.textContent;
+            element.nextElementSibling.textContent = 'Copied!';
+            setTimeout(() => {
+                element.nextElementSibling.textContent = originalText;
+            }, 1500);
         }
         
-// Update the createMissingAccounts function to use the new endpoint
-async function createMissingAccounts() {
-    try {
-        // Show loading message
-        showStatusMessage('bulkAccountsStatus', 'Creating accounts for homeowners without accounts...', 'info');
-        
-        // Get option for generating new passwords
-        const generateNewPasswords = document.getElementById('generateNewPasswords').checked;
-        
-        // Send request to create homeowner accounts
-        const response = await fetch('/api/admin/create-homeowner-accounts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                generateNewPasswords
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Store created accounts
-            createdAccounts = [...data.data.created, ...data.data.updated];
-            
-            // Display created accounts
-            const createdAccountsList = document.getElementById('createdAccountsList');
-            createdAccountsList.innerHTML = '';
-            
-            createdAccounts.forEach(account => {
-                const item = document.createElement('div');
-                item.className = 'account-item';
-                item.innerHTML = `
-                    <div class="account-name">${account.name || `${account.firstName || ''} ${account.lastName || ''}`}</div>
-                    <div class="account-email">${account.email}</div>
-                    <div class="account-credentials">
-                        <strong>Username:</strong> ${account.username}<br>
-                        <strong>Password:</strong> ${account.password}
-                    </div>
-                `;
-                createdAccountsList.appendChild(item);
-            });
-            
-            // Show created accounts section
-            document.getElementById('createdAccounts').style.display = 'block';
-            
-            // Hide create accounts button
-            document.getElementById('createMissingAccountsBtn').style.display = 'none';
-            
-            // Mark homeowners as having accounts
-            homeowners.forEach(homeowner => {
-                const found = createdAccounts.find(account => 
-                    account.email && homeowner.email && 
-                    account.email.toLowerCase() === homeowner.email.toLowerCase()
-                );
-                if (found) {
-                    homeowner.hasAccount = true;
-                    homeowner.username = found.username;
-                }
-            });
-            
-            // Refresh homeowners list
-            displayHomeowners(homeowners);
-            
-            showStatusMessage('bulkAccountsStatus', `Successfully created ${data.data.created.length} accounts and updated ${data.data.updated.length} accounts.`, 'success');
-        } else {
-            showStatusMessage('bulkAccountsStatus', 'Failed to create accounts: ' + data.message, 'error');
-        }
-    } catch (error) {
-        console.error('Error creating accounts:', error);
-        showStatusMessage('bulkAccountsStatus', 'Error creating accounts. Please try again.', 'error');
-    }
-}
-        
-        // Function to download accounts as CSV
-        function downloadAccountsCSV() {
-            if (createdAccounts.length === 0) {
-                alert('No accounts to download');
-                return;
-            }
-            
-            // Create CSV content
-            let csvContent = 'Name,Email,Username,Password\n';
-            
-            createdAccounts.forEach(account => {
-                const name = account.name || `${account.firstName || ''} ${account.lastName || ''}`;
-                csvContent += `"${name}","${account.email}","${account.username}","${account.password}"\n`;
-            });
-            
-            // Create download link
-            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
-            const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
-            link.setAttribute('download', 'homeowner_accounts.csv');
-            document.body.appendChild(link);
-            
-            // Trigger download
-            link.click();
-            
-            // Clean up
-            document.body.removeChild(link);
-        }
-        
-        // Function to generate report
-        function generateReport() {
-            const reportType = document.getElementById('reportType').value;
-            const reportFormat = document.getElementById('reportFormat').value;
-            const dateRange = document.getElementById('reportDateRange').value;
-            
-            let startDate = '';
-            let endDate = '';
-            
-            if (dateRange === 'custom') {
-                startDate = document.getElementById('startDate').value;
-                endDate = document.getElementById('endDate').value;
-                
-                if (!startDate || !endDate) {
-                    alert('Please select both start and end dates for custom range.');
-                    return;
-                }
-            }
-            
-            // Create query parameters
-            const params = new URLSearchParams({
-                type: reportType,
-                format: reportFormat,
-                range: dateRange
-            });
-            
-            if (startDate && endDate) {
-                params.append('startDate', startDate);
-                params.append('endDate', endDate);
-            }
-            
-            // Redirect to download endpoint
-            window.location.href = `/api/generate-payment-report?${params.toString()}`;
-            
-            // Close modal
-            closeModal('reportModal');
-        }
-        
-        // Function to send notification to delinquent homeowners
-        async function sendNotification() {
-            try {
-                const subject = document.getElementById('notificationSubject').value;
-                const message = document.getElementById('notificationMessage').value;
-                const recipientType = document.getElementById('recipientType').value;
-                
-                if (!subject || !message) {
-                    showStatusMessage('notificationStatusMessage', 'Please enter both subject and message.', 'error');
-                    return;
-                }
-                
-                // Show loading message
-                showStatusMessage('notificationStatusMessage', 'Sending notifications...', 'info');
-                
-                const response = await fetch('/api/send-delinquent-notifications', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        type: 'delinquent_notice',
-                        subject: subject,
-                        message: message,
-                        recipientType: recipientType
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showStatusMessage('notificationStatusMessage', `Notification sent successfully to ${data.recipientCount} homeowners!`, 'success');
-                    
-                    // Reset form after successful send
-                    setTimeout(() => {
-                        document.getElementById('notificationSubject').value = 'Payment Reminder';
-                        document.getElementById('notificationMessage').value = 'Dear homeowner, this is a reminder that your payment is overdue. Please settle your account as soon as possible to avoid penalties.';
-                    }, 3000);
-                } else {
-                    showStatusMessage('notificationStatusMessage', 'Failed to send notification: ' + data.message, 'error');
-                }
-            } catch (error) {
-                console.error('Error sending notification:', error);
-                showStatusMessage('notificationStatusMessage', 'Error sending notification. Please try again.', 'error');
-            }
-        }
-        
-        // Function to load notification history
-        async function loadNotificationHistory() {
-            try {
-                const historyContainer = document.getElementById('notificationHistory');
-                historyContainer.innerHTML = '<p>Loading notification history...</p>';
-                
-                const response = await fetch('/api/sent-notifications');
-                const data = await response.json();
-                
-                if (data.success) {
-                    if (data.notifications.length === 0) {
-                        historyContainer.innerHTML = '<p>No notification history found.</p>';
-                        return;
-                    }
-                    
-                    let historyHTML = '<div style="max-height: 400px; overflow-y: auto;">';
-                    
-                    data.notifications.forEach(notification => {
-                        const date = new Date(notification.timestamp).toLocaleString();
-                        
-                        historyHTML += `
-                            <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
-                                <div style="font-weight: 600;">${notification.subject}</div>
-                                <div style="margin: 5px 0; color: #666;">${notification.message}</div>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
-                                    <span>Sent to: ${notification.recipientType} (${notification.recipientCount} recipients)</span>
-                                    <span>${date}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    historyHTML += '</div>';
-                    historyContainer.innerHTML = historyHTML;
-                } else {
-                    historyContainer.innerHTML = '<p>Failed to load notification history.</p>';
-                }
-            } catch (error) {
-                console.error('Error loading notification history:', error);
-                document.getElementById('notificationHistory').innerHTML = '<p>Error loading notification history. Please try again.</p>';
-            }
-        }
-        
-        // Function to generate homeowner account
-        async function generateHomeownerAccount(event) {
-            event.preventDefault();
-            
-            try {
-                // Get form data
-                const firstName = document.getElementById('firstName').value;
-                const lastName = document.getElementById('lastName').value;
-                const address = document.getElementById('address').value;
-                const phoneNumber = document.getElementById('phoneNumber').value;
-                const landLine = document.getElementById('landLine').value;
-                const paymentStatus = document.getElementById('paymentStatus').value;
-                const carStickerStatus = document.getElementById('carStickerStatus').value;
-                
-                // Validate address format
-                if (!address.toLowerCase().includes('block') || !address.toLowerCase().includes('lot')) {
-                    showStatusMessage('accountStatusMessage', 'Address must contain Block and Lot numbers', 'error');
-                    return;
-                }
-                
-                // Show loading message
-                showStatusMessage('accountStatusMessage', 'Generating account...', 'info');
-                
-                // Send request to create homeowner account
-                const response = await fetch('/api/homeowners/generate-account', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        firstName,
-                        lastName,
-                        address,
-                        phoneNumber,
-                        landLine,
-                        paymentStatus,
-                        carStickerStatus
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Show success message
-                    showStatusMessage('accountStatusMessage', 'Account generated successfully!', 'success');
-                    
-                    // Display generated account details
-                    document.getElementById('generatedUsername').textContent = data.account.username;
-                    document.getElementById('generatedPassword').textContent = data.account.password;
-                    
-                    document.getElementById('generatedAccount').style.display = 'block';
-                    
-                    // Refresh homeowners list
-                    loadHomeowners();
-                } else {
-                    showStatusMessage('accountStatusMessage', 'Failed to generate account: ' + data.error, 'error');
-                }
-            } catch (error) {
-                console.error('Error generating account:', error);
-                showStatusMessage('accountStatusMessage', 'Error generating account. Please try again.', 'error');
-            }
-        }
-        
-        // Function to update homeowner
-        async function updateHomeowner(event) {
-            event.preventDefault();
+        // Function to save homeowner changes
+        document.getElementById('editHomeownerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             
             try {
                 const homeownerId = document.getElementById('editHomeownerId').value;
                 
-                // Get form data
-                const formData = {
+                // Prepare the update data
+                const updateData = {
                     firstName: document.getElementById('editFirstName').value,
                     lastName: document.getElementById('editLastName').value,
                     Address: document.getElementById('editAddress').value,
@@ -1753,101 +1361,403 @@ async function createMissingAccounts() {
                     carStickerStatus: document.getElementById('editCarStickerStatus').value
                 };
                 
-                // Show loading message
-                showStatusMessage('editStatusMessage', 'Updating homeowner...', 'info');
-                
-                // Send request to update homeowner using ID instead of email
+                // Send the update request
                 const response = await fetch(`/updateHomeownerById/${homeownerId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(updateData)
+                });
+                
+                const data = await response.json();
+                
+                // Show status message
+                const statusMessage = document.getElementById('editStatusMessage');
+                if (data.success) {
+                    statusMessage.textContent = 'Homeowner updated successfully.';
+                    statusMessage.className = 'status-message success';
+                    
+                    // Update the homeowner in our local array
+                    const index = homeowners.findIndex(h => h._id === homeownerId);
+                    if (index !== -1) {
+                        homeowners[index] = { ...homeowners[index], ...updateData };
+                    }
+                    
+                    // Refresh the table
+                    displayHomeowners(homeowners);
+                    
+                    // Close the modal after a short delay
+                    setTimeout(() => {
+                        closeModal('editHomeownerModal');
+                    }, 1500);
+                } else {
+                    statusMessage.textContent = data.message || 'Failed to update homeowner.';
+                    statusMessage.className = 'status-message error';
+                }
+                
+                statusMessage.style.display = 'block';
+            } catch (error) {
+                console.error('Error updating homeowner:', error);
+                const statusMessage = document.getElementById('editStatusMessage');
+                statusMessage.textContent = 'Error updating homeowner. Please try again.';
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
+            }
+        });
+        
+        // Function to generate a homeowner account
+        document.getElementById('generateAccountForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                // Prepare the homeowner data
+                const homeownerData = {
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    address: document.getElementById('address').value,
+                    phoneNumber: document.getElementById('phoneNumber').value,
+                    landLine: document.getElementById('landLine').value,
+                    paymentStatus: document.getElementById('paymentStatus').value,
+                    carStickerStatus: document.getElementById('carStickerStatus').value
+                };
+                
+                // Send the request to generate an account
+                const response = await fetch('/api/homeowners/generate-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(homeownerData)
+                });
+                
+                const data = await response.json();
+                
+                // Show status message
+                const statusMessage = document.getElementById('accountStatusMessage');
+                if (data.success) {
+                    statusMessage.textContent = 'Account generated successfully.';
+                    statusMessage.className = 'status-message success';
+                    
+                    // Display the generated account credentials
+                    document.getElementById('generatedUsername').textContent = data.account.username;
+                    document.getElementById('generatedPassword').textContent = data.account.password;
+                    document.getElementById('generatedAccount').style.display = 'block';
+                    
+                    // Reload homeowners after a short delay
+                    setTimeout(() => {
+                        loadHomeowners();
+                    }, 1000);
+                } else {
+                    statusMessage.textContent = data.error || 'Failed to generate account.';
+                    statusMessage.className = 'status-message error';
+                }
+                
+                statusMessage.style.display = 'block';
+            } catch (error) {
+                console.error('Error generating account:', error);
+                const statusMessage = document.getElementById('accountStatusMessage');
+                statusMessage.textContent = 'Error generating account. Please try again.';
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
+            }
+        });
+        
+        // Function to check for missing accounts
+        async function checkMissingAccounts() {
+            try {
+                const statusMessage = document.getElementById('bulkAccountsStatus');
+                statusMessage.textContent = 'Checking for homeowners without accounts...';
+                statusMessage.className = 'status-message';
+                statusMessage.style.display = 'block';
+                
+                // Get homeowners without accounts from our local array
+                homeownersWithoutAccounts = homeowners.filter(h => !h.hasAccount);
+                
+                // Display the results
+                const accountsList = document.getElementById('accountsList');
+                accountsList.innerHTML = '';
+                
+                if (homeownersWithoutAccounts.length === 0) {
+                    accountsList.innerHTML = '<div class="account-item">All homeowners have accounts.</div>';
+                    document.getElementById('createMissingAccountsBtn').style.display = 'none';
+                } else {
+                    homeownersWithoutAccounts.forEach(homeowner => {
+                        const accountItem = document.createElement('div');
+                        accountItem.className = 'account-item';
+                        accountItem.innerHTML = `
+                            <div class="account-name">${homeowner.firstName} ${homeowner.lastName}</div>
+                            <div class="account-email">${homeowner.email || 'No email'}</div>
+                            <div class="account-email">Address: ${homeowner.Address || 'No address'}</div>
+                        `;
+                        accountsList.appendChild(accountItem);
+                    });
+                    
+                    document.getElementById('createMissingAccountsBtn').style.display = 'block';
+                }
+                
+                // Update summary
+                document.getElementById('accountsSummary').textContent = `Found ${homeownersWithoutAccounts.length} homeowners without accounts.`;
+                document.getElementById('homeownersWithoutAccounts').style.display = 'block';
+                
+                // Update status message
+                statusMessage.textContent = `Found ${homeownersWithoutAccounts.length} homeowners without accounts.`;
+                statusMessage.className = 'status-message success';
+                
+                // Set up continuous checking
+                setInterval(async () => {
+                    await checkHomeownerAccounts();
+                    displayHomeowners(homeowners);
+                }, 30000); // Check every 30 seconds
+            } catch (error) {
+                console.error('Error checking missing accounts:', error);
+                const statusMessage = document.getElementById('bulkAccountsStatus');
+                statusMessage.textContent = 'Error checking missing accounts. Please try again.';
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
+            }
+        }
+        
+        // Function to create missing accounts
+        async function createMissingAccounts() {
+            try {
+                const statusMessage = document.getElementById('bulkAccountsStatus');
+                statusMessage.textContent = 'Creating accounts...';
+                statusMessage.className = 'status-message';
+                statusMessage.style.display = 'block';
+                
+                // Get the option to generate new passwords for existing accounts
+                const generateNewPasswords = document.getElementById('generateNewPasswords').checked;
+                
+                // Send the request to create missing accounts
+                const response = await fetch('/api/admin/create-homeowner-accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ generateNewPasswords })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Show success message
-                    showStatusMessage('editStatusMessage', 'Homeowner updated successfully!', 'success');
+                    // Display the created accounts
+                    const createdAccountsList = document.getElementById('createdAccountsList');
+                    createdAccountsList.innerHTML = '';
                     
-                    // Update homeowner in local array
-                    const index = homeowners.findIndex(h => h._id === homeownerId);
-                    if (index !== -1) {
-                        homeowners[index] = { ...homeowners[index], ...formData };
+                    createdAccounts = data.created || [];
+                    
+                    if (createdAccounts.length === 0) {
+                        createdAccountsList.innerHTML = '<div class="account-item">No accounts were created.</div>';
+                    } else {
+                        createdAccounts.forEach(account => {
+                            const accountItem = document.createElement('div');
+                            accountItem.className = 'account-item';
+                            accountItem.innerHTML = `
+                                <div class="account-name">${account.firstName} ${account.lastName}</div>
+                                <div class="account-credentials">
+                                    Username: ${account.username}<br>
+                                    Password: ${account.password}
+                                </div>
+                            `;
+                            createdAccountsList.appendChild(accountItem);
+                        });
                     }
                     
-                    // Refresh display
-                    displayHomeowners(homeowners);
+                    // Show the created accounts section
+                    document.getElementById('createdAccounts').style.display = 'block';
                     
-                    // Close modal after a delay
+                    // Update status message
+                    statusMessage.textContent = `Created ${createdAccounts.length} accounts successfully.`;
+                    statusMessage.className = 'status-message success';
+                    
+                    // Reload homeowners after a short delay
                     setTimeout(() => {
-                        closeModal('editHomeownerModal');
-                    }, 2000);
+                        loadHomeowners();
+                    }, 1000);
                 } else {
-                    showStatusMessage('editStatusMessage', 'Failed to update homeowner: ' + data.message, 'error');
+                    statusMessage.textContent = data.message || 'Failed to create accounts.';
+                    statusMessage.className = 'status-message error';
                 }
             } catch (error) {
-                console.error('Error updating homeowner:', error);
-                showStatusMessage('editStatusMessage', 'Error updating homeowner. Please try again.', 'error');
+                console.error('Error creating accounts:', error);
+                const statusMessage = document.getElementById('bulkAccountsStatus');
+                statusMessage.textContent = 'Error creating accounts. Please try again.';
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
             }
         }
         
-        // Function to show status message
-        function showStatusMessage(elementId, message, type) {
-            const statusElement = document.getElementById(elementId);
-            statusElement.textContent = message;
-            statusElement.style.display = 'block';
-            
-            // Remove all classes
-            statusElement.className = 'status-message';
-            
-            // Add appropriate class
-            if (type === 'success') {
-                statusElement.classList.add('success');
-            } else if (type === 'error') {
-                statusElement.classList.add('error');
+        // Function to download accounts as CSV
+        function downloadAccountsCSV() {
+            if (createdAccounts.length === 0) {
+                alert('No accounts to download.');
+                return;
             }
             
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(() => {
-                    statusElement.style.display = 'none';
-                }, 5000);
-            }
-        }
-        
-        // Function to copy text to clipboard
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            let text;
+            // Create CSV content
+            let csvContent = 'First Name,Last Name,Username,Password\n';
             
-            if (element.tagName === 'INPUT') {
-                text = element.value;
-            } else {
-                text = element.textContent;
-            }
-            
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Copied to clipboard!');
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
+            createdAccounts.forEach(account => {
+                csvContent += `${account.firstName},${account.lastName},${account.username},${account.password}\n`;
             });
+            
+            // Create a download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'homeowner_accounts.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
         
-        // Initialize page
+        // Function to generate a report
+        function generateReport() {
+            try {
+                const reportType = document.getElementById('reportType').value;
+                const reportFormat = document.getElementById('reportFormat').value;
+                const reportDateRange = document.getElementById('reportDateRange').value;
+                
+                // Build the URL with query parameters
+                let url = `/api/generate-payment-report?type=${reportType}&format=${reportFormat}&range=${reportDateRange}`;
+                
+                // Add custom date range if selected
+                if (reportDateRange === 'custom') {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    
+                    if (!startDate || !endDate) {
+                        alert('Please select both start and end dates for custom range.');
+                        return;
+                    }
+                    
+                    url += `&startDate=${startDate}&endDate=${endDate}`;
+                }
+                
+                // Open the URL in a new tab to download the report
+                window.open(url, '_blank');
+                
+                // Close the modal
+                closeModal('reportModal');
+            } catch (error) {
+                console.error('Error generating report:', error);
+                alert('Error generating report. Please try again.');
+            }
+        }
+        
+        // Function to send notification to delinquent homeowners
+        async function sendNotification() {
+            try {
+                const subject = document.getElementById('notificationSubject').value;
+                const message = document.getElementById('notificationMessage').value;
+                const recipientType = document.getElementById('recipientType').value;
+                
+                if (!subject || !message) {
+                    alert('Please enter both subject and message.');
+                    return;
+                }
+                
+                const statusMessage = document.getElementById('notificationStatusMessage');
+                statusMessage.textContent = 'Sending notifications...';
+                statusMessage.className = 'status-message';
+                statusMessage.style.display = 'block';
+                
+                // Send the request
+                const response = await fetch('/api/send-delinquent-notifications', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'payment_reminder',
+                        subject,
+                        message,
+                        recipientType
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusMessage.textContent = `Notifications sent successfully to ${data.recipientCount} homeowners.`;
+                    statusMessage.className = 'status-message success';
+                    
+                    // Clear the form
+                    document.getElementById('notificationSubject').value = 'Payment Reminder';
+                    document.getElementById('notificationMessage').value = 'Dear homeowner, this is a reminder that your payment is overdue. Please settle your account as soon as possible to avoid penalties.';
+                } else {
+                    statusMessage.textContent = data.message || 'Failed to send notifications.';
+                    statusMessage.className = 'status-message error';
+                }
+            } catch (error) {
+                console.error('Error sending notifications:', error);
+                const statusMessage = document.getElementById('notificationStatusMessage');
+                statusMessage.textContent = 'Error sending notifications. Please try again.';
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
+            }
+        }
+        
+        // Function to load notification history
+        async function loadNotificationHistory() {
+            try {
+                const historyContainer = document.getElementById('notificationHistory');
+                historyContainer.innerHTML = '<p>Loading notification history...</p>';
+                
+                // Fetch notification history
+                const response = await fetch('/api/notification-history');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.history && data.history.length > 0) {
+                    // Create a table to display history
+                    let historyHTML = `
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Date</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Subject</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Recipients</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.history.forEach(item => {
+                        const date = new Date(item.timestamp).toLocaleString();
+                        historyHTML += `
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #eee;">${date}</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.subject || 'No subject'}</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.recipientCount} homeowners</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    historyHTML += `
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    historyContainer.innerHTML = historyHTML;
+                } else {
+                    historyContainer.innerHTML = '<p>No notification history found.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading notification history:', error);
+                document.getElementById('notificationHistory').innerHTML = '<p>Error loading notification history. Please try again.</p>';
+            }
+        }
+        
+        // Load homeowners when the page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Load homeowners
             loadHomeowners();
-            
-            // Set up event listeners
-            document.getElementById('generateAccountForm').addEventListener('submit', generateHomeownerAccount);
-            document.getElementById('editHomeownerForm').addEventListener('submit', updateHomeowner);
-            
-            // Set current date as max date for date inputs
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('startDate').setAttribute('max', today);
-            document.getElementById('endDate').setAttribute('max', today);
         });
     </script>
 </body>

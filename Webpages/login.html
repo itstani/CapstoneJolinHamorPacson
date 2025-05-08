@@ -23,6 +23,10 @@
           height: 60px;
           background-color: #AF2630;
           z-index: 1000;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 0 20px;
       }
 
       .container {
@@ -347,10 +351,122 @@
           z-index: 9999;
           display: none;
       }
+
+      .pay-dues-btn {
+          background-color: white;
+          color: #AF2630;
+          border: none;
+          padding: 8px 15px;
+          border-radius: 5px;
+          font-size: 14px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-left: auto;
+          margin-right: 30px;
+      }
+
+      .pay-dues-btn:hover {
+          background-color: #f0f0f0;
+          transform: scale(1.05);
+      }
+
+      /* Add styles for the dues check modal */
+      .dues-check-modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 1001;
+      }
+
+      .dues-check-content {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: #fff;
+          padding: 32px 28px 28px 28px;
+          border-radius: 12px;
+          width: 90%;
+          max-width: 400px;
+          text-align: center;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      }
+
+      .dues-check-content h2 {
+          color: #AF2630;
+          margin-bottom: 18px;
+          font-size: 1.5rem;
+          font-weight: 700;
+      }
+
+      .dues-check-content p {
+          color: #333;
+          margin-bottom: 22px;
+          font-size: 1rem;
+      }
+
+      .dues-check-content input {
+          width: 100%;
+          padding: 12px 14px;
+          margin: 10px 0 18px 0;
+          border: 1px solid #ccc;
+          border-radius: 6px;
+          font-size: 1rem;
+          background: #fff;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          box-sizing: border-box;
+          outline: none;
+      }
+
+      .dues-check-content input:focus {
+          border-color: #AF2630;
+          box-shadow: 0 0 0 2px #f8d7da;
+      }
+
+      .dues-check-content button {
+          background-color: #AF2630;
+          color: white;
+          border: none;
+          padding: 12px 0;
+          border-radius: 6px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 10px;
+          width: 100%;
+          transition: background 0.2s;
+      }
+
+      .dues-check-content button:hover {
+          background-color: #8E1F27;
+      }
+
+      .dues-check-content .close-modal {
+          position: absolute;
+          top: 10px;
+          right: 15px;
+          font-size: 24px;
+          cursor: pointer;
+          color: #666;
+      }
+
+      .dues-check-content .error-message {
+          color: #AF2630;
+          margin-top: 10px;
+          display: none;
+          font-size: 0.98rem;
+      }
   </style>
 </head>
 <body>
-  <div class="top-bar"></div>
+  <div class="top-bar">
+      <button class="pay-dues-btn" onclick="openDuesCheck()">Pay your monthly dues here</button>
+  </div>
   
   <div class="container">
       <div class="Welcome">
@@ -412,6 +528,19 @@
       <pre id="debug-log"></pre>
   </div>
   <button id="debug-toggle" onclick="toggleDebug()">D</button>
+
+  <!-- Add the dues check modal -->
+  <div id="duesCheckModal" class="dues-check-modal">
+      <div class="dues-check-content">
+          <span class="close-modal" onclick="closeDuesCheck()">&times;</span>
+          <h2>Check Monthly Dues</h2>
+          <p>Please enter your login credentials to check your dues status</p>
+          <input type="email" id="duesEmail" placeholder="Enter your email" required>
+          <input type="password" id="duesPassword" placeholder="Enter your password" required>
+          <button onclick="checkDuesStatus()">Check Status</button>
+          <div id="duesErrorMessage" class="error-message"></div>
+      </div>
+  </div>
 
   <script>
     // Debug functions
@@ -650,6 +779,94 @@
             });
         } catch (error) {
             console.error("Error in checkSessionStatus:", error);
+        }
+    }
+
+    // Add these new functions for dues checking
+    function openDuesCheck() {
+        document.getElementById('duesCheckModal').style.display = 'block';
+    }
+
+    function closeDuesCheck() {
+        document.getElementById('duesCheckModal').style.display = 'none';
+        document.getElementById('duesErrorMessage').style.display = 'none';
+        document.getElementById('duesEmail').value = '';
+        document.getElementById('duesPassword').value = '';
+    }
+
+    async function checkDuesStatus() {
+        const email = document.getElementById('duesEmail').value;
+        const password = document.getElementById('duesPassword').value;
+        const errorMessage = document.getElementById('duesErrorMessage');
+        
+        if (!email || !password) {
+            errorMessage.textContent = 'Please enter both email and password';
+            errorMessage.style.display = 'block';
+            return;
+        }
+        
+        try {
+            // First verify credentials
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    login: email,
+                    password: password
+                }),
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Check if user has unpaid dues
+                const duesResponse = await fetch('/api/check-dues-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                });
+                
+                const duesData = await duesResponse.json();
+                
+                if (duesData.hasUnpaidDues) {
+                    // Store user info and redirect to payment page
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('email', email);
+                    localStorage.setItem('dueAmount', duesData.dueAmount || "5000.00");
+                    window.location.href = 'MDPayment.html';
+                } else {
+                    errorMessage.textContent = 'You have no unpaid dues for this month';
+                    errorMessage.style.display = 'block';
+                }
+            } else if (data.isDelinquent) {
+                // User is delinquent, redirect to payment page
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('email', data.email);
+                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                window.location.href = 'MDPayment.html';
+            } else {
+                errorMessage.textContent = 'Invalid credentials';
+                errorMessage.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error checking dues status:', error);
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.style.display = 'block';
+        }
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('duesCheckModal');
+        if (event.target === modal) {
+            closeDuesCheck();
         }
     }
   </script>

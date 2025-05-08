@@ -2348,28 +2348,28 @@ app.put("/approveEvent/:eventName", async (req, res) => {
 })
 
 app.post("/api/approve-event", async (req, res) => {
-  const { eventName } = req.body
+  const { eventName, eventDate, startTime, endTime, amenity, userEmail, HomeownerName, guests } = req.body;
 
-  if (!eventName) {
+  if (!eventName || !eventDate || !startTime || !endTime || !amenity || !userEmail) {
     return res.status(400).json({
       success: false,
-      message: "Event name is required",
-    })
+      message: "Missing event details",
+    });
   }
 
   try {
-    const db = await connectToDatabase()
-    const eventsCollection = db.collection("events")
-    const aeventsCollection = db.collection("aevents")
+    const db = await connectToDatabase();
+    const eventsCollection = db.collection("events");
+    const aeventsCollection = db.collection("aevents");
 
     // Find the event in the events collection
-    const event = await eventsCollection.findOne({ eventName })
+    const event = await eventsCollection.findOne({ eventName, eventDate, startTime, endTime, amenity, userEmail });
 
     if (!event) {
       return res.status(404).json({
         success: false,
         message: "Event not found",
-      })
+      });
     }
 
     // Format times before moving to approved events
@@ -2379,38 +2379,46 @@ app.post("/api/approve-event", async (req, res) => {
       endTime: formatTime(event.endTime),
       approvedAt: new Date(),
       status: "approved",
-    }
+    };
 
-    await aeventsCollection.insertOne(approvedEvent)
-    await eventsCollection.deleteOne({ eventName })
+    const result = await aeventsCollection.insertOne(approvedEvent);
+    await eventsCollection.deleteOne({ _id: event._id });
 
-    if (event.userEmail) {
-      const timeRange = `${approvedEvent.startTime}-${approvedEvent.endTime}`
-      await createNotification(
-        event.userEmail,
-        "payment_required",
-        `Your event "${eventName}" has been approved. Please proceed with the payment.`,
-        approvedEvent._id.toString(),
-        `${eventName} on ${event.eventDate} ${timeRange}`,
-        event.amenity,
-      )
-    }
+    // Create notification with all event details
+    await db.collection("notifications").insertOne({
+      userEmail,
+      type: "payment_required",
+      message: `Your event \"${eventName}\" has been approved. Please proceed with the payment.`,
+      relatedId: result.insertedId.toString(),
+      subject: `${eventName} on ${eventDate} ${formatTime(startTime)}-${formatTime(endTime)}`,
+      amenity,
+      eventName,
+      eventDate,
+      startTime: formatTime(startTime),
+      endTime: formatTime(endTime),
+      HomeownerName: HomeownerName || event.HomeownerName,
+      guests: guests || event.guests,
+      paymentStatus: "pending",
+      timestamp: new Date(),
+      read: false,
+      isAdminResponse: false
+    });
 
-    await logActivity("eventApproval", `Event ${eventName} approved`)
+    await logActivity("eventApproval", `Event ${eventName} approved`);
 
     res.json({
       success: true,
       message: "Event approved successfully",
-    })
+    });
   } catch (error) {
-    console.error("Error approving event:", error)
+    console.error("Error approving event:", error);
     res.status(500).json({
       success: false,
       message: "Server error while approving event",
       error: error.message,
-    })
+    });
   }
-})
+});
 
 app.get("/receipt-image", async (req, res) => {
   const { eventName, eventDate } = req.query
@@ -2919,16 +2927,13 @@ app.get("/getCurrentlyReservedAmenities", async (req, res) => {
 function getAmenityImagePath(amenityName) {
   switch (amenityName.toLowerCase()) {
     case "clubhouse":
-      return "images/clubhouseimg.jpg"
-
+      return "/images/clubhouseimg.jpg";
     case "court":
-      return "images/Courtimg.jpg"
-
+      return "/images/Courtimg.jpg";
     case "pool":
-      return "images/poolimg.png"
-
+      return "/images/poolimg.png";
     default:
-      return "images/placeholder.jpg"
+      return "/images/placeholder.jpg";
   }
 }
 
@@ -5004,21 +5009,27 @@ function getDateRange(filter) {
 
 async function connectToDatabase() {
   try {
+    if (database) {
+      return database;
+    }
+
     const client = new MongoClient(uri, {
       serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
       },
-    })
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-    await client.connect()
-    console.log("Connected successfully to server")
-    db = client.db(dbName)
-    return db
+    await client.connect();
+    database = client.db(dbName);
+    console.log("Connected successfully to MongoDB");
+    return database;
   } catch (error) {
-    console.error("Error connecting to database:", error)
-    throw error
+    console.error("Error connecting to database:", error);
+    throw error;
   }
 }
 
@@ -5034,3 +5045,73 @@ app.use((req, res, next) => {
 
   next()
 })
+
+// Add this endpoint to get all accounts
+app.get("/api/get-all-accounts", async (req, res) => {
+  try {
+    console.log('Fetching all accounts...');
+    const db = await connectToDatabase();
+    
+    // Check if user is admin
+    if (!req.session.isAdmin) {
+        console.log('Non-admin user attempted to access accounts');
+        return res.status(403).json({
+            success: false,
+            message: 'Unauthorized access'
+        });
+    }
+
+    const accounts = await db.collection('acc').find({}, {
+        projection: {
+            username: 1,
+            email: 1,
+            password: 1,
+            _id: 0
+        }
+    }).toArray();
+
+    console.log(`Found ${accounts.length} accounts`);
+    
+    res.json({
+        success: true,
+        accounts: accounts
+    });
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch accounts",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint to check if a user has unpaid dues
+app.post('/api/check-dues-status', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ hasUnpaidDues: false, message: "Email required" });
+    }
+
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+
+    // Find the homeowner by email (case-insensitive)
+    const homeowner = await homeownersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } });
+
+    if (!homeowner) {
+      return res.status(404).json({ hasUnpaidDues: false, message: "Homeowner not found" });
+    }
+
+    // Check if the paymentStatus is "Not Paid" or "Delinquent"
+    const hasUnpaidDues = homeowner.paymentStatus === "Not Paid" || homeowner.paymentStatus === "Delinquent";
+    res.json({
+      hasUnpaidDues,
+      dueAmount: hasUnpaidDues ? (homeowner.dueAmount || "5000.00") : "0.00"
+    });
+  } catch (error) {
+    console.error("Error in /api/check-dues-status:", error);
+    res.status(500).json({ hasUnpaidDues: false, message: "Server error" });
+  }
+});

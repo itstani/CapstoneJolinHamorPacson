@@ -711,12 +711,6 @@ z-index: 1002; /* Ensure it's above the header */
             <p>Calendar</p>
         </div>
         
-        <div class="Profile">
-          <button type="button" id="profilebutton" name="profilebutton" aria-label="profile" onclick="window.location.href='profile.html'">
-              <img src="/images/profileicon.png" alt="Profile" onerror="handleImageError(this)" />
-          </button>
-          <p>Profile</p>
-      </div>
       
       <div class="logoutbutton">
           <button type="button" id="logoutButton">Logout</button>
@@ -1091,8 +1085,6 @@ async function markAllNotificationsAsRead() {
   }
 }
 
-// Find the showEventDetails function and replace it with this version that preserves all CSS classes:
-
 // Update the showEventDetails function with better debugging and fallback options
 // Update the showEventDetails function with better data extraction
 // Update the showEventDetails function with more robust payment requirement detection
@@ -1179,20 +1171,22 @@ function showEventDetails(notification) {
   let requiresPayment = false;
   let status = 'Confirmed';
 
-  // Check explicit payment indicators
-  if (notification.type === 'payment_required') {
+  // 1. If the message contains 'proceed with the payment', always require payment
+  if (notification.message && notification.message.toLowerCase().includes('proceed with the payment')) {
     requiresPayment = true;
     status = 'Payment Required';
-  } else if (notification.type === 'payment_confirmed' || notification.paymentStatus === 'paid' || notification.isPaid === true) {
-    status = 'Payment Confirmed';
-  } else if (notification.type === 'event_cancelled' || notification.type === 'event_deleted') {
-    status = 'Cancelled';
-  } else if (notification.message && notification.message.includes('proceed with the payment')) {
-    // If message mentions payment but no other indicators suggest it's been paid
-    if (!(notification.type === 'payment_confirmed' || notification.paymentStatus === 'paid' || notification.isPaid === true)) {
-      requiresPayment = true;
-      status = 'Payment Required';
-    }
+  }
+  // 2. Explicit payment indicators
+  else if (notification.type === 'payment_required') {
+    requiresPayment = true;
+    status = 'Payment Required';
+  }
+  // 3. Status-based
+  else if (
+    (notification.status === 'approved' || notification.status === 'Payment Required') && !notification.isPaid
+  ) {
+    requiresPayment = true;
+    status = 'Payment Required';
   }
 
   // Check event type - certain types typically don't require payment
@@ -1204,26 +1198,33 @@ function showEventDetails(notification) {
     }
   }
 
-  // Check event name for keywords that suggest it's a birthday event
-  const birthdayKeywords = ['birthday', 'bday', 'celebration', 'anniversary'];
-  const eventNameLower = displayEventName.toLowerCase();
-  if (birthdayKeywords.some(keyword => eventNameLower.includes(keyword))) {
-    requiresPayment = false;
-    if (status === 'Payment Required') {
-      status = 'Confirmed'; // Override status for birthday events
-    }
-  }
+  console.log("DEBUG: requiresPayment?", requiresPayment, {
+    message: notification.message,
+    type: notification.type,
+    status: notification.status,
+    isPaid: notification.isPaid
+  });
 
   document.getElementById('eventDetailsStatus').textContent = status;
   
   // Set message
   document.getElementById('eventDetailsMessage').textContent = notification.message || '';
 
-  // Add payment button ONLY if payment is required
-  const actionsDiv = document.getElementById('eventActions');
+  // Ensure eventActions div exists
+  let actionsDiv = document.getElementById('eventActions');
+  if (!actionsDiv) {
+    // Try to find the modal content container
+    let modalContent = document.querySelector('.event-details-content');
+    if (modalContent) {
+      actionsDiv = document.createElement('div');
+      actionsDiv.id = 'eventActions';
+      actionsDiv.className = 'event-actions';
+      modalContent.appendChild(actionsDiv);
+    }
+  }
   actionsDiv.innerHTML = '';
-  
   if (requiresPayment) {
+    console.log("DEBUG: Showing Proceed to Payment button for notification:", notification);
     const paymentButton = document.createElement('button');
     paymentButton.className = 'payment-button';
     paymentButton.textContent = 'Proceed to Payment';
@@ -1399,117 +1400,81 @@ function showErrorMessage(message) {
 }
 
 function proceedToPayment(notification) {
-  // Check if this is a deleted event notification
-  if (notification.type === 'event_deleted') {
-    alert('This event has been deleted and is no longer available for payment.');
-    return;
-  }
+  // Debug: Print notification and relatedId
+  console.log('Proceed to Payment clicked. Notification:', notification);
+  const eventId = notification.relatedId || notification._id;
+  console.log('Attempting to fetch event with ID:', eventId);
 
-  if (!notification.relatedId) {
-    console.error("Missing relatedId in notification:", notification);
-    alert('Error: Missing event ID. Please contact support.');
-    return;
-  }
-  
-  const eventId = notification.relatedId;
-  console.log("Proceeding to payment for event ID:", eventId);
-  
-  const loadingDiv = document.createElement('div');
-  loadingDiv.textContent = 'Loading event details...';
-  loadingDiv.style.position = 'fixed';
-  loadingDiv.style.top = '50%';
-  loadingDiv.style.left = '50%';
-  loadingDiv.style.transform = 'translate(-50%, -50%)';
-  loadingDiv.style.padding = '20px';
-  loadingDiv.style.background = 'white';
-  loadingDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
-  loadingDiv.style.borderRadius = '5px';
-  loadingDiv.style.zIndex = '9999';
-  document.body.appendChild(loadingDiv);
-  
-  // First try to use the notification data directly if it has all needed fields
-  if (notification.eventName && notification.eventDate && 
-      notification.startTime && notification.endTime && notification.amenity) {
-    
-    console.log("Using notification data directly for payment");
+  // Use notification data directly if all details are present
+  if (notification.eventName && notification.eventDate && notification.startTime && notification.endTime && notification.amenity) {
     const eventData = {
-      _id: notification.relatedId,
-      userEmail: notification.userEmail,
       eventName: notification.eventName,
       eventDate: notification.eventDate,
       startTime: notification.startTime,
       endTime: notification.endTime,
-      amenity: notification.amenity
+      amenity: notification.amenity,
+      userEmail: notification.userEmail || '',
+      _id: eventId || '',
     };
-    
-    document.body.removeChild(loadingDiv);
     sessionStorage.setItem('eventData', JSON.stringify(eventData));
     window.location.href = 'payment.html';
     return;
   }
-  
-  // Otherwise, fetch from server
-  fetch(`/api/event/${eventId}`)
-    .then(response => {
-      if (!response.ok) {
-        if (response.status === 404 && notification.userEmail) {
-          console.log("Event not found by ID, trying by user email:", notification.userEmail);
-          return fetch(`/api/user-events/${encodeURIComponent(notification.userEmail)}`);
-        }
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data.success) {
-        let eventData;
-        
-        if (data.event) {
-          eventData = data.event;
-        } else if (data.events && data.events.length > 0) {
-          // Find the matching event by ID
-          eventData = data.events.find(event => event._id.toString() === eventId);
-          if (!eventData) {
-            throw new Error("Matching event not found in user's events");
+
+  // Otherwise, try fetching from the server
+  if (eventId) {
+    const url = `/api/event/${eventId}`;
+    console.log('Fetching event from:', url);
+    fetch(url)
+      .then(response => {
+        console.log('Fetch response:', response);
+        if (!response.ok) {
+          if (notification.eventName) {
+            // Try by event name
+            const nameUrl = `/api/event-by-name/${encodeURIComponent(notification.eventName)}`;
+            console.log('Event not found by ID, trying by name:', nameUrl);
+            return fetch(nameUrl);
           }
-        } else {
-          throw new Error("No event data found");
+          throw new Error('Event not found by ID');
         }
-        
-        console.log("Event data to use:", eventData);
-        sessionStorage.setItem('eventData', JSON.stringify(eventData));
-        document.body.removeChild(loadingDiv);
-        window.location.href = 'payment.html';
-      } else {
-        throw new Error(data.message || "Unknown error");
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching event details:', error);
-      
-      if (document.body.contains(loadingDiv)) {
-        document.body.removeChild(loadingDiv);
-      }
-      
-      const useManualEntry = confirm(
-        'Failed to fetch event details automatically. Would you like to enter event details manually?\n\n' +
-        'Error: ' + error.message
-      );
-      
-      if (useManualEntry) {
-        const minimalEvent = {
-          userEmail: notification.userEmail || '',
-          eventName: notification.eventName || 'Unknown Event',
-          eventDate: notification.eventDate || new Date().toISOString().split('T')[0],
-          startTime: notification.startTime || '09:00',
-          endTime: notification.endTime || '12:00',
-          amenity: notification.amenity || 'Unknown',
-        };
-        
-        sessionStorage.setItem('eventData', JSON.stringify(minimalEvent));
-        window.location.href = 'payment.html';
-      }
-    });
+        return response.json();
+      })
+      .then(data => {
+        console.log('Event fetch data:', data);
+        if (data && data.success && data.event) {
+          sessionStorage.setItem('eventData', JSON.stringify(data.event));
+          window.location.href = 'payment.html';
+        } else if (notification.eventName && notification.eventDate) {
+          // Try by event name and date
+          const nameDateUrl = `/eventshow?eventName=${encodeURIComponent(notification.eventName)}&eventDate=${encodeURIComponent(notification.eventDate)}`;
+          console.log('Trying by event name and date:', nameDateUrl);
+          fetch(nameDateUrl)
+            .then(resp => resp.json())
+            .then(evData => {
+              console.log('Event fetch by name and date:', evData);
+              if (evData && evData.success && evData.eventDetails) {
+                sessionStorage.setItem('eventData', JSON.stringify(evData.eventDetails));
+                window.location.href = 'payment.html';
+              } else {
+                throw new Error('Event not found by name and date');
+              }
+            })
+            .catch(error => {
+              alert('Failed to fetch event details. Please contact admin or try again later.');
+              console.error('Final event fetch error:', error);
+            });
+        } else {
+          throw new Error('Unknown error');
+        }
+      })
+      .catch(error => {
+        alert('Failed to fetch event details. Please contact admin or try again later.');
+        console.error('Final event fetch error:', error);
+      });
+  } else {
+    alert('Event ID not found. Please contact admin.');
+    console.error('No eventId found in notification:', notification);
+  }
 }
 
 // Function to clear all notifications

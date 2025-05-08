@@ -731,7 +731,13 @@
             // Show loading indicator
             showCustomAlert("Processing approval...");
         
-            // Use the correct API endpoint path
+            // Find the event object in currentEvents
+            const event = currentEvents.find(e => e.eventName === eventName);
+            if (!event) {
+                throw new Error('Event not found in currentEvents');
+            }
+
+            // Send all event details to the backend
             const response = await fetch(`/api/approve-event`, {
                 method: 'POST',
                 headers: {
@@ -739,7 +745,16 @@
                     'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ eventName })
+                body: JSON.stringify({
+                    eventName: event.eventName,
+                    eventDate: event.eventDate,
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                    amenity: event.amenity,
+                    userEmail: event.userEmail,
+                    HomeownerName: event.HomeownerName,
+                    guests: event.guests
+                })
             });
         
             if (!response.ok) {

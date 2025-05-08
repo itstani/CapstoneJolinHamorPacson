@@ -1305,6 +1305,7 @@
         if (amenity && imageElement && nameElement) {
           imageElement.onerror = function () {
             console.error("Failed to load image:", this.src);
+            this.onerror = null; // Prevent infinite loop
             this.src = "/images/placeholder.jpg";
           };
 
@@ -1461,6 +1462,16 @@
             // Fallback if the API call fails
             window.location.href = '/monthly-payments.html';
           });
+      }
+    </script>
+    <script>
+      function getAmenityImagePath(amenityName) {
+        switch ((amenityName || '').toLowerCase()) {
+          case 'clubhouse': return '/images/clubhouseimg.jpg';
+          case 'court': return '/images/Courtimg.jpg';
+          case 'pool': return '/images/poolimg.png';
+          default: return '/images/placeholder.jpg';
+        }
       }
     </script>
   </body>
