@@ -28,8 +28,8 @@ app.use((req, res, next) => {
     "/MDPayment.html",
     "/monthly-payments.html",
     "Webpages/homeowner-dashboard.html",
-    "/Webpages/monthly-payments.html", 
-    "/Webpages/Monthly-payments.html", 
+    "/Webpages/monthly-payments.html",
+    "/Webpages/Monthly-payments.html",
     "/api/monthly-dues-payment",
     "/api/submit-monthly-payment",
     "/images/",
@@ -298,7 +298,6 @@ app.get("/api/debug/file-check", (req, res) => {
     serverDirectory: __dirname,
   })
 })
-
 
 app.get("/debug", async (req, res) => {
   try {
@@ -969,6 +968,7 @@ app.get("/api/monthly-payments", async (req, res) => {
   try {
     const db = await connectToDatabase()
     const paymentsCollection = db.collection("monthlyPayments")
+    const homeownersCollection = db.collection("homeowners")
 
     // Get query parameters for filtering
     const status = req.query.status || "all"
@@ -978,13 +978,43 @@ app.get("/api/monthly-payments", async (req, res) => {
     const search = req.query.search || ""
 
     // Build the query
-    const query = {}
-    if (status !== "all") {
-      query.status = status
-    }
+    let query = {}
+    // Variable to store delinquent homeowners - declare it here so it's available throughout the function
+    let delinquentHomeowners = []
 
-    // Add search functionality
-    if (search) {
+    if (status === "due") {
+      // For due payments, we need to get payments from delinquent homeowners
+      // First, get all delinquent homeowners
+      delinquentHomeowners = await homeownersCollection
+        .find({
+          $or: [{ paymentStatus: "Delinquent" }, { homeownerStatus: "Delinquent" }],
+        })
+        .toArray()
+
+      // Extract their emails
+      const delinquentEmails = delinquentHomeowners.map((h) => h.email)
+
+      // Find payments from these homeowners
+      query = { userEmail: { $in: delinquentEmails } }
+
+      // Add search functionality if provided
+      if (search) {
+        query.$and = [
+          { userEmail: { $in: delinquentEmails } },
+          {
+            $or: [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }],
+          },
+        ]
+      }
+    } else if (status !== "all") {
+      query.status = status
+
+      // Add search functionality
+      if (search) {
+        query.$or = [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }]
+      }
+    } else if (search) {
+      // Just search for all statuses
       query.$or = [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }]
     }
 
@@ -992,7 +1022,30 @@ app.get("/api/monthly-payments", async (req, res) => {
     const totalPayments = await paymentsCollection.countDocuments(query)
 
     // Get payments with pagination
-    const payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
+    let payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
+
+    // If we're looking for due payments, add delinquent information
+    if (status === "due") {
+      // Create a map of homeowner data by email for quick lookup
+      const homeownerMap = {}
+      delinquentHomeowners.forEach((h) => {
+        homeownerMap[h.email] = h
+      })
+
+      // Enhance payment data with delinquent information
+      payments = payments.map((payment) => {
+        const homeowner = homeownerMap[payment.userEmail]
+        if (homeowner) {
+          return {
+            ...payment,
+            homeownerStatus: homeowner.homeownerStatus,
+            paymentStatus: homeowner.paymentStatus,
+            delinquentSince: homeowner.lastPaymentDate || homeowner.createdAt || payment.timestamp,
+          }
+        }
+        return payment
+      })
+    }
 
     res.json({
       success: true,
@@ -2097,38 +2150,74 @@ app.get("/api/fix-notification-types", async (req, res) => {
 
 app.put("/updateHomeowner/:email", async (req, res) => {
   const { email } = req.params
-
   const updateData = req.body
 
   try {
     const db = await connectToDatabase()
-
     const database = getClient().db("avidadb")
-
     const collection = database.collection("homeowners")
 
     // Retrieve the homeowner's document to get the last name
-
     const homeowner = await collection.findOne({ email: email })
 
     if (!homeowner) {
       return res.json({ success: false, message: "Homeowner not found" })
     }
 
+    // Log the email being used for the query and the update data for debugging
+    console.log(`Updating homeowner with email: ${email}`)
+    console.log("Update data:", updateData)
+
     const result = await collection.updateOne({ email: email }, { $set: updateData })
 
     if (result.modifiedCount > 0) {
-      const lastName = homeowner.lastName // Assuming 'lastName' is the field storing the last name
-
-      await logActivity("homeownerUpdate", `Homeowner with Last Name ${lastName} updated`) // Log activity
-
+      const lastName = homeowner.lastName
+      await logActivity("homeownerUpdate", `Homeowner with Last Name ${lastName} updated`)
       res.json({ success: true, message: "Homeowner updated successfully" })
     } else {
-      res.json({ success: false, message: "No document matched the query" })
+      // This is the case where the document was found but no changes were made
+      // or the document wasn't found at all
+      res.json({
+        success: false,
+        message: result.matchedCount > 0 ? "No changes made to the homeowner" : "No document matched the query",
+      })
     }
   } catch (error) {
     console.error("Error updating homeowner:", error)
+    res.status(500).json({ success: false, error: "Failed to update homeowner" })
+  }
+})
 
+app.put("/updateHomeownerById/:id", async (req, res) => {
+  const { id } = req.params
+  const updateData = req.body
+
+  try {
+    const db = await connectToDatabase()
+    const database = getClient().db("avidadb")
+    const collection = database.collection("homeowners")
+
+    // Convert string ID to ObjectId
+    const objectId = new ObjectId(id)
+
+    // Retrieve the homeowner's document to get the last name
+    const homeowner = await collection.findOne({ _id: objectId })
+
+    if (!homeowner) {
+      return res.json({ success: false, message: "Homeowner not found" })
+    }
+
+    const result = await collection.updateOne({ _id: objectId }, { $set: updateData })
+
+    if (result.modifiedCount > 0) {
+      const lastName = homeowner.lastName
+      await logActivity("homeownerUpdate", `Homeowner with Last Name ${lastName} updated`)
+      res.json({ success: true, message: "Homeowner updated successfully" })
+    } else {
+      res.json({ success: false, message: "No changes made to the homeowner" })
+    }
+  } catch (error) {
+    console.error("Error updating homeowner:", error)
     res.status(500).json({ success: false, error: "Failed to update homeowner" })
   }
 })
@@ -4498,11 +4587,333 @@ app.use((req, res, next) => {
   res.json = (data) => {
     console.log("Response data:", JSON.stringify(data))
 
-    oldJson.apply(res, arguments)
+    oldJson.apply(res, [data]) // Fix: Pass data as an array
   }
 
   next()
 })
+
+const { handleCreateAccounts, handleGetHomeownerCredentials } = require("./create-homeowner-accounts")
+
+// Add these routes to your server.js (where your other routes are defined)
+// Route to create accounts for all homeowners
+app.post("/api/admin/create-homeowner-accounts", async (req, res) => {
+  // Check if user is admin
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized. Admin access required.",
+    })
+  }
+
+  await handleCreateAccounts(req, res)
+})
+
+// Route to get homeowner credentials
+app.get("/api/admin/homeowner-credentials/:id", async (req, res) => {
+  // Check if user is admin
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized. Admin access required.",
+    })
+  }
+
+  await handleGetHomeownerCredentials(req, res)
+})
+
+// Route to reset homeowner password
+app.post("/api/admin/reset-homeowner-password/:id", async (req, res) => {
+  // Check if user is admin
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized. Admin access required.",
+    })
+  }
+
+  req.query.resetPassword = "true"
+  await handleGetHomeownerCredentials(req, res)
+})
+
+// Add this new endpoint to get all homeowner credentials
+app.get("/api/homeowners/credentials", async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.session.user || req.session.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized. Admin access required.",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const accountsCollection = db.collection("acc")
+
+    // Get all homeowners
+    const homeowners = await homeownersCollection.find({}).toArray()
+
+    // Get all accounts
+    const accounts = await accountsCollection.find({}).toArray()
+
+    // Create a map of email to account details
+    const accountMap = {}
+    accounts.forEach((account) => {
+      accountMap[account.email] = account
+    })
+
+    // Combine homeowner and account information
+    const credentials = homeowners.map((homeowner) => {
+      const account = accountMap[homeowner.email] || {}
+      return {
+        _id: homeowner._id,
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        address: homeowner.Address,
+        username: account.username || homeowner.email,
+        password: "********", // For security, don't send actual passwords
+      }
+    })
+
+    res.json({
+      success: true,
+      credentials,
+    })
+  } catch (error) {
+    console.error("Error fetching homeowner credentials:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch homeowner credentials",
+      error: error.message,
+    })
+  }
+})
+
+// Add this new endpoint to get homeowner credentials
+app.get("/api/homeowner-credentials/:id", async (req, res) => {
+  try {
+    // Check if user is authenticated as admin
+    if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized. Only administrators can view credentials.",
+      })
+    }
+
+    const { id } = req.params
+    const resetPassword = req.query.resetPassword === "true"
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Homeowner ID is required",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const accCollection = db.collection("acc")
+
+    // Find the homeowner by ID
+    const homeowner = await homeownersCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!homeowner) {
+      return res.status(404).json({
+        success: false,
+        message: "Homeowner not found",
+      })
+    }
+
+    // Find the account by email
+    const account = await accCollection.findOne({ email: homeowner.email })
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: "Account not found for this homeowner",
+      })
+    }
+
+    // If reset password is requested, generate a new password
+    let newPassword = null
+    if (resetPassword) {
+      // Extract block and lot numbers from address for password generation
+      const blockMatch = homeowner.Address.match(/Block\s+(\d+)/i)
+      const lotMatch = homeowner.Address.match(/Lot\s+(\d+)/i)
+
+      if (blockMatch && lotMatch) {
+        const blockNumber = blockMatch[1]
+        const lotNumber = lotMatch[1]
+        const currentYear = new Date().getFullYear()
+
+        // Generate password in the format: ASC + block + lot + year + !
+        newPassword = `ASC${blockNumber}${lotNumber}${currentYear}!`
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        // Update the account with the new password
+        await accCollection.updateOne({ _id: account._id }, { $set: { password: hashedPassword } })
+
+        // Log the password reset
+        await logActivity(
+          "passwordReset",
+          `Admin reset password for homeowner ${homeowner.firstName} ${homeowner.lastName}`,
+        )
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Could not reset password: Address does not contain valid Block and Lot numbers",
+        })
+      }
+    }
+
+    // Return account details
+    res.json({
+      success: true,
+      homeownerId: homeowner._id,
+      username: account.username,
+      email: account.email,
+      newPassword: newPassword, // Will be null if no reset was requested
+    })
+  } catch (error) {
+    console.error("Error fetching homeowner credentials:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error fetching homeowner credentials",
+      error: error.message,
+    })
+  }
+})
+
+// Add this endpoint to reset a homeowner's password
+app.post("/api/reset-homeowner-password/:id", async (req, res) => {
+  try {
+    // Check if user is authenticated as admin
+    if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized. Only administrators can reset passwords.",
+      })
+    }
+
+    const { id } = req.params
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Homeowner ID is required",
+      })
+    }
+
+    // Redirect to the credentials endpoint with reset flag
+    req.query.resetPassword = "true"
+    return await getHomeownerCredentials(req, res)
+  } catch (error) {
+    console.error("Error resetting homeowner password:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error resetting homeowner password",
+      error: error.message,
+    })
+  }
+})
+
+// Extract the homeowner credentials logic to a reusable function
+async function getHomeownerCredentials(req, res) {
+  try {
+    const { id } = req.params
+    const resetPassword = req.query.resetPassword === "true"
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Homeowner ID is required",
+      })
+    }
+
+    const db = await connectToDatabase()
+    const homeownersCollection = db.collection("homeowners")
+    const accCollection = db.collection("acc")
+
+    // Find the homeowner by ID
+    const homeowner = await homeownersCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!homeowner) {
+      return res.status(404).json({
+        success: false,
+        message: "Homeowner not found",
+      })
+    }
+
+    // Find the account by email
+    const account = await accCollection.findOne({ email: homeowner.email })
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: "Account not found for this homeowner",
+      })
+    }
+
+    // If reset password is requested, generate a new password
+    let newPassword = null
+    if (resetPassword) {
+      // Extract block and lot numbers from address for password generation
+      const blockMatch = homeowner.Address.match(/Block\s+(\d+)/i)
+      const lotMatch = homeowner.Address.match(/Lot\s+(\d+)/i)
+
+      if (blockMatch && lotMatch) {
+        const blockNumber = blockMatch[1]
+        const lotNumber = lotMatch[1]
+        const currentYear = new Date().getFullYear()
+
+        // Generate password in the format: ASC + block + lot + year + !
+        newPassword = `ASC${blockNumber}${lotNumber}${currentYear}!`
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        // Update the account with the new password
+        await accCollection.updateOne({ _id: account._id }, { $set: { password: hashedPassword } })
+
+        // Log the password reset
+        await logActivity(
+          "passwordReset",
+          `Admin reset password for homeowner ${homeowner.firstName} ${homeowner.lastName}`,
+        )
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Could not reset password: Address does not contain valid Block and Lot numbers",
+        })
+      }
+    }
+
+    // Return account details
+    res.json({
+      success: true,
+      homeownerId: homeowner._id,
+      username: account.username,
+      email: account.email,
+      newPassword: newPassword, // Will be null if no reset was requested
+    })
+  } catch (error) {
+    console.error("Error in getHomeownerCredentials:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error processing homeowner credentials",
+      error: error.message,
+    })
+  }
+}
+
+// Export the function for use in other files
+module.exports = {
+  connectToDatabase,
+  getHomeownerCredentials,
+}
 
 // === Static File Serving (place this at the end of the file) ===
 
@@ -4591,9 +5002,6 @@ function getDateRange(filter) {
   }
 }
 
-// Fix: Declare db outside the scope of the try block
-let db
-
 async function connectToDatabase() {
   try {
     const client = new MongoClient(uri, {
@@ -4606,11 +5014,11 @@ async function connectToDatabase() {
 
     await client.connect()
     console.log("Connected successfully to server")
-    db = client.db(dbName) // Assign the database connection to the 'db' variable
+    db = client.db(dbName)
     return db
   } catch (error) {
     console.error("Error connecting to database:", error)
-    throw error // Re-throw the error to be handled by the calling function
+    throw error
   }
 }
 
@@ -4620,7 +5028,8 @@ app.use((req, res, next) => {
   res.json = (data) => {
     console.log("Response data:", JSON.stringify(data))
 
-    oldJson.apply(res, [data]) // Fix: Pass data as an array
+    // Fix: Pass data as an array
+    oldJson.apply(res, [data])
   }
 
   next()

@@ -589,19 +589,19 @@
           
             <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
             <label for="amenityPool">
-                <img src="/images/pool.png" alt="Pool">
+                <img src="../images/pool.png" alt="Pool">
             </label>
         </div>
         <div>
             <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse">
             <label for="amenityClubhouse">
-                <img src="/images/clubhouse.png" alt="Clubhouse">
+                <img src="../images/clubhouse.png" alt="Clubhouse">
             </label>
         </div>
         <div>
             <input type="radio" id="amenityCourt" name="amenity" value="Court">
             <label for="amenityCourt">
-                <img src="/images/court.png" alt="Court">
+                <img src="../images/court.png" alt="Court">
             </label>
         </div>
       </div>
@@ -665,7 +665,7 @@
     </form>
   
     <!-- Preview Image -->
-    <img id="amenityPreview" src="/images/poolimg.png" alt="Amenity Preview" class="amenity-preview">
+    <img id="amenityPreview" src="../images/poolimg.png" alt="Amenity Preview" class="amenity-preview">
   </div>
 
   <div id="successModal" class="modal-overlay" style="display: none;">
@@ -773,16 +773,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 let selectedImage;
                 switch (this.value) {
                     case 'Pool':
-                        selectedImage = '/images/poolimg.png';
+                        selectedImage = '../images/poolimg.png';
                         eventTypeContainerCB.style.display = 'none';
                         eventTypeContainerP.style.display = 'block';
                         break;
                     case 'Clubhouse':
-                        selectedImage = '/images/clubhouseimg.jpg';
+                        selectedImage = '../images/clubhouseimg.jpg';
                         eventTypeContainerCB.style.display = 'block';
                         break;
                     case 'Court':
-                        selectedImage = '/images/courtimg.jpg';
+                        selectedImage = '../images/courtimg.jpg';
                         eventTypeContainerCB.style.display = 'none';
                         break;
                 }
