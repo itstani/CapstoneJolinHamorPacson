@@ -35,32 +35,28 @@
             justify-content: flex-start;
             padding-top: 5px;
             box-sizing: border-box;
+            z-index: 999;
         }
-        .Home, .homeownerstatus, .analytics, .Calendar {
+        .side-bar div {
             margin-bottom: 20px;
             text-align: center;
-            font-size: 15px;
-            font-weight: bold;
-            padding-top: 5px;
+            width: 100%;
         }
-        .Home img, .homeownerstatus img, .analytics img, .Calendar img {
+        .side-bar img {
             width: 60px;
             height: 60px;
-        }
-        .Home button, .homeownerstatus button, .analytics button, .Calendar button {
-            background-color: #D9D9D9;
-            margin: 0 auto;
-            border: none;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border-radius: 10px;
-        }
-        .Home button:hover, .homeownerstatus button:hover, .analytics button:hover, .Calendar button:hover {
-            background-color: #ccc;
+            margin-bottom: 5px;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .side-bar img:hover {
             transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .side-bar p {
+            font-size: 15px;
+            font-weight: bold;
+            font-family: 'Inter';
+            margin: 0;
         }
         #logoutButton {
             background-color: #AF2630;
@@ -73,6 +69,7 @@
             margin-top: auto;
             margin-bottom: 90px;
             font-weight: bold;
+            width: 80%;
         }
         #logoutButton:hover {
             background-color: #C44A53;
@@ -170,30 +167,65 @@
                 width: 100%;
             }
         }
+        .nav-button {
+            background-color: #D9D9D9;
+            margin: 0 auto;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            width: 90%;
+            padding: 5px;
+        }
+        .nav-button:hover {
+            background-color: #ccc;
+            cursor: pointer;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .nav-button img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 5px;
+        }
+        .nav-button p {
+            font-size: 15px;
+            font-weight: bold;
+            font-family: 'Inter';
+            margin: 0;
+            color: #AF2630;
+        }
     </style>
 </head>
 <body>
     <div class="top-bar"></div>
     <div class="side-bar">
-        <div class="Home">
-            <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='AdHome.html'">
                 <img src="/images/house.png" alt="Home">
+                <p>Home</p>
             </button>
-            <p>Home</p>
         </div>
-        <div class="homeownerstatus">
-            <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
-                <img src="/images/Documents.png" alt="Documents">
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='hotable.html'">
+                <img src="/images/Documents.png" alt="Status">
+                <p>Status</p>
             </button>
-            <p>Homeowner status</p>
         </div>
-        <div class="Calendar">
-            <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='analytics.html'">
+                <img src="/images/Data.png" alt="Analytics">
+                <p>Analytics</p>
+            </button>
+        </div>
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='admincalender.html'">
                 <img src="/images/Calendar.png" alt="Calendar">
+                <p>Calendar</p>
             </button>
-            <p>Calendar</p>
         </div>
-        <button id="logoutButton" class="logoutButton">Logout</button>
+        <button id="logoutButton" onclick="handleLogout()">Logout</button>
     </div>
     <div class="mainarea">
         <div class="Welcome">
@@ -402,24 +434,20 @@
             document.getElementById('generateReportBtn').addEventListener('click', generateReport);
         });
 
-        document
-        .getElementById("logoutButton")
-        .addEventListener("click", async () => {
-          try {
-            const response = await fetch("/logout", { method: "POST" });
-            if (response.ok) {
-              localStorage.clear(); // Clear user data
-              window.location.href = "login.html"; // Redirect to the login page
-            } else {
-              showCustomAlert("Logout failed. Please try again.");
+        async function handleLogout() {
+            try {
+                const response = await fetch("/logout", { method: "POST" });
+                if (response.ok) {
+                    localStorage.clear(); // Clear user data
+                    window.location.href = "login.html"; // Redirect to the login page
+                } else {
+                    alert("Logout failed. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error during logout:", error);
+                alert("An error occurred during logout. Please try again.");
             }
-          } catch (error) {
-            console.error("Error during logout:", error);
-            showCustomAlert(
-              "An error occurred during logout. Please try again."
-            );
-          }
-        });
+        }
     </script>
 </body>
 </html>

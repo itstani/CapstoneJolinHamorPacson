@@ -456,37 +456,31 @@
   <div class="top-bar"></div>
   
   <div class="side-bar">
-    <div class="Home">
-      <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
+    <div>
+      <button type="button" class="nav-button" onclick="window.location.href='AdHome.html'">
         <img src="/images/house.png" alt="Home">
+        <p>Home</p>
       </button>
-      <p>Home</p>
     </div>
-    <div class="homeownerstatus">
-      <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
-        <img src="/images/Documents.png" alt="Documents">
+    <div>
+      <button type="button" class="nav-button" onclick="window.location.href='hotable.html'">
+        <img src="/images/Documents.png" alt="Status">
+        <p>Status</p>
       </button>
-      <p>Homeowner status</p>
     </div>
-    <div class="analytics">
-      <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics" onclick="window.location.href='analytics.html'">
+    <div>
+      <button type="button" class="nav-button" onclick="window.location.href='analytics.html'">
         <img src="/images/Data.png" alt="Analytics">
+        <p>Analytics</p>
       </button>
-      <p>Analytics</p>
     </div>
-    <div class="Calendar">
-      <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
+    <div>
+      <button type="button" class="nav-button" onclick="window.location.href='admincalender.html'">
         <img src="/images/Calendar.png" alt="Calendar">
+        <p>Calendar</p>
       </button>
-      <p>Calendar</p>
     </div>
-    <div class="MonthlyPayments">
-      <button type="button" id="MonthlyPaymentsButton" name="MonthlyPaymentsButton" aria-label="Monthly Payments" onclick="window.location.href='Monthly-payments.html'">
-        <img src="/images/payment.png" alt="Monthly Payments" onerror="this.src='/images/Documents.png';">
-      </button>
-      <p>Monthly Payments</p>
-    </div>
-    <button id="logoutButton" class="logoutButton">Logout</button>
+    <button id="logoutButton" onclick="handleLogout()">Logout</button>
   </div>
 
   <div class="main-content">
@@ -506,8 +500,21 @@
     </div>
     
     <div id="paymentsContainer">
-      <!-- Content will be loaded dynamically -->
-      <div class="loading">Loading payments...</div>
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Homeowner</th>
+            <th>Amount</th>
+            <th>Payment Method</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="paymentsTableBody">
+          <!-- Payments will be loaded here -->
+        </tbody>
+      </table>
     </div>
     
     <div class="pagination" id="pagination">
@@ -575,6 +582,20 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // Load initial payments
   loadPayments();
+
+  // Check authentication status
+  fetch('/api/check-auth', {
+    credentials: 'include'
+  })
+  .then(response => {
+    if (!response.ok) {
+      window.location.href = '/Webpages/login.html';
+    }
+  })
+  .catch(error => {
+    console.error('Auth check failed:', error);
+    window.location.href = '/Webpages/login.html';
+  });
 });
 
 // Function to switch tabs
@@ -596,26 +617,198 @@ function switchTab(status) {
 // Function to load payments
 async function loadPayments() {
   try {
+    const paymentsContainer = document.getElementById('paymentsContainer');
+    const tableBody = document.getElementById('paymentsTableBody');
+    
     // Show loading state
-    document.getElementById('paymentsTableBody').innerHTML = `
+    tableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="text-center">Loading payments...</td>
+        <td colspan="6" style="text-align: center;">Loading ${currentStatus === 'due' ? 'delinquent homeowners' : 'payments'}...</td>
       </tr>
     `;
     
-    // Build query parameters
-    const params = new URLSearchParams({
-      status: currentStatus,
-      page: currentPage,
-      limit: 10
-    });
-    
-    if (searchTerm) {
-      params.append('search', searchTerm);
+    let response;
+    if (currentStatus === 'due') {
+      // Fetch delinquent homeowners
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: 10
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      response = await fetch(`/api/homeowners/delinquent?${params.toString()}`, {
+        credentials: 'include'
+      });
+    } else {
+      // Fetch regular payments
+      const params = new URLSearchParams({
+        status: currentStatus,
+        page: currentPage,
+        limit: 10
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      response = await fetch(`/api/monthly-payments?${params.toString()}`, {
+        credentials: 'include'
+      });
     }
     
-    // Fetch payments from API
-    const response = await fetch(`/api/monthly-payments?${params.toString()}`);
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Session expired, redirect to login
+        window.location.href = '/Webpages/login.html';
+        return;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // Get the response text first
+    const responseText = await response.text();
+    console.log("Response text:", responseText);
+
+    // Check if the response is HTML (login page)
+    if (responseText.trim().toLowerCase().startsWith('<!doctype html>')) {
+      console.log("Session expired, redirecting to login page");
+      window.location.href = '/Webpages/login.html';
+      return;
+    }
+
+    // Try to parse the JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Error parsing JSON:", parseError);
+      // Check if we got HTML instead of JSON
+      if (responseText.includes('<!DOCTYPE html>')) {
+        console.log("Received HTML instead of JSON, redirecting to login");
+        window.location.href = '/Webpages/login.html';
+        return;
+      }
+      throw new Error("Invalid JSON response from server");
+    }
+    
+    if (data.success) {
+      // Update pagination info
+      totalPages = data.totalPages || 1;
+      updatePagination();
+      
+      // Render content based on current status
+      if (currentStatus === 'due') {
+        // Handle delinquent homeowners
+        if (Array.isArray(data.homeowners)) {
+          renderDelinquentHomeowners(data.homeowners);
+        } else {
+          console.error("Expected homeowners array but got:", data.homeowners);
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; color: #721c24;">
+                Error: Invalid data format received from server
+              </td>
+            </tr>
+          `;
+        }
+      } else {
+        // Handle regular payments
+        if (Array.isArray(data.payments)) {
+          renderPayments(data.payments);
+        } else {
+          console.error("Expected payments array but got:", data.payments);
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; color: #721c24;">
+                Error: Invalid data format received from server
+              </td>
+            </tr>
+          `;
+        }
+      }
+    } else {
+      throw new Error(data.message || 'Failed to load data');
+    }
+  } catch (error) {
+    console.error('Error loading data:', error);
+    const tableBody = document.getElementById('paymentsTableBody');
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; color: #721c24;">
+            ${error.message || 'Error loading data. Please try again.'}
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+// Function to render delinquent homeowners
+function renderDelinquentHomeowners(homeowners) {
+  const tableBody = document.getElementById('paymentsTableBody');
+  
+  if (!homeowners || homeowners.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center;">No delinquent homeowners found.</td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tableBody.innerHTML = '';
+  
+  homeowners.forEach(homeowner => {
+    try {
+      const row = document.createElement('tr');
+      
+      // Calculate days overdue
+      const lastPaymentDate = new Date(homeowner.lastPaymentDate || new Date());
+      const today = new Date();
+      const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+      
+      // Determine severity class
+      const severityClass = daysOverdue > 60 ? 'overdue-severe' : 
+                           daysOverdue > 30 ? 'overdue-moderate' : 'overdue-mild';
+      
+      row.innerHTML = `
+        <td>
+          ${homeowner.name || 'N/A'}
+          <div class="small text-muted">${homeowner.email || 'No email'}</div>
+          <div class="days-overdue ${severityClass}">${daysOverdue} days overdue</div>
+        </td>
+        <td>₱${homeowner.monthlyDue || '0.00'}</td>
+        <td>${homeowner.paymentMethod || 'N/A'}</td>
+        <td>
+          ${new Date(homeowner.lastPaymentDate || new Date()).toLocaleDateString()}<br>
+          <span class="small text-muted">Last Payment</span>
+        </td>
+        <td><span class="status status-rejected">Delinquent</span></td>
+        <td>
+          <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id || ''}')">
+            View Details
+          </button>
+          <button class="btn btn-approve" onclick="sendReminder('${homeowner._id || ''}')">
+            Send Reminder
+          </button>
+        </td>
+      `;
+      
+      tableBody.appendChild(row);
+    } catch (error) {
+      console.error('Error rendering homeowner:', error, homeowner);
+    }
+  });
+}
+
+// Function to view homeowner details
+async function viewHomeownerDetails(homeownerId) {
+  try {
+    const response = await fetch(`/api/homeowners/${homeownerId}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -624,24 +817,60 @@ async function loadPayments() {
     const data = await response.json();
     
     if (data.success) {
-      // Update pagination info
-      totalPages = data.totalPages;
-      updatePagination();
+      const homeowner = data.homeowner;
       
-      // Render payments
-      renderPayments(data.payments);
+      // Populate modal with homeowner details
+      document.getElementById('paymentDetails').innerHTML = `
+        <div class="payment-details">
+          <p><strong>Name:</strong> ${homeowner.name}</p>
+          <p><strong>Email:</strong> ${homeowner.email}</p>
+          <p><strong>Monthly Due:</strong> ₱${homeowner.monthlyDue}</p>
+          <p><strong>Last Payment Date:</strong> ${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</p>
+          <p><strong>Payment Status:</strong> ${homeowner.paymentStatus}</p>
+          <p><strong>Contact Number:</strong> ${homeowner.contactNumber || 'N/A'}</p>
+          <p><strong>Address:</strong> ${homeowner.address || 'N/A'}</p>
+        </div>
+      `;
+      
+      // Show modal
+      document.getElementById('viewModal').style.display = 'block';
     } else {
-      throw new Error(data.message || 'Failed to load payments');
+      throw new Error(data.message || 'Failed to load homeowner details');
     }
   } catch (error) {
-    console.error('Error loading payments:', error);
-    document.getElementById('paymentsTableBody').innerHTML = `
-      <tr>
-        <td colspan="6" class="text-center text-danger">
-          Error loading payments. Please try again.
-        </td>
-      </tr>
-    `;
+    console.error('Error loading homeowner details:', error);
+    alert('Error loading homeowner details. Please try again.');
+  }
+}
+
+// Function to send reminder
+async function sendReminder(homeownerId) {
+  if (!confirm('Are you sure you want to send a payment reminder to this homeowner?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/homeowners/${homeownerId}/reminder`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert('Reminder sent successfully!');
+    } else {
+      throw new Error(data.message || 'Failed to send reminder');
+    }
+  } catch (error) {
+    console.error('Error sending reminder:', error);
+    alert('Error sending reminder. Please try again.');
   }
 }
 
@@ -652,7 +881,7 @@ function renderPayments(payments) {
   if (!payments || payments.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="text-center">No payments found.</td>
+        <td colspan="6" style="text-align: center;">No payments found.</td>
       </tr>
     `;
     return;
@@ -661,59 +890,54 @@ function renderPayments(payments) {
   tableBody.innerHTML = '';
   
   payments.forEach(payment => {
-    const row = document.createElement('tr');
-    
-    // Format date
-    const date = new Date(payment.timestamp).toLocaleDateString();
-    const time = new Date(payment.timestamp).toLocaleTimeString();
-    
-    // Determine status class
-    let statusClass = 'badge-secondary';
-    if (payment.status === 'approved') {
-      statusClass = 'badge-success';
-    } else if (payment.status === 'rejected') {
-      statusClass = 'badge-danger';
-    } else if (payment.status === 'pending') {
-      statusClass = 'badge-warning';
-    }
-    
-    // Create days overdue element if applicable
-    let daysOverdueHtml = '';
-    if (currentStatus === 'due' && payment.daysOverdue) {
-      const severityClass = payment.daysOverdue > 60 ? 'overdue-severe' : 
-                           payment.daysOverdue > 30 ? 'overdue-moderate' : 'overdue-mild';
-      daysOverdueHtml = `<div class="days-overdue ${severityClass}">${payment.daysOverdue} days overdue</div>`;
-    }
-    
-    row.innerHTML = `
-      <td>
-        ${payment.userName || 'N/A'}
-        <div class="small text-muted">${payment.userEmail || 'No email'}</div>
-        ${daysOverdueHtml}
-      </td>
-      <td>₱${payment.amount || '0.00'}</td>
-      <td>${payment.paymentMethod || 'N/A'}</td>
-      <td>
-        ${date}<br>
-        <span class="small text-muted">${time}</span>
-      </td>
-      <td><span class="badge ${statusClass}">${payment.status || 'unknown'}</span></td>
-      <td>
-        <button class="btn btn-sm btn-primary" onclick="viewPayment('${payment._id}')">
-          View
-        </button>
-        ${payment.status === 'pending' ? `
-          <button class="btn btn-sm btn-success ml-1" onclick="approvePayment('${payment._id}')">
-            Approve
+    try {
+      const row = document.createElement('tr');
+      
+      // Format date
+      const date = new Date(payment.timestamp || new Date()).toLocaleDateString();
+      const time = new Date(payment.timestamp || new Date()).toLocaleTimeString();
+      
+      // Determine status class
+      let statusClass = 'badge-secondary';
+      if (payment.status === 'approved') {
+        statusClass = 'badge-success';
+      } else if (payment.status === 'rejected') {
+        statusClass = 'badge-danger';
+      } else if (payment.status === 'pending') {
+        statusClass = 'badge-warning';
+      }
+      
+      row.innerHTML = `
+        <td>
+          ${payment.userName || 'N/A'}
+          <div class="small text-muted">${payment.userEmail || 'No email'}</div>
+        </td>
+        <td>₱${payment.amount || '0.00'}</td>
+        <td>${payment.paymentMethod || 'N/A'}</td>
+        <td>
+          ${date}<br>
+          <span class="small text-muted">${time}</span>
+        </td>
+        <td><span class="badge ${statusClass}">${payment.status || 'unknown'}</span></td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="viewPayment('${payment._id || ''}')">
+            View
           </button>
-          <button class="btn btn-sm btn-danger ml-1" onclick="rejectPayment('${payment._id}')">
-            Reject
-          </button>
-        ` : ''}
-      </td>
-    `;
-    
-    tableBody.appendChild(row);
+          ${payment.status === 'pending' ? `
+            <button class="btn btn-sm btn-success ml-1" onclick="approvePayment('${payment._id || ''}')">
+              Approve
+            </button>
+            <button class="btn btn-sm btn-danger ml-1" onclick="rejectPayment('${payment._id || ''}')">
+              Reject
+            </button>
+          ` : ''}
+        </td>
+      `;
+      
+      tableBody.appendChild(row);
+    } catch (error) {
+      console.error('Error rendering payment:', error, payment);
+    }
   });
 }
 
@@ -897,7 +1121,22 @@ async function rejectPayment(paymentId) {
     alert('Error rejecting payment. Please try again.');
   }
 }
-  
+
+// Add this function at the end of your script section
+async function handleLogout() {
+    try {
+        const response = await fetch("/logout", { method: "POST" });
+        if (response.ok) {
+            localStorage.clear(); // Clear user data
+            window.location.href = "login.html"; // Redirect to the login page
+        } else {
+            alert("Logout failed. Please try again.");
+        }
+    } catch (error) {
+        console.error("Error during logout:", error);
+        alert("An error occurred during logout. Please try again.");
+    }
+}
   </script>
   
 </body>

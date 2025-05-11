@@ -1807,13 +1807,25 @@ app.get("/api/pending-events", async (req, res) => {
 app.get("/api/approved-events", async (req, res) => {
   try {
     const db = await connectToDatabase()
-    const eventsCollection = db.collection("aevents")
+    const aeventsCollection = db.collection("aevents")
+    const eventpaymentsCollection = db.collection("eventpayments")
 
-    const events = await eventsCollection.find({ status: "approved" }).sort({ eventDate: 1 }).toArray()
+    // Get all approved events
+    const events = await aeventsCollection.find({ status: "approved" }).sort({ eventDate: 1 }).toArray()
+    
+    // Get all event payments
+    const eventPayments = await eventpaymentsCollection.find().toArray()
+    const paidEventsMap = new Map(eventPayments.map(payment => [payment.eventName, true]))
+
+    // Add payment status to each event
+    const eventsWithPaymentStatus = events.map(event => ({
+      ...event,
+      isPaid: paidEventsMap.has(event.eventName)
+    }))
 
     res.json({
       success: true,
-      events,
+      events: eventsWithPaymentStatus,
     })
   } catch (error) {
     console.error("Error fetching approved events:", error)
@@ -2064,20 +2076,54 @@ run().catch(console.dir)
 //get data from acc collection to display in homeowner table hotable.html
 
 app.get("/getHomeowners", async (req, res) => {
-  try {
-    const db = await connectToDatabase()
-
-    const collection = db.collection("homeowners")
-
-    const homeowners = await collection.find().toArray()
-
-    res.json(homeowners)
-  } catch (error) {
-    console.error("Error fetching data:", error)
-
-    res.status(500).json({ error: "Failed to fetch data" })
-  }
-})
+    try {
+        const db = await connectToDatabase();
+        
+        // Get all homeowners
+        const homeowners = await db.collection("homeowners").find({}).toArray();
+        
+        // Get all accounts
+        const accounts = await db.collection("acc").find({}, {
+            projection: {
+                email: 1,
+                status: 1,
+                _id: 0
+            }
+        }).toArray();
+        
+        // Create a map of email to account
+        const emailToAccount = {};
+        accounts.forEach(account => {
+            if (account.email) {
+                const email = account.email.toLowerCase().trim();
+                emailToAccount[email] = account;
+            }
+        });
+        
+        // Add account information to homeowners, excluding sensitive data
+        const homeownersWithAccounts = homeowners.map(homeowner => {
+            if (homeowner.email) {
+                const email = homeowner.email.toLowerCase().trim();
+                const account = emailToAccount[email];
+                return {
+                    ...homeowner,
+                    hasAccount: !!account,
+                    accountStatus: account ? account.status : null
+                };
+            }
+            return {
+                ...homeowner,
+                hasAccount: false,
+                accountStatus: null
+            };
+        });
+        
+        res.json(homeownersWithAccounts);
+    } catch (error) {
+        console.error("Error fetching homeowners:", error);
+        res.status(500).json({ error: "Failed to fetch homeowners" });
+    }
+});
 
 // Add this to server.js
 app.get("/api/fix-notification-types", async (req, res) => {
@@ -4752,7 +4798,7 @@ app.get("/api/homeowner-credentials/:id", async (req, res) => {
         const lotNumber = lotMatch[1]
         const currentYear = new Date().getFullYear()
 
-        // Generate password in the format: ASC + block + lot + year + !
+        // Generate password in the format: ASC<Block><Lot><Year>!
         newPassword = `ASC${blockNumber}${lotNumber}${currentYear}!`
 
         // Hash the new password
@@ -4874,7 +4920,7 @@ async function getHomeownerCredentials(req, res) {
         const lotNumber = lotMatch[1]
         const currentYear = new Date().getFullYear()
 
-        // Generate password in the format: ASC + block + lot + year + !
+        // Generate password in the format: ASC<Block><Lot><Year>!
         newPassword = `ASC${blockNumber}${lotNumber}${currentYear}!`
 
         // Hash the new password
@@ -5046,14 +5092,13 @@ app.use((req, res, next) => {
   next()
 })
 
-// Add this endpoint to get all accounts
 app.get("/api/get-all-accounts", async (req, res) => {
   try {
     console.log('Fetching all accounts...');
     const db = await connectToDatabase();
     
     // Check if user is admin
-    if (!req.session.isAdmin) {
+    if (!req.session.user || req.session.user.role !== "admin") {
         console.log('Non-admin user attempted to access accounts');
         return res.status(403).json({
             success: false,
@@ -5061,23 +5106,30 @@ app.get("/api/get-all-accounts", async (req, res) => {
         });
     }
 
+    console.log('User is admin, proceeding with account fetch');
     const accounts = await db.collection('acc').find({}, {
         projection: {
             username: 1,
             email: 1,
             password: 1,
+            status: 1,
             _id: 0
         }
     }).toArray();
 
     console.log(`Found ${accounts.length} accounts`);
+    console.log('First account sample:', accounts[0]);
     
-    res.json({
+    const response = {
         success: true,
         accounts: accounts
-    });
+    };
+    
+    console.log('Sending response:', JSON.stringify(response));
+    res.json(response);
   } catch (error) {
     console.error("Error fetching accounts:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Failed to fetch accounts",
@@ -5113,5 +5165,250 @@ app.post('/api/check-dues-status', async (req, res) => {
   } catch (error) {
     console.error("Error in /api/check-dues-status:", error);
     res.status(500).json({ hasUnpaidDues: false, message: "Server error" });
+  }
+});
+
+async function checkHomeownerAccounts() {
+  try {
+      console.log('Starting checkHomeownerAccounts...');
+      
+      // Process homeowners in smaller batches
+      const batchSize = 5;
+      for (let i = 0; i < homeowners.length; i += batchSize) {
+          const batch = homeowners.slice(i, i + batchSize);
+          await Promise.all(batch.map(async (homeowner) => {
+              if (homeowner.email) {
+                  try {
+                      const response = await fetch(`/api/check-account/${encodeURIComponent(homeowner.email)}`);
+                      if (response.ok) {
+                          const data = await response.json();
+                          if (data.success) {
+                              homeowner.hasAccount = true;
+                              homeowner.username = data.username;
+                              homeowner.accountPassword = data.password;
+                              homeowner.accountStatus = data.status;
+                          } else {
+                              homeowner.hasAccount = false;
+                              homeowner.username = null;
+                              homeowner.accountPassword = null;
+                              homeowner.accountStatus = null;
+                          }
+                      }
+                  } catch (error) {
+                      console.error(`Error checking account for ${homeowner.email}:`, error);
+                  }
+              }
+          }));
+      }
+      
+      console.log('Finished checking homeowner accounts');
+      displayHomeowners(homeowners);
+  } catch (error) {
+      console.error('Error in checkHomeownerAccounts:', error);
+  }
+}
+
+// Endpoint to check a single account
+app.get('/api/check-account/:email', async (req, res) => {
+    try {
+        const email = req.params.email;
+        const db = await connectToDatabase();
+        
+        const account = await db.collection('acc').findOne(
+            { email: { $regex: new RegExp(`^${email}$`, "i") } },
+            {
+                projection: {
+                    username: 1,
+                    email: 1,
+                    password: 1,
+                    status: 1,
+                    _id: 0
+                }
+            }
+        );
+
+        if (account) {
+            res.json({
+                success: true,
+                username: account.username,
+                password: account.password,
+                status: account.status
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Account not found'
+            });
+        }
+    } catch (error) {
+        console.error('Error checking account:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error checking account'
+        });
+    }
+});
+
+async function loadHomeowners() {
+    try {
+        const response = await fetch('/getHomeowners');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        homeowners = await response.json();
+        console.log('Loaded homeowners:', homeowners.length);
+        
+        // Display homeowners immediately since account info is already included
+        displayHomeowners(homeowners);
+        
+        // Set up periodic refresh
+        setInterval(async () => {
+            try {
+                const refreshResponse = await fetch('/getHomeowners');
+                if (refreshResponse.ok) {
+                    homeowners = await refreshResponse.json();
+                    displayHomeowners(homeowners);
+                }
+            } catch (error) {
+                console.error('Error refreshing homeowners:', error);
+            }
+        }, 30000); // Refresh every 30 seconds
+    } catch (error) {
+        console.error('Error loading homeowners:', error);
+        document.getElementById('homeownersTableBody').innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; color: red;">
+                    Failed to load homeowners. Please try again.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Endpoint to allow admin to set a new password for a homeowner
+app.post('/api/admin/set-homeowner-password/:id', async (req, res) => {
+  try {
+    // Check if user is authenticated as admin
+    if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized. Only administrators can set passwords.'
+      });
+    }
+
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!id || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Homeowner ID and new password are required.'
+      });
+    }
+
+    const db = await connectToDatabase();
+    const accCollection = db.collection('acc');
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the account with the new password
+    const result = await accCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { password: hashedPassword } }
+    );
+
+    if (result.modifiedCount > 0) {
+      await logActivity('passwordSet', `Admin set a new password for account ID ${id}`);
+      res.json({ success: true, message: 'Password updated successfully.' });
+    } else {
+      res.status(404).json({ success: false, message: 'Account not found or password not updated.' });
+    }
+  } catch (error) {
+    console.error('Error setting new password:', error);
+    res.status(500).json({ success: false, message: 'Error setting new password.' });
+  }
+});
+
+// Add endpoint for delinquent homeowners
+app.get("/api/homeowners/delinquent", async (req, res) => {
+  try {
+    // Check if user is authenticated and is an admin
+    if (!req.session.user || req.session.user.role !== "admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access"
+      });
+    }
+
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    
+    // Get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Build search query if provided
+    let query = {
+      $or: [
+        { paymentStatus: "Delinquent" },
+        { homeownerStatus: "Delinquent" }
+      ]
+    };
+    
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, "i");
+      query.$and = [
+        {
+          $or: [
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { email: searchRegex }
+          ]
+        }
+      ];
+    }
+    
+    // Get total count for pagination
+    const totalHomeowners = await homeownersCollection.countDocuments(query);
+    
+    // Get delinquent homeowners with pagination
+    const homeowners = await homeownersCollection
+      .find(query)
+      .sort({ lastPaymentDate: 1 }) // Sort by last payment date ascending
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    
+    // Format the response
+    const formattedHomeowners = homeowners.map(homeowner => ({
+      _id: homeowner._id,
+      name: `${homeowner.firstName || ''} ${homeowner.lastName || ''}`.trim(),
+      email: homeowner.email,
+      monthlyDue: homeowner.monthlyDue || "5000.00",
+      lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
+      paymentMethod: homeowner.paymentMethod || "Not specified",
+      paymentStatus: homeowner.paymentStatus,
+      homeownerStatus: homeowner.homeownerStatus
+    }));
+    
+    res.json({
+      success: true,
+      homeowners: formattedHomeowners,
+      currentPage: page,
+      totalPages: Math.ceil(totalHomeowners / limit),
+      totalHomeowners
+    });
+    
+  } catch (error) {
+    console.error("Error fetching delinquent homeowners:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching delinquent homeowners",
+      error: error.message
+    });
   }
 });

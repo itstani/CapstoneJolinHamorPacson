@@ -15,42 +15,115 @@
 
         .top-bar {
             background-color: #AF2630;
-            color: white;
-            padding: 15px 20px;
-            text-align: center;
-            position: sticky;
+            position: fixed;
+            color: #6b6a6a;
             top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            box-sizing: border-box;
             z-index: 1000;
         }
 
         .side-bar {
-            background-color: #D9D9D9;
-            width: 100px;
+            background-color: #d9d9d9;
             position: fixed;
+            color: #af2630;
             top: 50px;
-            bottom: 0;
+            left: 0;
+            width: 110px;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            justify-content: flex-start;
+            padding-top: 5px;
+            box-sizing: border-box;
         }
 
-        .side-bar div {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .side-bar img {
+        .Home img,
+        .homeownerstatus img,
+        .analytics img,
+        .Calendar img,
+        .MonthlyPayments img {
             width: 60px;
             height: 60px;
-            margin-bottom: 5px;
-            cursor: pointer;
-            transition: transform 0.2s;
         }
 
-        .side-bar img:hover {
+        .Home,
+        .homeownerstatus,
+        .analytics,
+        .Calendar,
+        .MonthlyPayments {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            font-family: "Inter";
+            padding-top: 5px;
+        }
+
+        .Home button,
+        .homeownerstatus button,
+        .analytics button,
+        .Calendar button,
+        .MonthlyPayments button {
+            background-color: #d9d9d9;
+            margin: 0 auto;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .Home button:hover,
+        .homeownerstatus button:hover,
+        .analytics button:hover,
+        .Calendar button:hover,
+        .MonthlyPayments button:hover {
+            background-color: #ccc;
+            cursor: pointer;
             transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #logoutButton {
+            background-color: #af2630;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: auto;
+            margin-bottom: 90px;
+            font-weight: bold;
+        }
+
+        #logoutButton:hover {
+            background-color: #c44a53;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform: translateY(-3px);
+        }
+
+        @media (max-width: 600px) {
+            .side-bar {
+                width: 80px;
+                font-size: 12px;
+            }
+            .side-bar img {
+                width: 40px;
+                height: 40px;
+            }
+            #logoutButton {
+                padding: 5px 10px;
+            }
         }
 
         .content {
@@ -509,10 +582,37 @@
 <body>
     <div class="top-bar">Admin Dashboard</div>
     <div class="side-bar">
-        <div><img src="/images/house.png" alt="Home" onclick="navigate('AdHome.html')"><p>Home</p></div>
-        <div><img src="/images/Documents.png" alt="Status" onclick="navigate('hotable.html')"><p>Status</p></div>
-        <div><img src="/images/Data.png" alt="Analytics" onclick="navigate('Analytics.html')"><p>Analytics</p></div>
-        <div><img src="/images/Calendar.png" alt="Calendar" onclick="navigate('admincalender.html')"><p>Calendar</p></div>
+        <div class="Home">
+            <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
+                <img src="/images/house.png" alt="Home" />
+            </button>
+            <p>Home</p>
+        </div>
+        <div class="homeownerstatus">
+            <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
+                <img src="/images/Documents.png" alt="Documents" />
+            </button>
+            <p>Homeowner status</p>
+        </div>
+        <div class="analytics">
+            <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics" onclick="window.location.href='analytics.html'">
+                <img src="/images/Data.png" alt="Analytics" />
+            </button>
+            <p>analytics</p>
+        </div>
+        <div class="Calendar">
+            <button type="button" id="Calendarbutton" name="Calendarbutton" aria-label="Calendar" onclick="window.location.href='admincalender.html'">
+                <img src="/images/Calendar.png" alt="Calendar" />
+            </button>
+            <p>Calendar</p>
+        </div>
+        <div class="MonthlyPayments">
+            <button type="button" id="MonthlyPaymentsButton" name="MonthlyPaymentsButton" aria-label="Monthly Payments" onclick="navigateToMonthlyPayments()">
+                <img src="/images/payment.png" alt="Monthly Payments" onerror="this.src='/images/Documents.png';" />
+            </button>
+            <p>Monthly Payments</p>
+        </div>
+        <button id="logoutButton" class="logoutButton">Logout</button>
     </div>
     
     <div class="content">
@@ -658,7 +758,7 @@
                 <div class="account-detail">
                     <span class="account-label">Password:</span>
                     <span id="generatedPassword"></span>
-                    <button class="copy-btn" onclick="copyToClipboard('generatedPassword')">Copy</button>
+                    
                 </div>
             </div>
         </div>
@@ -880,7 +980,7 @@
                     <div class="form-group">
                         <label for="accountUsername">Username</label>
                         <div style="display: flex; align-items: center;">
-                            <input type="text" id="accountUsername" readonly style="flex-grow: 1; background-color: #f0f0f0;">
+                            <input type="text" id="accountUsername" style="flex-grow: 1; background-color: #f0f0f0;">
                             <button type="button" class="copy-btn" onclick="copyToClipboard('accountUsername')" style="margin-left: 10px;">Copy</button>
                         </div>
                     </div>
@@ -888,23 +988,16 @@
                     <div class="form-group">
                         <label for="accountPassword">Password</label>
                         <div style="display: flex; align-items: center;">
-                            <input type="text" id="accountPassword" readonly style="flex-grow: 1; background-color: #f0f0f0;" value="********">
+                            <input type="password" id="accountPassword" style="flex-grow: 1; background-color: #f0f0f0;" value="">
                             <button type="button" class="copy-btn" onclick="copyToClipboard('accountPassword')" style="margin-left: 10px;">Copy</button>
+                            <button type="button" id="togglePassword" style="margin-left: 5px; background: none; border: none; cursor: pointer; font-size: 18px;" tabindex="-1" aria-label="Show/Hide Password">
+                             
+                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                                
+                              </svg>
+                            </button>
                         </div>
-                        <small id="passwordNote" style="color: #888; font-size: 12px;">Password is hidden for security. Use Reset Password to generate a new one.</small>
-                    </div>
-                    
-                    <div id="passwordResetSection" style="margin-top: 15px;">
-                        <button type="button" class="btn secondary-btn" onclick="resetHomeownerPassword()">Reset Password</button>
-                        
-                        <div id="newPasswordContainer" style="display: none; margin-top: 15px; padding: 10px; background-color: #e8f4f8; border-radius: 5px; border: 1px solid #b8daff;">
-                            <p style="margin-top: 0; font-weight: 600; color: #004085;">New Password:</p>
-                            <div style="display: flex; align-items: center;">
-                                <input type="text" id="newPassword" readonly style="flex-grow: 1; background-color: #ffffff;">
-                                <button type="button" class="copy-btn" onclick="copyToClipboard('newPassword')" style="margin-left: 10px;">Copy</button>
-                            </div>
-                            <p style="margin-bottom: 0; font-size: 12px; color: #004085;">Please copy this password now. It will not be shown again.</p>
-                        </div>
+                        <small id="passwordNote" style="color: #888; font-size: 12px;">Leave blank to keep the current password.</small>
                     </div>
                 </div>
                 
@@ -928,6 +1021,33 @@
         // Navigate function for sidebar buttons
         function navigate(url) {
             window.location.href = url;
+        }
+
+        // Function to navigate to monthly payments
+        function navigateToMonthlyPayments() {
+            // Try multiple paths to find the one that works
+            fetch('/api/debug/file-check')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('File check results:', data);
+                    
+                    // Find the first file that exists
+                    const existingFile = data.results.find(file => file.exists);
+                    
+                    if (existingFile) {
+                        console.log('Navigating to:', existingFile.path);
+                        window.location.href = existingFile.path;
+                    } else {
+                        // Fallback to the most likely path
+                        console.log('No file found, using fallback path');
+                        window.location.href = '/monthly-payments.html';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking file existence:', error);
+                    // Fallback if the API call fails
+                    window.location.href = '/monthly-payments.html';
+                });
         }
         
         // Function to open modal
@@ -1034,92 +1154,30 @@
         // Function to check which homeowners have accounts
         async function checkHomeownerAccounts() {
             try {
-                console.log('Starting account check...');
-                // Directly fetch all accounts from the acc collection
                 const response = await fetch('/api/get-all-accounts');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
                 const data = await response.json();
-                console.log('Received accounts data:', data);
                 
                 if (data.success && data.accounts) {
-                    // Create a map of emails to accounts for quick lookup
                     const emailToAccount = {};
                     data.accounts.forEach(account => {
                         if (account.email) {
                             const email = account.email.toLowerCase().trim();
                             emailToAccount[email] = account;
-                            console.log(`Mapped account for email: ${email}`, account);
                         }
                     });
                     
-                    console.log('Email to account mapping:', emailToAccount);
-                    
-                    // Mark homeowners with accounts and store username and password
                     homeowners.forEach(homeowner => {
                         if (homeowner.email) {
                             const email = homeowner.email.toLowerCase().trim();
                             const account = emailToAccount[email];
-                            console.log(`Checking homeowner ${homeowner.firstName} ${homeowner.lastName}:`, {
-                                email: email,
-                                foundAccount: !!account,
-                                accountDetails: account
-                            });
-                            
                             homeowner.hasAccount = !!account;
                             homeowner.username = account ? account.username : null;
                             homeowner.accountPassword = account ? account.password : null;
-                            
-                            console.log(`Account status for ${homeowner.firstName}:`, {
-                                hasAccount: homeowner.hasAccount,
-                                username: homeowner.username,
-                                hasPassword: !!homeowner.accountPassword
-                            });
-                        } else {
-                            console.log(`Homeowner ${homeowner.firstName} ${homeowner.lastName} has no email`);
-                            homeowner.hasAccount = false;
-                            homeowner.username = null;
-                            homeowner.accountPassword = null;
                         }
-                    });
-                    
-                    const homeownersWithAccounts = homeowners.filter(h => h.hasAccount);
-                    const homeownersWithoutAccounts = homeowners.filter(h => !h.hasAccount);
-                    
-                    console.log('Account check summary:', {
-                        totalHomeowners: homeowners.length,
-                        withAccounts: homeownersWithAccounts.length,
-                        withoutAccounts: homeownersWithoutAccounts.length,
-                        homeownersWithAccounts: homeownersWithAccounts.map(h => ({
-                            name: `${h.firstName} ${h.lastName}`,
-                            email: h.email,
-                            username: h.username
-                        })),
-                        homeownersWithoutAccounts: homeownersWithoutAccounts.map(h => ({
-                            name: `${h.firstName} ${h.lastName}`,
-                            email: h.email
-                        }))
-                    });
-                } else {
-                    console.error('Failed to get accounts:', data.message || 'Unknown error');
-                    // Assume no accounts exist if there's an error
-                    homeowners.forEach(homeowner => {
-                        homeowner.hasAccount = false;
-                        homeowner.username = null;
-                        homeowner.accountPassword = null;
                     });
                 }
             } catch (error) {
                 console.error('Error checking homeowner accounts:', error);
-                // Assume no accounts exist if there's an error
-                homeowners.forEach(homeowner => {
-                    homeowner.hasAccount = false;
-                    homeowner.username = null;
-                    homeowner.accountPassword = null;
-                });
             }
         }
         
@@ -1162,14 +1220,21 @@
                     carStickerClass = 'status-no-sticker';
                 }
                 
-                // Account status with password
+                // Account status with password and account status
                 let accountStatus = '<span class="status-badge status-delinquent">No</span>';
                 if (homeowner.hasAccount) {
                     if (homeowner.username) {
+                        let accountStatusClass = 'status-compliant';
+                        if (homeowner.accountStatus === 'Unpaid') {
+                            accountStatusClass = 'status-delinquent';
+                        }
+                        
                         accountStatus = `
                             <span class="status-badge status-compliant">${homeowner.username}</span>
                             <br>
-                            <small>Password: ${homeowner.accountPassword || 'N/A'}</small>
+                          
+                            <br>
+                    
                         `;
                     } else {
                         accountStatus = '<span class="status-badge status-compliant">Yes</span>';
@@ -1260,20 +1325,14 @@
                 // Populate account credentials if available
                 const accountUsername = document.getElementById('accountUsername');
                 const accountPassword = document.getElementById('accountPassword');
-                const passwordResetSection = document.getElementById('passwordResetSection');
                 
                 if (currentHomeowner.hasAccount) {
                     accountUsername.value = currentHomeowner.username || '';
-                    accountPassword.value = '********';
-                    passwordResetSection.style.display = 'block';
+                    accountPassword.value = '';
                 } else {
                     accountUsername.value = 'No account';
-                    accountPassword.value = 'No account';
-                    passwordResetSection.style.display = 'none';
+                    accountPassword.value = '';
                 }
-                
-                // Hide new password container
-                document.getElementById('newPasswordContainer').style.display = 'none';
                 
                 // Open the modal
                 openModal('editHomeownerModal');
@@ -1758,7 +1817,34 @@
         // Load homeowners when the page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadHomeowners();
+            const passwordInput = document.getElementById('accountPassword');
+            const togglePasswordBtn = document.getElementById('togglePassword');
+            if (togglePasswordBtn && passwordInput) {
+                togglePasswordBtn.addEventListener('click', function() {
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                    } else {
+                        passwordInput.type = 'password';
+                    }
+                });
+            }
         });
+
+        // Add this function at the end of your script section
+        async function handleLogout() {
+            try {
+                const response = await fetch("/logout", { method: "POST" });
+                if (response.ok) {
+                    localStorage.clear(); // Clear user data
+                    window.location.href = "login.html"; // Redirect to the login page
+                } else {
+                    alert("Logout failed. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error during logout:", error);
+                alert("An error occurred during logout. Please try again.");
+            }
+        }
     </script>
 </body>
 </html>

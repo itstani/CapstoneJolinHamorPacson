@@ -44,18 +44,39 @@
             top: 50px;
             left: 0;
             width: 110px;
-            height: 100vh; /* Full height of the viewport */
+            height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
             padding-top: 5px;
             box-sizing: border-box;
+            z-index: 999;
         }
 
-        .Home img, .homeownerstatus img, .analytics img, .Calendar img {
+        .side-bar div {
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .side-bar img {
             width: 60px;
             height: 60px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .side-bar img:hover {
+            transform: scale(1.1);
+        }
+
+        .side-bar p {
+            font-size: 15px;
+            font-weight: bold;
+            font-family: 'Inter';
+            margin: 0;
         }
 
         .mainarea {
@@ -98,9 +119,10 @@
             border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: auto; /* Pushes the logout button to the bottom */
-            margin-bottom: 90px; /* Adds space at the bottom */
+            margin-top: auto;
+            margin-bottom: 90px;
             font-weight: bold;
+            width: 80%;
         }
 
         #logoutButton:hover {
@@ -390,33 +412,71 @@
             border-radius: 5px;
             resize: vertical;
         }
+
+        .nav-button {
+            background-color: #D9D9D9;
+            margin: 0 auto;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            width: 90%;
+            padding: 5px;
+        }
+
+        .nav-button:hover {
+            background-color: #ccc;
+            cursor: pointer;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-button img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 5px;
+        }
+
+        .nav-button p {
+            font-size: 15px;
+            font-weight: bold;
+            font-family: 'Inter';
+            margin: 0;
+            color: #AF2630;
+        }
     </style>
 </head>
 <body>
     <div class="top-bar"></div>
 
     <div class="side-bar">
-        <div class="Home">
-          <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='AdHome.html'">
-          <img src="/images/house.png">
-        </button>
-          <p>Home</p>
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='AdHome.html'">
+                <img src="/images/house.png" alt="Home">
+                <p>Home</p>
+            </button>
         </div>
-        <div class="homeownerstatus">
-          <button type="button" id="Documentsbutton" name="Documentsbutton" aria-label="Documents" onclick="window.location.href='hotable.html'">
-          <img src="/images/Documents.png">
-        </button>
-          <p>Homeowner status</p>
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='hotable.html'">
+                <img src="/images/Documents.png" alt="Status">
+                <p>Status</p>
+            </button>
         </div>
-        <div class="analytics">
-            <button type="button" id="analyticsbutton" name="analyticsbutton" aria-label="analytics" onclick="window.location.href='analytics.html'">
-            <img src="/images/Data.png">
-          </button>
-            <p>analytics</p>
-          </div>
-        
-        <button id="logoutButton" class="logoutButton">Logout</button>
-      </div>
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='analytics.html'">
+                <img src="/images/Data.png" alt="Analytics">
+                <p>Analytics</p>
+            </button>
+        </div>
+        <div>
+            <button type="button" class="nav-button" onclick="window.location.href='admincalender.html'">
+                <img src="/images/Calendar.png" alt="Calendar">
+                <p>Calendar</p>
+            </button>
+        </div>
+        <button id="logoutButton" onclick="handleLogout()">Logout</button>
+    </div>
 
     <div class="calendar">
         <header>
@@ -878,6 +938,21 @@
             closeModal();
         }
     });
+
+    async function handleLogout() {
+        try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+                localStorage.clear(); // Clear user data
+                window.location.href = "login.html"; // Redirect to the login page
+            } else {
+                alert("Logout failed. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error during logout:", error);
+            alert("An error occurred during logout. Please try again.");
+        }
+    }
     </script>
 </body>
 </html>
