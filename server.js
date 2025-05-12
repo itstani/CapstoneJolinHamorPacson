@@ -17,9 +17,50 @@ const port = process.env.PORT || 3000
 const dbName = process.env.DB_NAME || "avidadb"
 const uri = process.env.MONGODB_URI
 
+// Configure middleware
 app.use(express.json())
-app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+
+// Configure CORS
+app.use(cors({
+  origin: process.env.NODE_ENV === "production" ? "https://avidasetting.onrender.com" : "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+}))
+
+// Configure session
+app.use(session({
+  secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
+  resave: true,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true,
+    domain: process.env.NODE_ENV === "production" ? "avidasetting.onrender.com" : undefined,
+  },
+  proxy: true,
+}))
+
+// Debug logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  console.log("Request Headers:", req.headers)
+  console.log("Session:", req.session)
+  next()
+})
+
+// API response middleware
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    res.setHeader("Content-Type", "application/json")
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+    res.setHeader("Pragma", "no-cache")
+  }
+  next()
+})
 
 app.use((req, res, next) => {
   // List of paths that should be accessible even for delinquent users
@@ -51,48 +92,6 @@ app.use((req, res, next) => {
   next()
 })
 
-// 2. CORS configuration - single declaration
-app.use(
-  cors({
-    origin: process.env.NODE_ENV === "production" ? "https://avidasetting.onrender.com" : "http://localhost:3000",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
-  }),
-)
-
-// 3. Debug logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
-  console.log("Request Headers:", req.headers)
-
-  // Set proper headers for API requests
-  if (req.path.startsWith("/api") || req.headers.accept?.includes("application/json")) {
-    res.setHeader("Content-Type", "application/json")
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
-    res.setHeader("Pragma", "no-cache")
-  }
-
-  next()
-})
-
-// Replace the existing session middleware configuration with this updated version
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-    resave: true,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true,
-      domain: process.env.NODE_ENV === "production" ? "avidasetting.onrender.com" : undefined,
-    },
-    proxy: true, // Always trust the proxy
-  }),
-)
-
 app.use((req, res, next) => {
   console.log("Session middleware - Current session:", {
     id: req.sessionID,
@@ -111,6 +110,18 @@ app.use((req, res, next) => {
 
   next()
 })
+
+// Add debug logging middleware right after session middleware
+app.use((req, res, next) => {
+  console.log("=== Session Debug Info ===");
+  console.log("Request path:", req.path);
+  console.log("Session ID:", req.sessionID);
+  console.log("Session exists:", !!req.session);
+  console.log("User in session:", req.session?.user);
+  console.log("Cookies:", req.headers.cookie);
+  console.log("========================");
+  next();
+});
 
 app.use((req, res, next) => {
   // List of paths that require authentication
@@ -4968,9 +4979,112 @@ module.exports = {
 
 // === Static File Serving (place this at the end of the file) ===
 
-// Make sure this comes AFTER all API routes
+app.get("/api/homeowners/delinquent", async (req, res) => {
+  try {
+    // Debug logging
+    console.log("=== Delinquent Homeowners Request ===");
+    console.log("Session:", req.session);
+    console.log("User:", req.session?.user);
 
-const staticMiddleware = express.static(path.join(__dirname))
+    // Check if user is authenticated
+    if (!req.session?.user) {
+      console.log("No session or user found");
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access - Please log in"
+      });
+    }
+
+    // Check if user is an admin
+    if (req.session.user.role !== "admin") {
+      console.log("User is not an admin:", req.session.user.role);
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required"
+      });
+    }
+
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    
+    // Get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Build search query if provided
+    let query = {
+      $or: [
+        { paymentStatus: "Delinquent" },
+        { homeownerStatus: "Delinquent" },
+        { paymentStatus: "Not Paid" }
+      ]
+    };
+    
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, "i");
+      query.$and = [
+        {
+          $or: [
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { email: searchRegex }
+          ]
+        }
+      ];
+    }
+    
+    console.log("Query:", query);
+    
+    // Get total count for pagination
+    const totalHomeowners = await homeownersCollection.countDocuments(query);
+    console.log("Total homeowners found:", totalHomeowners);
+    
+    // Get delinquent homeowners with pagination
+    const homeowners = await homeownersCollection
+      .find(query)
+      .sort({ lastPaymentDate: 1 }) // Sort by last payment date ascending
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    
+    console.log("Homeowners found:", homeowners.length);
+    
+    // Format the response
+    const formattedHomeowners = homeowners.map(homeowner => ({
+      _id: homeowner._id,
+      name: `${homeowner.firstName || ''} ${homeowner.lastName || ''}`.trim(),
+      email: homeowner.email,
+      monthlyDue: homeowner.monthlyDue || "5000.00",
+      lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
+      paymentMethod: homeowner.paymentMethod || "Not specified",
+      paymentStatus: homeowner.paymentStatus,
+      homeownerStatus: homeowner.homeownerStatus
+    }));
+    
+    const response = {
+      success: true,
+      homeowners: formattedHomeowners,
+      currentPage: page,
+      totalPages: Math.ceil(totalHomeowners / limit),
+      totalHomeowners
+    };
+    
+    console.log("Sending response:", JSON.stringify(response));
+    return res.json(response);
+    
+  } catch (error) {
+    console.error("Error fetching delinquent homeowners:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching delinquent homeowners",
+      error: error.message
+    });
+  }
+});
+
+
+
 
 // Custom middleware to handle API requests before serving static files
 
@@ -5091,6 +5205,10 @@ app.use((req, res, next) => {
 
   next()
 })
+
+// ... existing code ...
+// Place this just before static file middleware
+
 
 app.get("/api/get-all-accounts", async (req, res) => {
   try {
@@ -5333,82 +5451,4 @@ app.post('/api/admin/set-homeowner-password/:id', async (req, res) => {
 });
 
 // Add endpoint for delinquent homeowners
-app.get("/api/homeowners/delinquent", async (req, res) => {
-  try {
-    // Check if user is authenticated and is an admin
-    if (!req.session.user || req.session.user.role !== "admin") {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized access"
-      });
-    }
-
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    
-    // Get pagination parameters
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
-    // Build search query if provided
-    let query = {
-      $or: [
-        { paymentStatus: "Delinquent" },
-        { homeownerStatus: "Delinquent" }
-      ]
-    };
-    
-    if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search, "i");
-      query.$and = [
-        {
-          $or: [
-            { firstName: searchRegex },
-            { lastName: searchRegex },
-            { email: searchRegex }
-          ]
-        }
-      ];
-    }
-    
-    // Get total count for pagination
-    const totalHomeowners = await homeownersCollection.countDocuments(query);
-    
-    // Get delinquent homeowners with pagination
-    const homeowners = await homeownersCollection
-      .find(query)
-      .sort({ lastPaymentDate: 1 }) // Sort by last payment date ascending
-      .skip(skip)
-      .limit(limit)
-      .toArray();
-    
-    // Format the response
-    const formattedHomeowners = homeowners.map(homeowner => ({
-      _id: homeowner._id,
-      name: `${homeowner.firstName || ''} ${homeowner.lastName || ''}`.trim(),
-      email: homeowner.email,
-      monthlyDue: homeowner.monthlyDue || "5000.00",
-      lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
-      paymentMethod: homeowner.paymentMethod || "Not specified",
-      paymentStatus: homeowner.paymentStatus,
-      homeownerStatus: homeowner.homeownerStatus
-    }));
-    
-    res.json({
-      success: true,
-      homeowners: formattedHomeowners,
-      currentPage: page,
-      totalPages: Math.ceil(totalHomeowners / limit),
-      totalHomeowners
-    });
-    
-  } catch (error) {
-    console.error("Error fetching delinquent homeowners:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching delinquent homeowners",
-      error: error.message
-    });
-  }
-});
+const staticMiddleware = express.static(path.join(__dirname))

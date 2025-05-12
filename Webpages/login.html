@@ -461,6 +461,58 @@
           display: none;
           font-size: 0.98rem;
       }
+
+      /* Add styles for the lockout modal */
+      .lockout-modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 1001;
+      }
+
+      .lockout-content {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: #fff;
+          padding: 32px 28px 28px 28px;
+          border-radius: 12px;
+          width: 90%;
+          max-width: 400px;
+          text-align: center;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      }
+
+      .lockout-content h2 {
+          color: #AF2630;
+          margin-bottom: 18px;
+          font-size: 1.5rem;
+          font-weight: 700;
+      }
+
+      .lockout-content p {
+          color: #333;
+          margin-bottom: 22px;
+          font-size: 1rem;
+      }
+
+      .lockout-content .countdown {
+          font-size: 1.2rem;
+          font-weight: bold;
+          color: #AF2630;
+          margin: 15px 0;
+      }
+
+      .lockout-content .contact-admin {
+          color: #666;
+          font-size: 0.9rem;
+          margin-top: 15px;
+      }
   </style>
 </head>
 <body>
@@ -542,6 +594,20 @@
       </div>
   </div>
 
+  <!-- Add the lockout modal -->
+  <div id="lockoutModal" class="lockout-modal">
+      <div class="lockout-content">
+          <h2>Account Temporarily Locked</h2>
+          <p>Too many failed login attempts. Please wait:</p>
+          <div class="countdown" id="countdownTimer">5:00</div>
+          <p>Or contact the administrator to reclaim your account.</p>
+          <div class="contact-admin">
+              Email: admin@avidasetting.com<br>
+              Phone: (123) 456-7890
+          </div>
+      </div>
+  </div>
+
   <script>
     // Debug functions
     function toggleDebug() {
@@ -599,10 +665,24 @@
         const errorMessage = document.getElementById("errorMessage");
         const delinquentModal = document.getElementById("delinquentModal");
         
+        // Add these variables at the top of your script
+        let loginAttempts = 0;
+        const MAX_ATTEMPTS = 5;
+        let lockoutTimer = null;
+        let lockoutEndTime = null;
+        
+        // Check for existing lockout
+        checkLockout();
+        
         // Handle login form submission
         loginForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             
+            // Check if user is locked out
+            if (checkLockout()) {
+                return;
+            }
+
             try {
                 const formData = new FormData(this);
                 const email = formData.get('login');
@@ -615,7 +695,6 @@
                 errorMessage.style.display = "block";
                 errorMessage.style.color = "#333";
                 
-                // First check if user is delinquent
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
@@ -636,6 +715,11 @@
                 debugLog(`Login response: ${JSON.stringify(data)}`);
                 
                 if (data.success) {
+                    // Reset login attempts on successful login
+                    loginAttempts = 0;
+                    localStorage.removeItem('loginAttempts');
+                    localStorage.removeItem('lockoutEndTime');
+                    
                     // Store user info in localStorage
                     localStorage.setItem('username', data.username);
                     localStorage.setItem('email', data.email);
@@ -657,10 +741,21 @@
                     document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
                     document.getElementById('delinquentModal').style.display = 'block';
                 } else {
-                    // Regular login failure
-                    errorMessage.textContent = data.message || 'Invalid credentials';
-                    errorMessage.style.color = "#AF2630";
-                    errorMessage.style.display = 'block';
+                    // Increment failed login attempts
+                    loginAttempts++;
+                    localStorage.setItem('loginAttempts', loginAttempts);
+                    
+                    if (loginAttempts >= MAX_ATTEMPTS) {
+                        // Set lockout end time (5 minutes from now)
+                        const lockoutEnd = new Date().getTime() + (5 * 60 * 1000);
+                        localStorage.setItem('lockoutEndTime', lockoutEnd.toString());
+                        showLockoutModal(5 * 60 * 1000);
+                    } else {
+                        // Show remaining attempts
+                        errorMessage.textContent = `Invalid credentials. ${MAX_ATTEMPTS - loginAttempts} attempts remaining.`;
+                        errorMessage.style.color = "#AF2630";
+                        errorMessage.style.display = 'block';
+                    }
                 }
             } catch (error) {
                 console.error('Login error:', error);
@@ -868,6 +963,59 @@
         if (event.target === modal) {
             closeDuesCheck();
         }
+    }
+
+    // Add this function to check if user is locked out
+    function checkLockout() {
+        const savedLockoutEnd = localStorage.getItem('lockoutEndTime');
+        if (savedLockoutEnd) {
+            const now = new Date().getTime();
+            const endTime = parseInt(savedLockoutEnd);
+            
+            if (now < endTime) {
+                // Still locked out
+                showLockoutModal(endTime - now);
+                return true;
+            } else {
+                // Lockout expired
+                localStorage.removeItem('lockoutEndTime');
+                localStorage.removeItem('loginAttempts');
+                loginAttempts = 0;
+                return false;
+            }
+        }
+        return false;
+    }
+
+    // Add this function to show the lockout modal
+    function showLockoutModal(timeRemaining) {
+        const modal = document.getElementById('lockoutModal');
+        modal.style.display = 'block';
+        
+        // Start countdown
+        updateCountdown(timeRemaining);
+        
+        // Update countdown every second
+        lockoutTimer = setInterval(() => {
+            timeRemaining -= 1000;
+            if (timeRemaining <= 0) {
+                clearInterval(lockoutTimer);
+                modal.style.display = 'none';
+                loginAttempts = 0;
+                localStorage.removeItem('loginAttempts');
+                localStorage.removeItem('lockoutEndTime');
+            } else {
+                updateCountdown(timeRemaining);
+            }
+        }, 1000);
+    }
+
+    // Add this function to update the countdown display
+    function updateCountdown(timeRemaining) {
+        const minutes = Math.floor(timeRemaining / 60000);
+        const seconds = Math.floor((timeRemaining % 60000) / 1000);
+        document.getElementById('countdownTimer').textContent = 
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
   </script>
 </body>

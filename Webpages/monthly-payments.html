@@ -627,6 +627,24 @@ async function loadPayments() {
       </tr>
     `;
     
+    // First check if we're still authenticated
+    const authCheck = await fetch('/api/check-auth', {
+      credentials: 'include'
+    });
+    
+    if (!authCheck.ok) {
+      console.log('Auth check failed:', authCheck.status);
+      window.location.href = '/Webpages/login.html';
+      return;
+    }
+    
+    const authData = await authCheck.json();
+    if (!authData.authenticated || authData.user.role !== 'admin') {
+      console.log('Session expired or not admin, redirecting to login');
+      window.location.href = '/Webpages/login.html';
+      return;
+    }
+    
     let response;
     if (currentStatus === 'due') {
       // Fetch delinquent homeowners
@@ -639,9 +657,23 @@ async function loadPayments() {
         params.append('search', searchTerm);
       }
       
+      console.log('Fetching delinquent homeowners with params:', params.toString());
+      
       response = await fetch(`/api/homeowners/delinquent?${params.toString()}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
       });
+      
+      console.log('Delinquent homeowners response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     } else {
       // Fetch regular payments
       const params = new URLSearchParams({
@@ -655,19 +687,14 @@ async function loadPayments() {
       }
       
       response = await fetch(`/api/monthly-payments?${params.toString()}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
       });
     }
     
-    if (!response.ok) {
-      if (response.status === 401) {
-        // Session expired, redirect to login
-        window.location.href = '/Webpages/login.html';
-        return;
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
     // Get the response text first
     const responseText = await response.text();
     console.log("Response text:", responseText);
@@ -685,12 +712,6 @@ async function loadPayments() {
       data = JSON.parse(responseText);
     } catch (parseError) {
       console.error("Error parsing JSON:", parseError);
-      // Check if we got HTML instead of JSON
-      if (responseText.includes('<!DOCTYPE html>')) {
-        console.log("Received HTML instead of JSON, redirecting to login");
-        window.location.href = '/Webpages/login.html';
-        return;
-      }
       throw new Error("Invalid JSON response from server");
     }
     
