@@ -84,10 +84,10 @@ app.use((req, res, next) => {
 });
 
 // Import the middleware
-const protectAdminRoutes = require("./auth-middleware")
+const authMiddleware = require("./auth-middleware");
 
-// Add the middleware to the Express app
-app.use(protectAdminRoutes)
+// And then update the usage
+app.use(authMiddleware);
 // Add this debug middleware right after session middleware
 app.use((req, res, next) => {
   console.log("=== Session Debug Info ===");
