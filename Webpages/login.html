@@ -847,6 +847,23 @@
     
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const unauthorized = urlParams.get('unauthorized');
+    const error = urlParams.get('error');
+    const errorMsg = document.getElementById('errorMessage');
+    
+    if (unauthorized === 'true') {
+      errorMsg.textContent = 'You do not have permission to access that page. Please log in with an admin account.';
+      errorMsg.style.display = 'block';
+      errorMsg.style.color = '#AF2630';
+    } else if (error === 'true') {
+      errorMsg.textContent = 'An error occurred. Please try logging in again.';
+      errorMsg.style.display = 'block';
+      errorMsg.style.color = '#AF2630';
+    }
+  });
+
 
     function checkAccountLockStatus() {
         // Get stored login attempts

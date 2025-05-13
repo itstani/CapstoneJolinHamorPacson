@@ -44,6 +44,15 @@ app.use(session({
   proxy: true,
 }))
 
+const protectAdminRoutes = require("./auth-middleware")
+
+// Add the protection middleware
+app.use(protectAdminRoutes)
+
+// Your existing static file serving should be after this
+app.use(express.static(path.join(__dirname)))
+app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
+
 // Debug logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
@@ -285,6 +294,8 @@ app.get(
     }
   },
 )
+// Import the middleware
+
 
 // Add a debug endpoint to check file existence
 app.get("/api/debug/file-check", (req, res) => {
