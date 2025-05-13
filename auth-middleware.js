@@ -20,19 +20,10 @@ function protectAdminRoutes(req, res, next) {
   // If it's an admin page, check if user is authenticated and is an admin
   if (isAdminPage) {
     console.log(`Admin page requested: ${req.path}`);
-    console.log("Session:", req.session);
-    console.log("User:", req.session?.user);
 
     // Check if user is logged in and has admin role
     if (!req.session || !req.session.user || req.session.user.role !== "admin") {
       console.log("Unauthorized access attempt to admin page");
-
-      // Prevent redirect loops by checking the referer
-      const referer = req.get('Referer') || '';
-      if (referer.includes('login.html')) {
-        console.log("Detected potential redirect loop, allowing request to proceed");
-        return next();
-      }
 
       // Redirect to login page with unauthorized parameter
       return res.redirect("/login.html?unauthorized=true");
@@ -42,3 +33,5 @@ function protectAdminRoutes(req, res, next) {
   // If not an admin page or user is authorized, proceed
   next();
 }
+
+module.exports = protectAdminRoutes;
