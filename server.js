@@ -44,47 +44,14 @@ app.use(session({
   proxy: true,
 }))
 
-const protectAdminRoutes = require('./server-auth-middleware');
+// Import the auth middleware
+const protectAdminRoutes = require("./auth-middleware");
+
+// Use the middleware to protect admin routes
 app.use(protectAdminRoutes);
 
-// Replace the problematic line (around line 50) with this middleware definition
-app.use((req, res, next) => {
-  // List of admin pages that should be protected
-  const adminPages = [
-    "/AdHome.html",
-    "/admincalender.html",
-    "/analytics.html",
-    "/hotable.html",
-    "/MonthlyPayments.html",
-    "/Webpages/AdHome.html",
-    "/Webpages/admincalender.html",
-    "/Webpages/analytics.html",
-    "/Webpages/hotable.html",
-    "/Webpages/MonthlyPayments.html",
-  ];
 
-  // Check if the requested path is an admin page
-  const isAdminPage = adminPages.some((page) => req.path === page || req.path.endsWith(page));
-
-  // If it's an admin page, check if user is authenticated and is an admin
-  if (isAdminPage) {
-    console.log(`Admin page requested: ${req.path}`);
-
-    // Check if user is logged in and has admin role
-    if (!req.session || !req.session.user || req.session.user.role !== "admin") {
-      console.log("Unauthorized access attempt to admin page");
-
-      // Redirect to login page with unauthorized parameter
-      return res.redirect("/login.html?unauthorized=true");
-    }
-  }
-
-  // If not an admin page or user is authorized, proceed
-  next();
-});
-
-// Import the middleware
-const authMiddleware = require("./auth-middleware");
+module.exports = protectAdminRoutes
 
 // And then update the usage
 app.use(authMiddleware);
