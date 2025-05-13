@@ -53,6 +53,18 @@ app.use(protectAdminRoutes)
 app.use(express.static(path.join(__dirname)))
 app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
 
+// Add this debug middleware right after session middleware
+app.use((req, res, next) => {
+  console.log("=== Session Debug Info ===");
+  console.log("Request path:", req.path);
+  console.log("Session ID:", req.sessionID);
+  console.log("Session exists:", !!req.session);
+  console.log("User in session:", req.session?.user);
+  console.log("Cookies:", req.headers.cookie);
+  console.log("========================");
+  next();
+});
+
 // Debug logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
@@ -275,9 +287,23 @@ function formatTime(timeString) {
   return `${formattedHour}:${formattedMinute} ${period}`
 }
 
-// Add debug logging to track request flow:
-
-// Specific static file handling with logging
+// Add this to your server.js
+app.get("/api/auth-status", (req, res) => {
+  if (req.session && req.session.user) {
+    res.json({
+      authenticated: true,
+      user: {
+        username: req.session.user.username,
+        email: req.session.user.email,
+        role: req.session.user.role,
+      },
+    });
+  } else {
+    res.json({
+      authenticated: false,
+    });
+  }
+});
 
 app.get(
   ["/monthly-payments.html", "/Webpages/monthly-payments.html", "/Webpages/Monthly-payments.html"],
@@ -5094,6 +5120,28 @@ app.get("/api/homeowners/delinquent", async (req, res) => {
   }
 });
 
+// Add this to your server.js
+app.get("/break-auth-loop", (req, res) => {
+  // Clear the session
+  req.session.destroy();
+  
+  // Send a response with instructions
+  res.send(`
+    <html>
+      <head><title>Auth Loop Broken</title></head>
+      <body>
+        <h1>Authentication Loop Broken</h1>
+        <p>The authentication loop has been broken. Please try logging in again.</p>
+        <a href="/login.html">Go to Login Page</a>
+        <script>
+          // Clear any local storage or session storage that might be causing issues
+          localStorage.clear();
+          sessionStorage.clear();
+        </script>
+      </body>
+    </html>
+  `);
+});
 
 
 
@@ -5108,23 +5156,7 @@ app.use((req, res, next) => {
 
   return staticMiddleware(req, res, next)
 })
-// Add this endpoint to check authentication status
-app.get("/api/auth-status", (req, res) => {
-  if (req.session && req.session.user) {
-    res.json({
-      authenticated: true,
-      user: {
-        username: req.session.user.username,
-        email: req.session.user.email,
-        role: req.session.user.role,
-      },
-    })
-  } else {
-    res.json({
-      authenticated: false,
-    })
-  }
-})
+
 
 // Add this endpoint to serve static files with authentication check
 app.get("/admin/*", (req, res, next) => {
