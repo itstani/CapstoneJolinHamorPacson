@@ -847,22 +847,125 @@
     
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const unauthorized = urlParams.get('unauthorized');
-    const error = urlParams.get('error');
-    const errorMsg = document.getElementById('errorMessage');
-    
-    if (unauthorized === 'true') {
-      errorMsg.textContent = 'You do not have permission to access that page. Please log in with an admin account.';
-      errorMsg.style.display = 'block';
-      errorMsg.style.color = '#AF2630';
-    } else if (error === 'true') {
-      errorMsg.textContent = 'An error occurred. Please try logging in again.';
-      errorMsg.style.display = 'block';
-      errorMsg.style.color = '#AF2630';
+// concern-reply.js
+document.addEventListener("DOMContentLoaded", () => {
+  // Get the reply form and cancel button
+  const replyForm = document.getElementById("replyForm")
+  const cancelButton = document.getElementById("cancelReply")
+  const replyPopup = document.getElementById("replyPopup")
+
+  // Declare loadConcerns variable (assuming it's defined elsewhere or should be a no-op)
+  const loadConcerns = () => {}
+
+  if (replyForm) {
+    replyForm.addEventListener("submit", async (event) => {
+      event.preventDefault()
+
+      // Get form data
+      const formData = new FormData(replyForm)
+      const concernId = document.getElementById("concernId").value
+
+      try {
+        // Show loading state
+        document.getElementById("submitReply").disabled = true
+        document.getElementById("submitReply").textContent = "Sending..."
+
+        // Send the reply
+        const response = await fetch("/sendReply", {
+          method: "POST",
+          body: formData,
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          // Show success message
+          alert("Reply sent successfully!")
+
+          // Close the popup
+          closeReplyPopup()
+
+          // Refresh the concerns list if needed
+          if (typeof loadConcerns === "function") {
+            loadConcerns()
+          } else {
+            // Reload the page as fallback
+            window.location.reload()
+          }
+        } else {
+          alert("Error: " + (result.message || "Failed to send reply"))
+        }
+      } catch (error) {
+        console.error("Error sending reply:", error)
+        alert("An error occurred while sending the reply. Please try again.")
+      } finally {
+        // Reset button state
+        document.getElementById("submitReply").disabled = false
+        document.getElementById("submitReply").textContent = "Send Reply"
+      }
+    })
+  }
+
+  // Handle cancel button click
+  if (cancelButton) {
+    cancelButton.addEventListener("click", () => {
+      closeReplyPopup()
+    })
+  }
+
+  // Close popup when clicking outside
+  if (replyPopup) {
+    window.addEventListener("click", (event) => {
+      if (event.target === replyPopup) {
+        closeReplyPopup()
+      }
+    })
+  }
+
+  // Function to close the reply popup
+  function closeReplyPopup() {
+    if (replyPopup) {
+      replyPopup.style.display = "none"
+
+      // Clear form fields
+      if (replyForm) {
+        replyForm.reset()
+      }
     }
-  });
+  }
+
+  // Function to open the reply popup
+  window.openReplyPopup = (concernId, subject) => {
+    if (replyPopup) {
+      // Set the concern ID in the hidden field
+      document.getElementById("concernId").value = concernId
+
+      // Pre-fill the subject with "Re: original subject"
+      document.getElementById("subject").value = "Re: " + subject
+
+      // Show the popup
+      replyPopup.style.display = "block"
+    }
+  }
+})
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const unauthorized = urlParams.get('unauthorized');
+  const error = urlParams.get('error');
+  const errorMsg = document.getElementById('errorMessage');
+  
+  if (unauthorized === 'true') {
+    errorMsg.textContent = 'You do not have permission to access that page. Please log in with an admin account.';
+    errorMsg.style.display = 'block';
+    errorMsg.style.color = '#AF2630';
+  } else if (error === 'true') {
+    errorMsg.textContent = 'An error occurred. Please try logging in again.';
+    errorMsg.style.display = 'block';
+    errorMsg.style.color = '#AF2630';
+  }
+});
 
 
     function checkAccountLockStatus() {

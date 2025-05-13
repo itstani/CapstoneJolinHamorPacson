@@ -44,6 +44,9 @@ app.use(session({
   proxy: true,
 }))
 
+const protectAdminRoutes = require('./server-auth-middleware');
+app.use(protectAdminRoutes);
+
 // Replace the problematic line (around line 50) with this middleware definition
 app.use((req, res, next) => {
   // List of admin pages that should be protected
@@ -79,6 +82,12 @@ app.use((req, res, next) => {
   // If not an admin page or user is authorized, proceed
   next();
 });
+
+// Import the middleware
+const protectAdminRoutes = require("./auth-middleware")
+
+// Add the middleware to the Express app
+app.use(protectAdminRoutes)
 // Add this debug middleware right after session middleware
 app.use((req, res, next) => {
   console.log("=== Session Debug Info ===");
