@@ -44,28 +44,31 @@ app.use(session({
   proxy: true,
 }))
 
+// Replace the middleware registration in your server.js with this:
+
 // Import the auth middleware
-const protectAdminRoutes = require("./auth-middleware");
+const protectAdminRoutes = require("./auth-middleware")
+const express = require("express")
+
 
 // Use the middleware to protect admin routes
-app.use(protectAdminRoutes);
+app.use(protectAdminRoutes)
 
-
-module.exports = protectAdminRoutes
-
-// And then update the usage
-app.use(auth-Middleware);
 // Add this debug middleware right after session middleware
 app.use((req, res, next) => {
-  console.log("=== Session Debug Info ===");
-  console.log("Request path:", req.path);
-  console.log("Session ID:", req.sessionID);
-  console.log("Session exists:", !!req.session);
-  console.log("User in session:", req.session?.user);
-  console.log("Cookies:", req.headers.cookie);
-  console.log("========================");
-  next();
-});
+  console.log("=== Session Debug Info ===")
+  console.log("Request path:", req.path)
+  console.log("Session ID:", req.sessionID)
+  console.log("Session exists:", !!req.session)
+  console.log("User in session:", req.session?.user)
+  console.log("Cookies:", req.headers.cookie)
+  console.log("========================")
+  next()
+})
+
+app.use(protectAdminRoutes);
+
+module.exports = protectAdminRoutes
 
 // Debug logging middleware
 app.use((req, res, next) => {
@@ -289,8 +292,15 @@ function formatTime(timeString) {
   return `${formattedHour}:${formattedMinute} ${period}`
 }
 
-// Add this to your server.js
+
+// API endpoint to check authentication status
 app.get("/api/auth-status", (req, res) => {
+  // Set cache control headers to prevent caching
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+  res.setHeader("Pragma", "no-cache")
+
+  console.log("Auth status check - Session:", req.session)
+
   if (req.session && req.session.user) {
     res.json({
       authenticated: true,
@@ -299,14 +309,13 @@ app.get("/api/auth-status", (req, res) => {
         email: req.session.user.email,
         role: req.session.user.role,
       },
-    });
+    })
   } else {
     res.json({
       authenticated: false,
-    });
+    })
   }
-});
-
+})
 app.get(
   ["/monthly-payments.html", "/Webpages/monthly-payments.html", "/Webpages/Monthly-payments.html"],
   (req, res) => {
@@ -5122,19 +5131,39 @@ app.get("/api/homeowners/delinquent", async (req, res) => {
   }
 });
 
-// Add this to your server.js
 app.get("/break-auth-loop", (req, res) => {
   // Clear the session
-  req.session.destroy();
-  
+  req.session.destroy()
+
   // Send a response with instructions
   res.send(`
     <html>
-      <head><title>Auth Loop Broken</title></head>
+      <head>
+        <title>Auth Loop Broken</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+          }
+          h1 { color: #AF2630; }
+          .btn {
+            display: inline-block;
+            background-color: #AF2630;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
       <body>
         <h1>Authentication Loop Broken</h1>
         <p>The authentication loop has been broken. Please try logging in again.</p>
-        <a href="/login.html">Go to Login Page</a>
+        <a href="/login.html" class="btn">Go to Login Page</a>
         <script>
           // Clear any local storage or session storage that might be causing issues
           localStorage.clear();
@@ -5142,8 +5171,9 @@ app.get("/break-auth-loop", (req, res) => {
         </script>
       </body>
     </html>
-  `);
-});
+  `)
+})
+
 
 
 

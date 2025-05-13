@@ -949,6 +949,53 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 })
 
+document.addEventListener("DOMContentLoaded", async () => {
+  // Check if we're already logged in
+  try {
+    const response = await fetch("/api/auth-status", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+
+      // If already authenticated, redirect to appropriate page
+      if (data.authenticated) {
+        const redirectUrl = data.user.role === "admin" ? "/AdHome.html" : "/HoHome.html"
+
+        window.location.href = redirectUrl
+      }
+    }
+  } catch (error) {
+    console.error("Error checking authentication status:", error)
+  }
+
+  // Check for unauthorized or error parameters
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.has("unauthorized")) {
+    // Show unauthorized message
+    const messageElement = document.getElementById("login-message")
+    if (messageElement) {
+      messageElement.textContent = "You must be an administrator to access that page."
+      messageElement.style.color = "red"
+      messageElement.style.display = "block"
+    }
+  } else if (urlParams.has("error")) {
+    // Show error message
+    const messageElement = document.getElementById("login-message")
+    if (messageElement) {
+      messageElement.textContent = "An error occurred. Please try logging in again."
+      messageElement.style.color = "red"
+      messageElement.style.display = "block"
+    }
+  }
+})
+
 
 document.addEventListener('DOMContentLoaded', function() {
   const urlParams = new URLSearchParams(window.location.search);
