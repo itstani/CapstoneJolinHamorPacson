@@ -48,7 +48,7 @@ app.use(session({
 
 // Import the auth middleware
 const protectAdminRoutes = require("./auth-middleware")
-const express = require("express")
+
 
 
 // Use the middleware to protect admin routes
