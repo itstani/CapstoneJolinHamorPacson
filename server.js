@@ -3182,7 +3182,8 @@ app.get("/api/user-events/:email", async (req, res) => {
 
 app.get("/api/event/:eventId", async (req, res) => {
     try {
-        const eventId = req.params.id;
+        const eventId = req.params.eventId; // Changed from req.params.id to req.params.eventId
+        console.log('Fetching event with ID:', eventId);
         
         if (!eventId) {
             return res.status(400).json({
@@ -3201,26 +3202,26 @@ app.get("/api/event/:eventId", async (req, res) => {
         // Try to convert to ObjectId
         try {
             objectId = new ObjectId(eventId);
+            console.log('Created ObjectId:', objectId);
         } catch (e) {
-            console.log('Invalid ObjectId format, will try other lookup methods');
+            console.log('Invalid ObjectId format:', e.message);
         }
 
         // First try: Direct ObjectId lookup in both collections
         if (objectId) {
-            event = await eventsCollection.findOne({ _id: objectId }) || 
-                   await aeventsCollection.findOne({ _id: objectId });
+            event = await eventsCollection.findOne({ _id: objectId });
+            if (!event) {
+                event = await aeventsCollection.findOne({ _id: objectId });
+            }
+            console.log('ObjectId lookup result:', event ? 'Found' : 'Not found');
         }
 
         // Second try: String comparison with _id
         if (!event) {
-            const allEvents = await aeventsCollection.find({}).limit(20).toArray();
+            console.log('Trying string comparison lookup');
+            const allEvents = await aeventsCollection.find({}).toArray();
             event = allEvents.find(e => e._id.toString() === eventId);
-        }
-
-        // Third try: Look by eventName in both collections
-        if (!event) {
-            event = await eventsCollection.findOne({ eventName: eventId }) ||
-                   await aeventsCollection.findOne({ eventName: eventId });
+            console.log('String comparison lookup result:', event ? 'Found' : 'Not found');
         }
 
         if (event) {
@@ -3230,6 +3231,7 @@ app.get("/api/event/:eventId", async (req, res) => {
                 event: event
             });
         } else {
+            console.log('Event not found after all lookup attempts');
             res.status(404).json({
                 success: false,
                 message: 'Event not found'

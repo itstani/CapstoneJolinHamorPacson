@@ -695,30 +695,31 @@
             
             // Apply filter if needed
             if (eventFilter.value === 'user') {
-                events = events.filter(function(event) {
-                    return event.userEmail === userEmail;
-                });
+                events = events.filter(event => event.userEmail === userEmail);
             }
             
-            let html = `<h3>Events on ${date}</h3>`;
+            let html = `<h3 style="color: #AF2630; margin-bottom: 20px;">Events on ${new Date(date).toLocaleDateString()}</h3>`;
             
             if (events.length) {
                 events.forEach(event => {
                     const isUserEvent = event.userEmail === userEmail;
+                    const eventId = event._id ? event._id.toString() : '';
                     html += `
-                        <div class="event-item" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;" 
-                             onclick="showFullEventDetails('${event._id}')">
-                            <p><strong>${event.name}</strong></p>
-                            <p>Time: ${event.time}</p>
-                            <p>Location: ${event.amenity}</p>
-                            <p>Status: ${event.isPaid ? 'Confirmed' : 'Payment Pending'}</p>
+                        <div class="event-item" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" 
+                             onmouseover="this.style.backgroundColor='#f5f5f5'" 
+                             onmouseout="this.style.backgroundColor='white'"
+                             onclick="showFullEventDetails('${eventId}')">
+                            <p style="font-size: 18px; font-weight: bold; color: #AF2630;">${event.name}</p>
+                            <p><strong>Time:</strong> ${event.time}</p>
+                            <p><strong>Location:</strong> ${event.amenity}</p>
+                            <p><strong>Status:</strong> ${event.isPaid ? 'Confirmed' : 'Payment Pending'}</p>
                             ${isUserEvent ? '<p style="color: #AF2630; font-style: italic;">This is your event</p>' : ''}
                             <p style="color: #AF2630; text-decoration: underline; margin-top: 10px;">Click for more details</p>
                         </div>
                     `;
                 });
             } else {
-                html += '<p>No events for this day.</p>';
+                html += '<p style="text-align: center; color: #666;">No events scheduled for this day.</p>';
             }
             
             modalContent.innerHTML = html;
@@ -804,6 +805,10 @@
                     }
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
                 console.log('Event details received:', data);
                 
@@ -812,20 +817,49 @@
                 }
 
                 const event = data.event;
-                modalContent.innerHTML = `
+                const guestList = event.guests && event.guests.names ? event.guests.names.join(', ') : 'No guest list provided';
+                
+                const detailsHtml = `
                     <div style="padding: 20px;">
-                        <h3 style="color: #AF2630; margin-bottom: 20px;">${event.eventName}</h3>
-                        <div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px;">
+                        <h3 style="color: #AF2630; margin-bottom: 20px;">${event.eventName || event.name}</h3>
+                        <div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <p><strong>Homeowner Name:</strong> ${event.HomeownerName || 'Not specified'}</p>
                             <p><strong>Date:</strong> ${new Date(event.eventDate).toLocaleDateString()}</p>
                             <p><strong>Time:</strong> ${formatTime(event.startTime)} - ${formatTime(event.endTime)}</p>
-                            <p><strong>Amenity:</strong> ${event.amenity}</p>
-                            <p><strong>Status:</strong> ${event.isPaid ? 'Paid' : 'Pending Payment'}</p>
+                            <p><strong>Amenity:</strong> ${event.amenity || 'Not specified'}</p>
+                            <p><strong>Event Type:</strong> ${event.eventType || 'Not specified'}</p>
+                            <p><strong>Number of Guests:</strong> ${event.guests ? event.guests.number : 0}</p>
+                            <p><strong>Guest List:</strong> ${guestList}</p>
+                            <p><strong>Homeowner Status:</strong> ${event.homeownerStatus || 'Not specified'}</p>
+                            <p><strong>Payment Status:</strong> ${event.isPaid ? 'Paid' : 'Pending Payment'}</p>
                         </div>
+                        ${event.userEmail === userEmail ? `
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button onclick="editEvent('${event._id}')" 
+                                        style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px; cursor: pointer;">
+                                    Edit Event
+                                </button>
+                                <button onclick="deleteEvent('${event._id}')"
+                                        style="background-color: #666; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                                    Delete Event
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
+                
+                modalContent.innerHTML = detailsHtml;
             } catch (error) {
                 console.error('Error:', error);
-                modalContent.innerHTML = '<div style="color: red; padding: 20px;">Error loading event details</div>';
+                modalContent.innerHTML = `
+                    <div style="color: #AF2630; padding: 20px; text-align: center;">
+                        <p>Error loading event details. Please try again.</p>
+                        <button onclick="closeModal()" 
+                                style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">
+                            Close
+                        </button>
+                    </div>
+                `;
             }
         }
 
