@@ -34,20 +34,24 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Configure session
+// Configure session with proper settings for persistence
 app.use(session({
   secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-  resave: false,
+  resave: true,
   saveUninitialized: false,
-  store: new MemoryStore(),
+  store: new MemoryStore({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  }),
   cookie: {
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true,
-    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+    path: "/"
   },
-  proxy: true
+  proxy: true,
+  rolling: true // Resets the cookie expiration on every response
 }));
 
 // Add trust proxy for secure cookies in production
@@ -665,7 +669,7 @@ app.get("/api/generate-report", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
-
+  
   try {
     console.log(`Login attempt for: ${login}`);
     const db = await connectToDatabase();
@@ -726,52 +730,47 @@ app.post("/api/login", async (req, res) => {
     }
 
     // User is not delinquent, proceed with normal login
-    req.session.user = {
-      username: user.username,
-      email: user.email,
-      role: user.role || "homeowner",
-    };
-
-    // Set session cookie options
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    };
-
-    if (process.env.NODE_ENV === "production") {
-      cookieOptions.domain = ".onrender.com";
-    }
-
-    // Save session before sending response
-    req.session.save(async (err) => {
+    req.session.regenerate(async function(err) {
       if (err) {
-        console.error("Error saving session:", err);
+        console.error("Error regenerating session:", err);
         return res.status(500).json({
           success: false,
-          message: "Error saving session",
+          message: "Error creating session"
         });
       }
 
-      // Log successful login
-      await logActivity("login", `User ${user.username} logged in successfully`);
-
-      // Set session cookie and send response
-      res.cookie("connect.sid", req.sessionID, cookieOptions);
-
-      console.log("Login successful - Session details:", {
-        sessionID: req.sessionID,
-        user: req.session.user,
-        cookieOptions
-      });
-
-      res.json({
-        success: true,
+      req.session.user = {
         username: user.username,
         email: user.email,
         role: user.role || "homeowner",
-        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      };
+
+      // Save session before sending response
+      req.session.save(async (err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.status(500).json({
+            success: false,
+            message: "Error saving session",
+          });
+        }
+
+        // Log successful login
+        await logActivity("login", `User ${user.username} logged in successfully`);
+
+        console.log("Login successful - Session details:", {
+          sessionID: req.sessionID,
+          user: req.session.user,
+          cookie: req.session.cookie
+        });
+
+        res.json({
+          success: true,
+          username: user.username,
+          email: user.email,
+          role: user.role || "homeowner",
+          redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+        });
       });
     });
   } catch (error) {
@@ -785,47 +784,37 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.get("/api/check-auth", (req, res) => {
-  console.log("Auth check - Session:", req.session);
-  console.log("Auth check - Cookies:", req.headers.cookie);
-  console.log("Auth check - Environment:", process.env.NODE_ENV);
+  console.log("Auth check - Session:", {
+    id: req.sessionID,
+    user: req.session?.user,
+    cookie: req.session?.cookie
+  });
 
-  // Add debug headers to response
-  res.setHeader("X-Debug-Session-ID", req.sessionID || "none");
-  res.setHeader("X-Debug-Has-Session", req.session ? "yes" : "no");
-  res.setHeader("X-Debug-Has-User", req.session && req.session.user ? "yes" : "no");
-  res.setHeader("X-Debug-Environment", process.env.NODE_ENV || "development");
+  if (!req.session || !req.session.user) {
+    return res.json({
+      authenticated: false,
+      message: "No active session"
+    });
+  }
 
-  if (req.session && req.session.user) {
-    // Refresh the session cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    };
+  // Touch the session to keep it alive
+  req.session.touch();
 
-    if (process.env.NODE_ENV === "production") {
-      cookieOptions.domain = ".onrender.com";
+  // Save any session changes
+  req.session.save((err) => {
+    if (err) {
+      console.error("Error saving session during auth check:", err);
     }
 
-    res.cookie("connect.sid", req.sessionID, cookieOptions);
-
-    return res.json({
+    res.json({
       authenticated: true,
       user: {
         username: req.session.user.username,
         email: req.session.user.email,
-        role: req.session.user.role,
+        role: req.session.user.role
       },
-      sessionID: req.sessionID,
-      timestamp: new Date().toISOString(),
+      sessionID: req.sessionID
     });
-  }
-
-  return res.json({
-    authenticated: false,
-    sessionID: req.sessionID,
-    timestamp: new Date().toISOString(),
   });
 });
 
