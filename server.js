@@ -5387,3 +5387,82 @@ app.use([
   "/Webpages/hotable.html",
   "/Webpages/MonthlyPayments.html"
 ], checkAuth, checkRole(['admin', 'guard']));
+
+// Add dashboard access endpoint
+app.post('/api/check-dashboard-access', async (req, res) => {
+  const { password } = req.body;
+  
+  try {
+    console.log('Checking dashboard access...');
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("acc");
+    
+    // First try to find an admin or guard user
+    const user = await usersCollection.findOne({
+      $or: [
+        { role: 'admin' },
+        { role: { $regex: new RegExp('^guard$', 'i') } }
+      ]
+    });
+    
+    if (!user) {
+      console.log('No admin or guard user found');
+      return res.json({
+        success: false,
+        message: 'Invalid credentials. Only Admin and Guard can access the dashboard.'
+      });
+    }
+
+    // Compare password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('Password check:', isValidPassword ? 'Valid' : 'Invalid');
+
+    if (isValidPassword) {
+      // Create a session for the user
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Error creating session:', err);
+          return res.json({
+            success: false,
+            message: 'Error creating session'
+          });
+        }
+
+        req.session.user = {
+          username: user.username,
+          email: user.email,
+          role: user.role
+        };
+
+        req.session.save((err) => {
+          if (err) {
+            console.error('Error saving session:', err);
+            return res.json({
+              success: false,
+              message: 'Error saving session'
+            });
+          }
+
+          console.log(`${user.role} access granted`);
+          res.json({
+            success: true,
+            role: user.role,
+            redirectUrl: '/Webpages/homeowner-dashboard.html'
+          });
+        });
+      });
+    } else {
+      console.log('Invalid password');
+      res.json({
+        success: false,
+        message: 'Invalid password. Only Admin and Guard can access the dashboard.'
+      });
+    }
+  } catch (error) {
+    console.error('Error checking dashboard access:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while checking access.'
+    });
+  }
+});
