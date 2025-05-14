@@ -48,6 +48,11 @@ app.use(session({
   proxy: true
 }))
 
+// Add trust proxy for secure cookies in production
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Replace the middleware registration in your server.js with this:
 
 // Import the auth middleware
@@ -734,6 +739,21 @@ app.post("/api/login", async (req, res) => {
       // Log successful login
       await logActivity("login", `User ${user.username} logged in successfully`);
 
+      // Set cookie options based on environment
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      };
+
+      if (process.env.NODE_ENV === "production") {
+        cookieOptions.domain = ".onrender.com";
+      }
+
+      // Set session cookie
+      res.cookie("connect.sid", req.sessionID, cookieOptions);
+
       console.log(`Successful login for: ${login}, role: ${user.role || "homeowner"}`);
       res.json({
         success: true,
@@ -754,33 +774,31 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.get("/api/check-auth", (req, res) => {
-  console.log("Auth check - Session:", req.session)
-  console.log("Auth check - Cookies:", req.headers.cookie)
+  console.log("Auth check - Session:", req.session);
+  console.log("Auth check - Cookies:", req.headers.cookie);
+  console.log("Auth check - Environment:", process.env.NODE_ENV);
 
   // Add debug headers to response
-  res.setHeader("X-Debug-Session-ID", req.sessionID || "none")
-  res.setHeader("X-Debug-Has-Session", req.session ? "yes" : "no")
-  res.setHeader("X-Debug-Has-User", req.session && req.session.user ? "yes" : "no")
-
-  // Emergency override for redirect loops
-  const forceAuth = req.query.force === "true"
-
-  if (forceAuth) {
-    console.log("WARNING: Force authentication requested")
-    return res.json({
-      authenticated: true,
-      user: {
-        username: "Admin User",
-        email: "admin@example.com",
-        role: "admin",
-      },
-      forced: true,
-      sessionID: req.sessionID,
-      timestamp: new Date().toISOString(),
-    })
-  }
+  res.setHeader("X-Debug-Session-ID", req.sessionID || "none");
+  res.setHeader("X-Debug-Has-Session", req.session ? "yes" : "no");
+  res.setHeader("X-Debug-Has-User", req.session && req.session.user ? "yes" : "no");
+  res.setHeader("X-Debug-Environment", process.env.NODE_ENV || "development");
 
   if (req.session && req.session.user) {
+    // Refresh the session cookie
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    };
+
+    if (process.env.NODE_ENV === "production") {
+      cookieOptions.domain = ".onrender.com";
+    }
+
+    res.cookie("connect.sid", req.sessionID, cookieOptions);
+
     return res.json({
       authenticated: true,
       user: {
@@ -790,15 +808,15 @@ app.get("/api/check-auth", (req, res) => {
       },
       sessionID: req.sessionID,
       timestamp: new Date().toISOString(),
-    })
+    });
   }
 
   return res.json({
     authenticated: false,
     sessionID: req.sessionID,
     timestamp: new Date().toISOString(),
-  })
-})
+  });
+});
 
 // Add a special endpoint to force authentication (for breaking loops)
 app.get("/api/force-auth", (req, res) => {

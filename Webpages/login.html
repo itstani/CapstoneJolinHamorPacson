@@ -851,7 +851,8 @@
         const password = document.getElementById('password').value;
         
         try {
-            const response = await fetch('/api/login', {
+            const baseUrl = window.location.origin; // Get the base URL of the current environment
+            const response = await fetch(`${baseUrl}/api/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -861,7 +862,12 @@
                 credentials: 'include'
             });
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
+            console.log('Login response:', data); // Debug log
 
             if (data.success) {
                 // Reset login attempts on successful login
@@ -875,16 +881,22 @@
                 showError('Login successful! Redirecting...', true);
                 
                 // Wait for session to be established
-                await fetch('/api/check-auth', {
+                const authResponse = await fetch(`${baseUrl}/api/check-auth`, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
                         'Accept': 'application/json'
                     }
                 });
+
+                if (!authResponse.ok) {
+                    throw new Error('Failed to establish session');
+                }
                 
                 // Redirect after ensuring session is established
-                window.location.href = data.redirectUrl;
+                const redirectUrl = `${baseUrl}${data.redirectUrl}`;
+                console.log('Redirecting to:', redirectUrl); // Debug log
+                window.location.href = redirectUrl;
             } else if (data.isDelinquent) {
                 // Handle delinquent account
                 localStorage.setItem('username', data.username);
@@ -1014,36 +1026,37 @@
     
     // Function to check if user is already logged in
     async function checkAlreadyLoggedIn() {
-  try {
-    const response = await fetch("/api/check-auth", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Accept": "application/json",
-        "Cache-Control": "no-cache"
-      }
-    });
-    
-    if (!response.ok) {
-      return false;
+        try {
+            const baseUrl = window.location.origin;
+            const response = await fetch(`${baseUrl}/api/check-auth`, {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json",
+                    "Cache-Control": "no-cache"
+                }
+            });
+            
+            if (!response.ok) {
+                return false;
+            }
+            
+            const data = await response.json();
+            
+            if (data.authenticated) {
+                // User is already logged in, redirect to appropriate page
+                const redirectUrl = data.user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html";
+                debugLog(`User already logged in, redirecting to ${redirectUrl}`);
+                window.location.href = `${baseUrl}${redirectUrl}`;
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            debugLog(`Error checking login status: ${error.message}`);
+            return false;
+        }
     }
-    
-    const data = await response.json();
-    
-    if (data.authenticated) {
-      // User is already logged in, redirect to appropriate page
-      const redirectUrl = data.user.role === "admin" ? "/AdHome.html" : "/HoHome.html";
-      debugLog(`User already logged in, redirecting to ${redirectUrl}`);
-      window.location.href = redirectUrl;
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    debugLog(`Error checking login status: ${error.message}`);
-    return false;
-  }
-}
 
     function checkAccountLockStatus() {
         // Get stored login attempts
@@ -1129,7 +1142,8 @@
     // Update the checkSessionStatus function to handle undefined error
     function checkSessionStatus() {
         try {
-            fetch("/api/check-auth", {
+            const baseUrl = window.location.origin;
+            fetch(`${baseUrl}/api/check-auth`, {
                 method: "GET",
                 credentials: "include",
                 headers: {
