@@ -295,26 +295,20 @@ function formatTime(timeString) {
 
 // API endpoint to check authentication status
 app.get("/api/auth-status", (req, res) => {
-  // Set cache control headers to prevent caching
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
-  res.setHeader("Pragma", "no-cache")
-
-  console.log("Auth status check - Session:", req.session)
-
-  if (req.session && req.session.user) {
-    res.json({
-      authenticated: true,
-      user: {
-        username: req.session.user.username,
-        email: req.session.user.email,
-        role: req.session.user.role,
-      },
-    })
-  } else {
-    res.json({
+  if (!req.session || !req.session.user) {
+    return res.json({
       authenticated: false,
-    })
+      user: null
+    });
   }
+
+  res.json({
+    authenticated: true,
+    user: {
+      email: req.session.user.email,
+      role: req.session.user.role
+    }
+  });
 })
 app.get(
   ["/monthly-payments.html", "/Webpages/monthly-payments.html", "/Webpages/Monthly-payments.html"],
@@ -5527,3 +5521,90 @@ app.post('/api/admin/set-homeowner-password/:id', async (req, res) => {
 
 // Add endpoint for delinquent homeowners
 const staticMiddleware = express.static(path.join(__dirname))
+
+// Add logout endpoint
+app.post('/api/logout', (req, res) => {
+  // Destroy the session
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return res.status(500).json({ success: false, message: 'Error logging out' });
+    }
+    
+    // Clear session cookie
+    res.clearCookie('connect.sid');
+    
+    res.json({ success: true, message: 'Logged out successfully' });
+  });
+});
+
+// Add this with your other endpoints
+app.post('/api/check-dashboard-access', async (req, res) => {
+  const { password } = req.body;
+  
+  try {
+    console.log('Checking dashboard access...');
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('acc');
+    
+    // Log the password attempt (but not the actual password)
+    console.log('Attempting dashboard access verification');
+    
+    // First try to find the admin user
+    const adminUser = await usersCollection.findOne({ role: 'admin' });
+    console.log('Admin user found:', adminUser ? 'Yes' : 'No');
+    
+    if (adminUser) {
+      // Compare password with admin's password
+      const isValidPassword = await bcrypt.compare(password, adminUser.password);
+      console.log('Admin password check:', isValidPassword ? 'Valid' : 'Invalid');
+      
+      if (isValidPassword) {
+        console.log('Admin access granted');
+        return res.json({
+          success: true,
+          role: 'admin'
+        });
+      }
+    }
+    
+    // If admin check failed, try Guard with case-insensitive search
+    const guardUser = await usersCollection.findOne({
+      role: { $regex: new RegExp('^guard$', 'i') }  // Case-insensitive match for 'guard'
+    });
+    console.log('Guard user found:', guardUser ? 'Yes' : 'No');
+    
+    if (guardUser) {
+      // Compare password with guard's password
+      const isValidPassword = await bcrypt.compare(password, guardUser.password);
+      console.log('Guard password check:', isValidPassword ? 'Valid' : 'Invalid');
+      
+      if (isValidPassword) {
+        console.log('Guard access granted');
+        return res.json({
+          success: true,
+          role: guardUser.role  // Use the actual role from the database
+        });
+      }
+    }
+
+    // Log all users in the collection to debug
+    console.log('Checking all users in collection...');
+    const allUsers = await usersCollection.find({}).toArray();
+    console.log('All users:', allUsers.map(user => ({ role: user.role, email: user.email })));
+    
+    // If neither admin nor guard password matched
+    console.log('Access denied: Invalid password');
+    return res.json({
+      success: false,
+      message: 'Invalid password. Only Admin and Guard can access the dashboard.'
+    });
+    
+  } catch (error) {
+    console.error('Error checking dashboard access:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while checking access.'
+    });
+  }
+});

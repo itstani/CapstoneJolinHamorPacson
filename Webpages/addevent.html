@@ -688,15 +688,34 @@ const eventEndHour = document.getElementById('eventEndHour');
 const eventEndMinute = document.getElementById('eventEndMinute');
 const eventEndAmPm = document.getElementById('eventEndAmPm');
 
+// Function to validate and adjust time
+function validateTime(hour, minute, ampm) {
+    if (ampm === 'AM' && (hour < 8 || (hour === 12))) {
+        return { hour: 8, minute: 0, ampm: 'AM' };
+    }
+    return { hour, minute, ampm };
+}
+
 // Add event listeners to all start time inputs
 [eventStartHour, eventStartMinute, eventStartAmPm].forEach(element => {
-    element.addEventListener('change', updateEndTime);
+    element.addEventListener('change', function() {
+        const validatedTime = validateTime(
+            parseInt(eventStartHour.value) || 8,
+            parseInt(eventStartMinute.value) || 0,
+            eventStartAmPm.value
+        );
+        
+        eventStartHour.value = validatedTime.hour;
+        eventStartMinute.value = validatedTime.minute < 10 ? '0' + validatedTime.minute : validatedTime.minute;
+        eventStartAmPm.value = validatedTime.ampm;
+        
+        updateEndTime();
+    });
 });
 
 // Function to update end time based on start time
 function updateEndTime() {
-    // Get start time values
-    let startHour = parseInt(eventStartHour.value) || 1;
+    let startHour = parseInt(eventStartHour.value) || 8;
     let startMinute = parseInt(eventStartMinute.value) || 0;
     let startAmPm = eventStartAmPm.value;
     
@@ -728,129 +747,53 @@ function updateEndTime() {
     eventEndAmPm.value = endAmPm;
 }
 
-// Initialize end time on page load
+// Initialize time fields on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Set default values if empty
-    if (!eventStartHour.value) eventStartHour.value = '1';
-    if (!eventStartMinute.value) eventStartMinute.value = '00';
+    // Set default start time to 8:00 AM
+    eventStartHour.value = '8';
+    eventStartMinute.value = '00';
+    eventStartAmPm.value = 'AM';
     
     // Update end time based on initial start time
     updateEndTime();
 });
-    const clubhouseRadio = document.getElementById('amenityClubhouse');
-    const poolRadio = document.getElementById('amenityClubhouse');
-    const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
-    const eventTypeContainerP = document.getElementById('eventTypeContainerP');
 
-    clubhouseRadio.addEventListener('change', function() {
-      if (this.checked) {
-        eventTypeContainerCB.style.display = 'block';
-        eventTypeContainerP.style.display = 'block';
-      } else {
-        eventTypeContainerCB.style.display = 'none';
-        eventTypeContainerP.style.display = 'none';
-      }
-    });
-
-    // Hide event type dropdown when other amenities are selected
-    document.getElementById('amenityPool').addEventListener('change', function() {
-      eventTypeContainerCB.style.display = 'none';
-    });
-    document.getElementById('amenityCourt').addEventListener('change', function() {
-      eventTypeContainerCB.style.display = 'none';
-      eventTypeContainerP.style.display = 'none';
-    });
-    document.getElementById('amenityClubhouse').addEventListener('change', function() {
-      eventTypeContainerP.style.display = 'none';
-    });
-    const amenities = document.querySelectorAll('input[name="amenity"]');
-    const previewImage = document.getElementById('amenityPreview');
-
-    // Event listener for changing the image preview based on selected amenity
-    amenities.forEach(amenity => {
-        amenity.addEventListener('change', function() {
-            if (this.checked) {
-                let selectedImage;
-                switch (this.value) {
-                    case 'Pool':
-                        selectedImage = '../images/poolimg.png';
-                        eventTypeContainerCB.style.display = 'none';
-                        eventTypeContainerP.style.display = 'block';
-                        break;
-                    case 'Clubhouse':
-                        selectedImage = '../images/clubhouseimg.jpg';
-                        eventTypeContainerCB.style.display = 'block';
-                        break;
-                    case 'Court':
-                        selectedImage = '../images/courtimg.jpg';
-                        eventTypeContainerCB.style.display = 'none';
-                        break;
-                }
-                previewImage.src = selectedImage;
-            }
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-    const clubhouseRadio = document.getElementById('amenityClubhouse');
-    const poolRadio = document.getElementById('amenityPool');
-    const courtRadio = document.getElementById('amenityCourt');
-    const eventTypeContainerCB = document.getElementById('eventTypeContainerCB');
-    const eventTypeContainerP = document.getElementById('eventTypeContainerP');
-    const previewImage = document.getElementById('amenityPreview');
-
-    function updateDropdowns() {
-        if (clubhouseRadio.checked) {
-            eventTypeContainerCB.style.display = 'block';
-            eventTypeContainerP.style.display = 'none';
-        } else if (poolRadio.checked) {
-            eventTypeContainerCB.style.display = 'none';
-            eventTypeContainerP.style.display = 'block';
-        } else {
-            eventTypeContainerCB.style.display = 'none';
-            eventTypeContainerP.style.display = 'none';
-        }
-    }
-
-    function updatePreviewImage() {
-        if (poolRadio.checked) {
-            previewImage.src = '/images/poolimg.png';
-        } else if (clubhouseRadio.checked) {
-            previewImage.src = '/images/clubhouseimg.jpg';
-        } else if (courtRadio.checked) {
-            previewImage.src = '/images/courtimg.jpg';
-        }
-    }
-
-    [clubhouseRadio, poolRadio, courtRadio].forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateDropdowns();
-            updatePreviewImage();
-        });
-    });
-
-    // Initial update
-    updateDropdowns();
-    updatePreviewImage();
+// Guest list handling
+function openPopup() {
+    const guestInputsDiv = document.getElementById('guest-inputs');
+    const numberOfGuests = parseInt(document.getElementById('guests').value) || 0;
     
-  });
+    // Clear existing inputs
+    guestInputsDiv.innerHTML = '';
     
+    // Create input fields based on the number entered
+    if (numberOfGuests > 0 && numberOfGuests <= 30) {
+        for (let i = 0; i < numberOfGuests; i++) {
+            const inputField = document.createElement('input');
+            inputField.type = 'text';
+            inputField.className = 'guest-name';
+            inputField.placeholder = `Guest ${i + 1}`;
+            inputField.required = true;
+            guestInputsDiv.appendChild(inputField);
+        }
+        document.getElementById('guest-popup').style.display = 'flex';
+    } else {
+        alert('Please enter a valid number of guests (1-30)');
+    }
+}
 
-  document.getElementById('eventForm').addEventListener('submit', async function(event) {
+// Modify the form submission to handle guest list properly
+document.getElementById('eventForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
-
-     // Collect guest names from the popup input fields
-     const guestNames = [];
+    // Collect guest names from the popup input fields
+    const guestNames = [];
     const guestInputs = document.querySelectorAll('.guest-name');
     guestInputs.forEach(input => {
         if (input.value.trim() !== '') {
             guestNames.push(input.value.trim());
         }
     });
-
-    // Get the number of guests from the number input field
-    const numberOfGuests = document.getElementById('guests').value;
 
     const formData = {
         HomeownerName: document.getElementById('HomeownerName').value,
@@ -864,7 +807,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('eventEndAmPm').value,
         amenity: document.querySelector('input[name="amenity"]:checked').value,
         eventType: document.getElementById('eventType')?.value || '',
-        guests: document.getElementById('guests').value,
+        guests: {
+            number: parseInt(document.getElementById('guests').value),
+            names: guestNames
+        },
         homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
     };
 
@@ -880,7 +826,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await response.json();
 
         if (result.success) {
-            // Show success modal instead of redirecting
             showSuccessModal();
         } else {
             alert(result.message || 'Failed to create event. Please try again.');
@@ -982,25 +927,6 @@ function closeSuccessModal() {
 
 // popup--------------------------------------------------------------
 // fixxed to 30 fields
-function openPopup() {
-    const guestInputsDiv = document.getElementById('guest-inputs');
-    
-   
-    if (guestInputsDiv.children.length === 0) {
-        for (let i = 0; i < 30; i++) {
-            const inputField = document.createElement('input');
-            inputField.type = 'text';
-            inputField.className = 'guest-name';
-            inputField.placeholder = `Guest ${i + 1}`;
-            guestInputsDiv.appendChild(inputField);
-        }
-    }
-
-    //open
-    document.getElementById('guest-popup').style.display = 'flex';
-}
-
-//close
 function closePopup() {
     document.getElementById('guest-popup').style.display = 'none';
 }

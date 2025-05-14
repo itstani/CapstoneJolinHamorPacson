@@ -506,6 +506,188 @@
             max-width: 400px;
             width: 100%;
         }
+
+        /* Modal styles */
+        .dashboard-modal {
+            display: none;  /* Start hidden */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .dashboard-modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dashboard-modal-content {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dashboard-modal h2 {
+            color: #AF2630;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-family: 'inter';
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .dashboard-modal .password-container {
+            margin: 1.5rem 0;
+            position: relative;
+            width: 100%;
+        }
+
+        .dashboard-modal input {
+            width: 100%;
+            padding: 15px 45px 15px 15px;
+            margin: 10px 0;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            font-family: 'inter';
+            transition: all 0.3s ease;
+            background-color: #f8f8f8;
+        }
+
+        .dashboard-modal input:focus {
+            outline: none;
+            border-color: #AF2630;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(175, 38, 48, 0.1);
+        }
+
+        .dashboard-modal .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            color: #666;
+            transition: color 0.3s ease;
+        }
+
+        .dashboard-modal .password-toggle:hover {
+            color: #AF2630;
+        }
+
+        .dashboard-modal button[onclick="checkDashboardAccess()"] {
+            width: 100%;
+            padding: 15px;
+            background-color: #AF2630;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            font-family: 'inter';
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-modal button[onclick="checkDashboardAccess()"]:hover {
+            background-color: #8f1d25;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(175, 38, 48, 0.2);
+        }
+
+        .dashboard-modal button[onclick="checkDashboardAccess()"]:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #f8f8f8;
+        }
+
+        .close-modal:hover {
+            color: #AF2630;
+            background-color: #f0f0f0;
+        }
+
+        .error-message {
+            color: #AF2630;
+            margin-top: 1rem;
+            font-family: 'inter';
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(175, 38, 48, 0.1);
+            display: none;
+        }
+
+        /* Dashboard link styles */
+        .dashboard-link {
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .dashboard-link a {
+            display: inline-block;
+            color: #AF2630;
+            font-size: 18px;
+            font-family: 'inter';
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border: 2px solid #AF2630;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            background-color: transparent;
+        }
+
+        .dashboard-link a:hover {
+            background-color: #AF2630;
+            color: white;
+            text-decoration: none;
+        }
   </style>
 </head>
 <body>
@@ -539,7 +721,7 @@
               <button type="submit" class="Login">Login</button>
           </div>
           <div class="dashboard-link">
-            
+              <a href="#" onclick="showDashboardModal(); return false;">Access Dashboard</a>
           </div>
       </form>
       <div id="errorMessage" style="color: #AF2630; margin-top: 10px; display: none;"></div>
@@ -587,11 +769,169 @@
       </div>
   </div>
 
+  <!-- Add this HTML after your login form but before the closing body tag -->
+  <div id="dashboardModal" class="dashboard-modal">
+      <div class="dashboard-modal-content">
+          <span class="close-modal" onclick="closeDashboardModal()">&times;</span>
+          <h2>Access Dashboard</h2>
+          <div class="password-container">
+              <input type="password" id="dashboardPassword" placeholder="Enter password">
+              <button type="button" class="password-toggle" onclick="toggleDashboardPassword()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+              </button>
+          </div>
+          <button onclick="checkDashboardAccess()">Access Dashboard</button>
+      </div>
+  </div>
+
   <script>
+    // Constants for login attempts
+    const MAX_LOGIN_ATTEMPTS = 5;
+    const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    // Function to get remaining lockout time
+    function getRemainingLockoutTime() {
+        const lockoutTime = localStorage.getItem('lockoutTime');
+        if (!lockoutTime) return 0;
+        
+        const now = new Date().getTime();
+        const remaining = parseInt(lockoutTime) - now;
+        return remaining > 0 ? remaining : 0;
+    }
+
+    // Function to check if account is locked
+    function isAccountLocked() {
+        const remaining = getRemainingLockoutTime();
+        if (remaining > 0) {
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            return `Account is locked. Please try again in ${minutes}:${seconds.toString().padStart(2, '0')} minutes`;
+        }
+        return false;
+    }
+
+    // Function to increment login attempts
+    function incrementLoginAttempts() {
+        const attempts = parseInt(localStorage.getItem('loginAttempts') || '0') + 1;
+        localStorage.setItem('loginAttempts', attempts.toString());
+        
+        if (attempts >= MAX_LOGIN_ATTEMPTS) {
+            // Lock the account
+            const lockoutTime = new Date().getTime() + LOCKOUT_DURATION;
+            localStorage.setItem('lockoutTime', lockoutTime.toString());
+            return true;
+        }
+        return false;
+    }
+
+    // Function to reset login attempts
+    function resetLoginAttempts() {
+        localStorage.removeItem('loginAttempts');
+        localStorage.removeItem('lockoutTime');
+    }
+
+    // Function to show error message
+    function showError(message, isSuccess = false) {
+        const errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            errorMessage.style.color = isSuccess ? 'green' : '#AF2630';
+        }
+    }
+
+    // Handle form submission
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        // Check if account is locked
+        const lockStatus = isAccountLocked();
+        if (lockStatus) {
+            showError(lockStatus);
+            return;
+        }
+
+        const formData = new FormData(event.target);
+        const email = formData.get('login');
+        const password = formData.get('password');
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ login: email, password: password }),
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Reset login attempts on successful login
+                resetLoginAttempts();
+                
+                // Store user info and redirect
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('email', data.email);
+                
+                // Show success message and redirect
+                showError('Login successful! Redirecting...', true);
+                
+                setTimeout(() => {
+                    window.location.href = data.redirectUrl;
+                }, 1000);
+            } else if (data.isDelinquent) {
+                // Handle delinquent account
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('email', email);
+                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                
+                document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
+                document.getElementById('delinquentModal').style.display = 'block';
+            } else {
+                // Increment login attempts on failure
+                const isNowLocked = incrementLoginAttempts();
+                const attempts = parseInt(localStorage.getItem('loginAttempts') || '0');
+                const remainingAttempts = MAX_LOGIN_ATTEMPTS - attempts;
+
+                if (isNowLocked) {
+                    showError(`Too many failed attempts. Account locked for 5 minutes.`);
+                } else {
+                    showError(`Invalid credentials. ${remainingAttempts} attempts remaining before lockout.`);
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            showError('An error occurred. Please try again.');
+        }
+    });
+
+    // Check lockout status on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const lockStatus = isAccountLocked();
+        if (lockStatus) {
+            showError(lockStatus);
+        }
+        
+        // Start a timer to update the lockout message
+        setInterval(() => {
+            const lockStatus = isAccountLocked();
+            if (lockStatus) {
+                showError(lockStatus);
+            }
+        }, 1000);
+    });
+
     // Debug functions
     function toggleDebug() {
         const panel = document.getElementById('debug-panel');
+        if (panel) {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
     }
     
     function debugLog(message) {
@@ -604,13 +944,24 @@
         }
     }
     
-    document.addEventListener("DOMContentLoaded", () => {
+    // Initialize debug panel and toggle button
+    const debugPanel = document.getElementById('debug-panel');
+    const debugToggle = document.getElementById('debug-toggle');
+    if (debugToggle) {
+        debugToggle.addEventListener('click', toggleDebug);
+    }
+    
+    document.addEventListener("DOMContentLoaded", async () => {
         debugLog("Page loaded");
+        
+        // Check account lock status first
+        checkAccountLockStatus();
         
         // Password visibility toggle
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         
+        if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', function() {
             debugLog("Password visibility toggled");
             
@@ -636,105 +987,30 @@
                 `;
             }
         });
+        }
         
         // Check if user is already logged in
-        checkAlreadyLoggedIn();
+        await checkAlreadyLoggedIn();
         
-        const loginForm = document.getElementById("loginForm");
-        const errorMessage = document.getElementById("errorMessage");
-        const delinquentModal = document.getElementById("delinquentModal");
+        // Handle URL parameters for error messages
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorMsg = document.getElementById('errorMessage');
         
-        // Handle login form submission
-        loginForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            
-            try {
-                const formData = new FormData(this);
-                const email = formData.get('login');
-                const password = formData.get('password');
-                
-                debugLog(`Attempting login with email: ${email}`);
-                
-                // Show loading indicator
-                errorMessage.textContent = "Logging in...";
-                errorMessage.style.display = "block";
-                errorMessage.style.color = "#333";
-                
-                // First check if user is delinquent
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        login: email,
-                        password: password
-                    }),
-                    credentials: 'include'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                debugLog(`Login response: ${JSON.stringify(data)}`);
-                
-                if (data.success) {
-                    // Store user info in localStorage
-                    localStorage.setItem('username', data.username);
-                    localStorage.setItem('email', data.email);
-                    
-                    errorMessage.textContent = "Login successful! Redirecting...";
-                    errorMessage.style.color = "green";
-                    
-                    // Redirect based on role
-                    window.location.href = data.redirectUrl;
-                } else if (data.isDelinquent) {
-                    debugLog("User is delinquent, showing modal");
-                    
-                    // Store delinquent user info for the payment page
-                    localStorage.setItem('username', data.username);
-                    localStorage.setItem('email', email);
-                    localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
-                    
-                    // Show delinquent modal
-                    document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
-                    document.getElementById('delinquentModal').style.display = 'block';
-                } else {
-                    // Regular login failure
-                    errorMessage.textContent = data.message || 'Invalid credentials';
-                    errorMessage.style.color = "#AF2630";
-                    errorMessage.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                debugLog(`Login error: ${error.message}`);
-                document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
-                document.getElementById('errorMessage').style.color = "#AF2630";
-                document.getElementById('errorMessage').style.display = 'block';
-            }
-        });
+        if (urlParams.get('unauthorized') === 'true' && errorMsg) {
+            errorMsg.textContent = 'You do not have permission to access that page. Please log in with an admin account.';
+            errorMsg.style.display = 'block';
+            errorMsg.style.color = '#AF2630';
+        } else if (urlParams.get('error') === 'true' && errorMsg) {
+            errorMsg.textContent = 'An error occurred. Please try logging in again.';
+            errorMsg.style.display = 'block';
+            errorMsg.style.color = '#AF2630';
+        }
         
-        // Handle "Pay Now" button click
-        document.getElementById("payNowBtn").addEventListener("click", () => {
-            debugLog("Pay Now button clicked");
-            
-            // Get the due amount from the modal
-            const dueAmount = document.getElementById("delinquentAmount").textContent.replace("₱", "");
-            
-            // Store the due amount in localStorage for the payment page
-            localStorage.setItem("dueAmount", dueAmount);
-            
-            // Redirect to MDPayment.html
-            debugLog("Redirecting to Webpages/MDPayment.html");
-            window.location.href = "Webpages/MDPayment.html";
-        });
-        
-        // Close delinquent modal when clicking the X
-        document.getElementById("closeDelinquentModal").addEventListener("click", () => {
-            delinquentModal.style.display = "none";
-        });
+        // Setup login form handler
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLoginSubmit);
+        }
     });
     
     // Function to check if user is already logged in
@@ -769,251 +1045,6 @@
     return false;
   }
 }
-
-    document.addEventListener('DOMContentLoaded', function() {
-  // Check if user is already logged in
-  checkAlreadyLoggedIn();
-  
-    const loginForm = document.getElementById('loginForm');
-    const errorMessage = document.getElementById('errorMessage');
-    const passwordError = document.getElementById('passwordError');
-    const delinquentModal = document.getElementById('delinquentModal');
-    const lockoutModal = document.getElementById('lockoutModal');
-    const lockoutTimer = document.getElementById('lockoutTimer');
-    const debugPanel = document.getElementById('debug-panel');
-    const debugToggle = document.getElementById('debug-toggle');
-    const emergencyLogin = document.getElementById('emergency-login');
-    const sessionInfo = document.getElementById('session-info');
-    const clearSessionBtn = document.getElementById('clear-session');
-    
-    // Initialize login attempt counter
-    let loginAttempts = 0;
-    const maxLoginAttempts = 5;
-    let isLocked = false;
-    let lockoutTime = 300; // 5 minutes in seconds
-    let lockoutInterval;
-    
-    // Function to log to debug panel - MOVED UP HERE
-    function debugLog(message) {
-        if (debugPanel) {
-            const logEntry = document.createElement('div');
-            logEntry.textContent = `[${new Date().toISOString()}] ${message}`;
-            debugPanel.appendChild(logEntry);
-            debugPanel.scrollTop = debugPanel.scrollHeight;
-        }
-        console.log(message);
-    }
-    
-    // Check if account is locked
-    checkAccountLockStatus();
-    
-    // CRITICAL: Clear all session data and cookies on page load
-    clearAllSessionData();
-    
-    // Show emergency login button after 5 seconds
-    setTimeout(() => {
-        emergencyLogin.style.display = 'block';
-    }, 5000);
-    
-    // Function to clear all session data
-    function clearAllSessionData() {
-        // Clear sessionStorage
-        sessionStorage.clear();
-        
-        // Clear localStorage items except for login attempts tracking
-        const attemptsData = {
-            loginAttempts: localStorage.getItem('loginAttempts'),
-            lockoutTimestamp: localStorage.getItem('lockoutTimestamp')
-        };
-        
-        localStorage.clear();
-        
-        // Restore login attempts data
-        if (attemptsData.loginAttempts) {
-            localStorage.setItem('loginAttempts', attemptsData.loginAttempts);
-        }
-        if (attemptsData.lockoutTimestamp) {
-            localStorage.setItem('lockoutTimestamp', attemptsData.lockoutTimestamp);
-        }
-        
-        // Clear cookies by setting expiration in the past
-        document.cookie.split(";").forEach(function(c) {
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-        
-        debugLog("All session data cleared");
-    }
-   
-    
-});
-
-// concern-reply.js
-document.addEventListener("DOMContentLoaded", () => {
-  // Get the reply form and cancel button
-  const replyForm = document.getElementById("replyForm")
-  const cancelButton = document.getElementById("cancelReply")
-  const replyPopup = document.getElementById("replyPopup")
-
-  // Declare loadConcerns variable (assuming it's defined elsewhere or should be a no-op)
-  const loadConcerns = () => {}
-
-  if (replyForm) {
-    replyForm.addEventListener("submit", async (event) => {
-      event.preventDefault()
-
-      // Get form data
-      const formData = new FormData(replyForm)
-      const concernId = document.getElementById("concernId").value
-
-      try {
-        // Show loading state
-        document.getElementById("submitReply").disabled = true
-        document.getElementById("submitReply").textContent = "Sending..."
-
-        // Send the reply
-        const response = await fetch("/sendReply", {
-          method: "POST",
-          body: formData,
-        })
-
-        const result = await response.json()
-
-        if (result.success) {
-          // Show success message
-          alert("Reply sent successfully!")
-
-          // Close the popup
-          closeReplyPopup()
-
-          // Refresh the concerns list if needed
-          if (typeof loadConcerns === "function") {
-            loadConcerns()
-          } else {
-            // Reload the page as fallback
-            window.location.reload()
-          }
-        } else {
-          alert("Error: " + (result.message || "Failed to send reply"))
-        }
-      } catch (error) {
-        console.error("Error sending reply:", error)
-        alert("An error occurred while sending the reply. Please try again.")
-      } finally {
-        // Reset button state
-        document.getElementById("submitReply").disabled = false
-        document.getElementById("submitReply").textContent = "Send Reply"
-      }
-    })
-  }
-
-  // Handle cancel button click
-  if (cancelButton) {
-    cancelButton.addEventListener("click", () => {
-      closeReplyPopup()
-    })
-  }
-
-  // Close popup when clicking outside
-  if (replyPopup) {
-    window.addEventListener("click", (event) => {
-      if (event.target === replyPopup) {
-        closeReplyPopup()
-      }
-    })
-  }
-
-  // Function to close the reply popup
-  function closeReplyPopup() {
-    if (replyPopup) {
-      replyPopup.style.display = "none"
-
-      // Clear form fields
-      if (replyForm) {
-        replyForm.reset()
-      }
-    }
-  }
-
-  // Function to open the reply popup
-  window.openReplyPopup = (concernId, subject) => {
-    if (replyPopup) {
-      // Set the concern ID in the hidden field
-      document.getElementById("concernId").value = concernId
-
-      // Pre-fill the subject with "Re: original subject"
-      document.getElementById("subject").value = "Re: " + subject
-
-      // Show the popup
-      replyPopup.style.display = "block"
-    }
-  }
-})
-
-document.addEventListener("DOMContentLoaded", async () => {
-  // Check if we're already logged in
-  try {
-    const response = await fetch("/api/auth-status", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-      },
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-
-      // If already authenticated, redirect to appropriate page
-      if (data.authenticated) {
-        const redirectUrl = data.user.role === "admin" ? "/AdHome.html" : "/HoHome.html"
-
-        window.location.href = redirectUrl
-      }
-    }
-  } catch (error) {
-    console.error("Error checking authentication status:", error)
-  }
-
-  // Check for unauthorized or error parameters
-  const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.has("unauthorized")) {
-    // Show unauthorized message
-    const messageElement = document.getElementById("login-message")
-    if (messageElement) {
-      messageElement.textContent = "You must be an administrator to access that page."
-      messageElement.style.color = "red"
-      messageElement.style.display = "block"
-    }
-  } else if (urlParams.has("error")) {
-    // Show error message
-    const messageElement = document.getElementById("login-message")
-    if (messageElement) {
-      messageElement.textContent = "An error occurred. Please try logging in again."
-      messageElement.style.color = "red"
-      messageElement.style.display = "block"
-    }
-  }
-})
-
-
-document.addEventListener('DOMContentLoaded', function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const unauthorized = urlParams.get('unauthorized');
-  const error = urlParams.get('error');
-  const errorMsg = document.getElementById('errorMessage');
-  
-  if (unauthorized === 'true') {
-    errorMsg.textContent = 'You do not have permission to access that page. Please log in with an admin account.';
-    errorMsg.style.display = 'block';
-    errorMsg.style.color = '#AF2630';
-  } else if (error === 'true') {
-    errorMsg.textContent = 'An error occurred. Please try logging in again.';
-    errorMsg.style.display = 'block';
-    errorMsg.style.color = '#AF2630';
-  }
-});
-
 
     function checkAccountLockStatus() {
         // Get stored login attempts
@@ -1133,44 +1164,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function incrementLoginAttempts() {
-        loginAttempts++;
-        localStorage.setItem('loginAttempts', loginAttempts.toString());
-        
-        if (loginAttempts >= maxLoginAttempts) {
-            // Set lockout timestamp (5 minutes from now)
-            const lockoutTimestamp = new Date();
-            lockoutTimestamp.setMinutes(lockoutTimestamp.getMinutes() + 5);
-            localStorage.setItem('lockoutTimestamp', lockoutTimestamp.getTime().toString());
-            
-            isLocked = true;
-            startLockoutTimer(300); // 5 minutes in seconds
-            showLockoutModal();
-        }
-    }
-    
-    // Toggle debug panel visibility
-    if (debugToggle) {
-        debugToggle.addEventListener('click', function() {
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        });
-    }
-    
-    // Emergency login button handler
-    if (emergencyLogin) {
-        emergencyLogin.addEventListener('click', function() {
-            forceAuthentication();
-        });
-    }
-    
-    // Clear session button handler
-    if (clearSessionBtn) {
-        clearSessionBtn.addEventListener('click', function() {
-            clearAllSessionData();
-            showCustomAlert("All session data cleared");
-        });
-    }
-
     // Add these new functions for dues checking
     function openDuesCheck() {
         document.getElementById('duesCheckModal').style.display = 'block';
@@ -1183,153 +1176,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('duesPassword').value = '';
     }
 
-    loginForm.addEventListener('submit', async function(event) {
-    event.preventDefault();
-    
-    try {
-        const formData = new FormData(loginForm);
-        const email = formData.get('login');
-        const password = formData.get('password');
-        
-        // Validate inputs
-        if (!email || !password) {
-            errorMessage.textContent = "Please enter both email and password.";
-            errorMessage.style.display = "block";
-            return;
-        }
-        
-        // Show loading indicator
-        errorMessage.textContent = "Logging in...";
-        errorMessage.style.display = "block";
-        errorMessage.style.color = "#333";
-        
-        // Perform login
-        const result = await performLogin(email, password);
-        
-        if (result.success) {
-            errorMessage.textContent = "Login successful! Redirecting...";
-            errorMessage.style.color = "green";
-            
-            // Add a longer delay to ensure the session is properly set
-            setTimeout(() => {
-                navigateAfterLogin(result);
-            }, 2000);
-        } else {
-            // Check if the account is delinquent
-            if (result.isDelinquent) {
-                // Store email for the payment page
-                localStorage.setItem('username', result.username || '');
-                localStorage.setItem('email', email);
-                
-                // Show delinquent modal
-                document.getElementById('delinquentAmount').textContent = `₱${result.dueAmount || 0}`;
-                delinquentModal.style.display = 'block';
-            } else {
-                // Show regular error message
-                errorMessage.textContent = result.message || 'Invalid credentials. Please try again.';
-                errorMessage.style.color = "#AF2630";
-                errorMessage.style.display = 'block';
-            }
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        errorMessage.textContent = 'Invalid Credentials Please Try again';
-        errorMessage.style.color = "#AF2630";
-        errorMessage.style.display = 'block';
-    }
-});
-
-async function performLogin(email, password) {
-    try {
-        debugLog(`Attempting login with: ${email}`);
-        
-        // First try the check-delinquent-status endpoint
-        let response;
-        try {
-            response = await fetch("/api/check-delinquent-status", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    login: email,
-                    password: password,
-                }),
-                credentials: "include",
-            });
-        } catch (fetchError) {
-            debugLog(`Error with check-delinquent-status: ${fetchError.message}`);
-            // If the first endpoint fails, try the regular login endpoint
-            response = await fetch("/api/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    login: email,
-                    password: password,
-                }),
-                credentials: "include",
-            });
-        }
-        
-        debugLog(`Login response status: ${response.status}`);
-        
-        // Try to parse the response as JSON
-        let data;
-        try {
-            data = await response.json();
-            debugLog(`Login response data: ${JSON.stringify(data)}`);
-        } catch (jsonError) {
-            debugLog(`Error parsing JSON: ${jsonError.message}`);
-            data = {};
-        }
-        
-        // Handle different response statuses
-        if (!response.ok) {
-            if (response.status === 401) {
-                return { 
-                    success: false, 
-                    message: "Invalid email or password. Please try again." 
-                };
-            } else {
-                return { 
-                    success: false, 
-                    message: data.message || `Server error (${response.status}). Please try again.` 
-                };
-            }
-        }
-        
-        if (data.success) {
-            // Store user info in localStorage
-            localStorage.setItem("username", data.username);
-            localStorage.setItem("email", data.email);
-            localStorage.setItem("role", data.role || "homeowner");
-            if (data.sessionId) {
-                localStorage.setItem("sessionId", data.sessionId);
-            }
-            return data;
-        } else if (data.isDelinquent) {
-            // Store delinquent user info for the payment page
-            localStorage.setItem("username", data.username || '');
-            localStorage.setItem("email", email);
-            localStorage.setItem("dueAmount", data.dueAmount || '0.00');
-            return data;
-        } else {
-            // Handle other unsuccessful responses
-            return { 
-                success: false, 
-                message: data.message || "Login failed. Please try again." 
-            };
-        }
-    } catch (error) {
-        debugLog(`Login error: ${error.message}`);
-        return { 
-            success: false, 
-            message: "Connection error. Please check your internet connection and try again." 
-        };
-    }
-}
     async function checkDuesStatus() {
         const email = document.getElementById('duesEmail').value;
         const password = document.getElementById('duesPassword').value;
@@ -1400,9 +1246,172 @@ async function performLogin(email, password) {
 
     // Close modal when clicking outside
     window.onclick = function(event) {
-        const modal = document.getElementById('duesCheckModal');
-        if (event.target === modal) {
+        const dashboardModal = document.getElementById('dashboardModal');
+        const duesModal = document.getElementById('duesCheckModal');
+        
+        if (event.target === dashboardModal) {
+            closeDashboardModal();
+        } else if (event.target === duesModal) {
             closeDuesCheck();
+        }
+    }
+
+    // Fix password toggle for login form
+    document.addEventListener('DOMContentLoaded', function() {
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Update the eye icon
+                const eyeIcon = this.querySelector('svg');
+                if (type === 'password') {
+                    eyeIcon.innerHTML = `
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    `;
+                } else {
+                    eyeIcon.innerHTML = `
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                        <line x1="2" x2="22" y1="2" y2="22"></line>
+                    `;
+                }
+            });
+        }
+
+        // Add click handler for homeowner dashboard link
+        const dashboardLink = document.querySelector('a[href="Webpages/homeowner-dashboard.html"]');
+        if (dashboardLink) {
+            dashboardLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showDashboardModal();
+            });
+        }
+    });
+
+    // Dashboard modal functions
+    function showDashboardModal() {
+        const modal = document.getElementById('dashboardModal');
+        if (modal) {
+            modal.classList.add('show');
+            // Clear any previous error messages
+            const errorMsg = modal.querySelector('.error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+            // Clear password field
+            document.getElementById('dashboardPassword').value = '';
+            // Focus on password field
+            setTimeout(() => {
+                document.getElementById('dashboardPassword').focus();
+            }, 100);
+        }
+    }
+
+    function closeDashboardModal() {
+        const modal = document.getElementById('dashboardModal');
+        if (modal) {
+            modal.classList.remove('show');
+            // Clear password field
+            document.getElementById('dashboardPassword').value = '';
+        }
+    }
+
+    function toggleDashboardPassword() {
+        const passwordInput = document.getElementById('dashboardPassword');
+        const eyeIcon = document.querySelector('.dashboard-modal .password-toggle svg');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.innerHTML = `
+                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                <line x1="2" x2="22" y1="2" y2="22"></line>
+            `;
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.innerHTML = `
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            `;
+        }
+    }
+
+    async function checkDashboardAccess() {
+        const password = document.getElementById('dashboardPassword').value;
+        
+        try {
+            console.log('Attempting to check dashboard access...');
+            const response = await fetch('/api/check-dashboard-access', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    password: password
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Server response:', data);
+
+            if (data.success) {
+                console.log('Access granted, redirecting...');
+                // Redirect to homeowner dashboard
+                window.location.href = 'homeowner-dashboard.html';
+            } else {
+                console.log('Access denied:', data.message);
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message';
+                errorMsg.textContent = data.message || 'Invalid password. Please try again.';
+                
+                // Remove any existing error message
+                const existingError = document.querySelector('.dashboard-modal .error-message');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                // Add the new error message and show it
+                const modalContent = document.querySelector('.dashboard-modal-content');
+                modalContent.appendChild(errorMsg);
+                errorMsg.style.display = 'block';
+                
+                // Clear the password field
+                document.getElementById('dashboardPassword').value = '';
+                // Focus back on the password field
+                document.getElementById('dashboardPassword').focus();
+            }
+        } catch (error) {
+            console.error('Error checking dashboard access:', error);
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            errorMsg.textContent = 'An error occurred. Please try again.';
+            
+            // Remove any existing error message
+            const existingError = document.querySelector('.dashboard-modal .error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add the new error message and show it
+            const modalContent = document.querySelector('.dashboard-modal-content');
+            modalContent.appendChild(errorMsg);
+            errorMsg.style.display = 'block';
+            
+            // Clear the password field
+            document.getElementById('dashboardPassword').value = '';
+            // Focus back on the password field
+            document.getElementById('dashboardPassword').focus();
         }
     }
   </script>

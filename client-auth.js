@@ -1,4 +1,14 @@
 // client-auth.js - Add this file to your project
+const maxLoginAttempts = 5;
+let loginAttempts = 0;
+let isLocked = false;
+let lockoutTime = 300; // 5 minutes in seconds
+let lockoutInterval;
+
+// Keep track of redirect attempts to prevent loops
+const REDIRECT_LIMIT = 3;
+let redirectCount = parseInt(sessionStorage.getItem('redirectCount') || '0');
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     // Check if we're on an admin page
@@ -7,58 +17,63 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.location.pathname.includes("/admincalender") ||
       window.location.pathname.includes("/analytics") ||
       window.location.pathname.includes("/hotable") ||
-      window.location.pathname.includes("/MonthlyPayments")
+      window.location.pathname.includes("/MonthlyPayments");
 
-    if (!isAdminPage) {
-      // Not an admin page, no need to check
-      return
+    // If we're already on the unauthorized page, don't check
+    if (window.location.pathname.includes("/unauthorized.html")) {
+      return;
     }
 
-    console.log("Admin page detected, checking authentication...")
+    if (!isAdminPage) {
+      // Not an admin page, reset redirect counter and return
+      sessionStorage.removeItem('redirectCount');
+      return;
+    }
 
-    // Add a cache-busting parameter to prevent cached responses
-    const timestamp = new Date().getTime()
+    // Increment and check redirect count to prevent loops
+    redirectCount++;
+    sessionStorage.setItem('redirectCount', redirectCount.toString());
+    
+    if (redirectCount > REDIRECT_LIMIT) {
+      console.log("Redirect loop detected, redirecting to HoHome.html");
+      sessionStorage.removeItem('redirectCount');
+      window.location.href = "/HoHome.html";
+      return;
+    }
+
+    console.log("Admin page detected, checking authentication...");
 
     // Check authentication status
-    const response = await fetch(`/api/auth-status?t=${timestamp}`, {
+    const response = await fetch("/api/auth-status", {
       method: "GET",
       credentials: "include",
       headers: {
         Accept: "application/json",
         "Cache-Control": "no-cache, no-store, must-revalidate",
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`)
+      throw new Error(`HTTP error: ${response.status}`);
     }
 
-    const data = await response.json()
-    console.log("Auth status response:", data)
+    const data = await response.json();
+    console.log("Auth status response:", data);
 
-    // If not authenticated or not admin, redirect to login
+    // If not authenticated or not admin, redirect to unauthorized page
     if (!data.authenticated || data.user.role !== "admin") {
-      console.log("Not authenticated as admin, redirecting to login")
-      window.location.href = "/login.html?unauthorized=true"
+      console.log("Not authenticated as admin, redirecting to unauthorized page");
+      window.location.href = "/Webpages/unauthorized.html";
+      return;
     }
+
+    // If we get here, user is authenticated and is admin
+    // Reset redirect counter as authentication was successful
+    sessionStorage.removeItem('redirectCount');
+    
   } catch (error) {
-    console.error("Error checking authentication:", error)
-
-    // Check if we're in a potential redirect loop
-    const loopCount = Number.parseInt(localStorage.getItem("authLoopCount") || "0")
-
-    if (loopCount > 3) {
-      // We're in a loop, redirect to a special page to break it
-      console.log("Detected authentication loop, breaking out")
-      localStorage.removeItem("authLoopCount")
-      window.location.href = "/break-auth-loop"
-      return
-    }
-
-    // Increment loop counter
-    localStorage.setItem("authLoopCount", (loopCount + 1).toString())
-
-    // On error, redirect to login as a fallback
-    window.location.href = "/login.html?error=true"
+    console.error("Error checking authentication:", error);
+    // On error, redirect to unauthorized page
+    window.location.href = "/Webpages/unauthorized.html";
   }
-})
+});
