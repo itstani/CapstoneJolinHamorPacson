@@ -121,139 +121,140 @@
     }
 
     .guests-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 20px;
+    }
 
-.guests-input-group {
-    display: flex;
-    align-items: center; /* Ensures input and button are vertically aligned */
-    width: 100%;
-}
+    .guests-input-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-#guests {
-    width: 50%;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    color: #333;
-    margin-right: 10px; /* Space between input and button */
-}
+    .guests-button {
+        padding: 12px 30px;
+        background-color: white;
+        color: #AF2630;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
 
-.guests-button {
-    padding: 12px 30px;
-    width: 50%;
-    background-color: white;
-    color: #AF2630;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    vertical-align: middle; 
-    margin-top: -2px;
-    margin-bottom: 10px;
-}
+    .guests-button:hover {
+        background-color: #c44c57;
+        color: white;
+    }
 
+    #guests {
+        text-align: center;
+        font-size: 16px;
+        padding: 8px;
+        border: none;
+        background: white;
+        border-radius: 8px;
+    }
 
+    #guests::-webkit-inner-spin-button,
+    #guests::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
 
-.guests-button:hover {
-    background-color: #c44c57;
-    color: white;
-}
-/* Popup container - hidden by default */
-.popup-container {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Transparent background */
-    justify-content: center;
-    align-items: center;
-}
+    #guests {
+        -moz-appearance: textfield;
+    }
 
-/* Popup content styling */
-.popup-content {
-    background-color: white;
-    padding: 30px; 
-    border-radius: 8px;
-    border: 2px solid #AF2630;  
-    width: 90%;  
-    max-width: 800px;  
-    height: 100%;  
-    max-height: 600px; 
-    text-align: center;
-    overflow: hidden;
-    position: relative;
-    display: flex;        
-    flex-direction: column;
-    justify-content: space-between;
-}
+    /* Popup container - hidden by default */
+    .popup-container {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Transparent background */
+        justify-content: center;
+        align-items: center;
+    }
 
-/* Red top bar styling */
-.popup-header {
-    background-color: #AF2630;  
-    color: white;
-    padding: 15px;
-    font-size: 20px;
-    font-weight: bold;
-    border-radius: 8px 8px 0 0; 
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    text-align: center;
-}
+    /* Popup content styling */
+    .popup-content {
+        background-color: white;
+        padding: 30px; 
+        border-radius: 8px;
+        border: 2px solid #AF2630;  
+        width: 90%;  
+        max-width: 800px;  
+        height: 100%;  
+        max-height: 600px; 
+        text-align: center;
+        overflow: hidden;
+        position: relative;
+        display: flex;        
+        flex-direction: column;
+        justify-content: space-between;
+    }
 
-/* Styling for input fields container */
-.guest-inputs {
-    padding: 10px;
-   
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;  
-    max-height: 400px;  
-    overflow-y: auto;  
-    margin-top: 75px;  
-    margin-bottom: 1px;  
-}
+    /* Red top bar styling */
+    .popup-header {
+        background-color: #AF2630;  
+        color: white;
+        padding: 15px;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 8px 8px 0 0; 
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+    }
 
-
-
-.guest-name {
-    padding: 15px;  
-    font-size: 16px; 
-    border-radius: 5px;
-    border: 2px solid #333 !important;  
-    color: #333;  
-    width: 100%;
-}
+    /* Styling for input fields container */
+    .guest-inputs {
+        padding: 10px;
+       
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;  
+        max-height: 400px;  
+        overflow-y: auto;  
+        margin-top: 75px;  
+        margin-bottom: 1px;  
+    }
 
 
-.close-btn {
-    padding: 15px 30px;  
-    background-color: #AF2630;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;  
-    align-self: center; 
-    
-    
-}
 
-.close-btn:hover {
-    background-color: #c44c57;
-}
+    .guest-name {
+        padding: 15px;  
+        font-size: 16px; 
+        border-radius: 5px;
+        border: 2px solid #333 !important;  
+        color: #333;  
+        width: 100%;
+    }
+
+
+    .close-btn {
+        padding: 15px 30px;  
+        background-color: #AF2630;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;  
+        align-self: center; 
+        
+        
+    }
+
+    .close-btn:hover {
+        background-color: #c44c57;
+    }
 
 
 
@@ -628,9 +629,19 @@
       
     <!-- guests --------------------------------------------------------->
     <div class="guests-container">
-        <label for="numberofguests">Number of guests:</label>
+        <label for="guests">Number of guests:</label>
         <div class="guests-input-group">
-            <input type="text" id="guests" name="guests"  required>
+            <div class="time-input-container">
+                <input type="number" 
+                       id="guestNumber" 
+                       name="guestNumber"
+                       class="time-input" 
+                       min="1" 
+                       max="30" 
+                       value="1"
+                       style="width: 60px;"
+                       required>
+            </div>
             <button type="button" class="guests-button" onclick="openPopup()">Guest List</button>
         </div>
     </div>
@@ -680,7 +691,7 @@
 </div>
 
   <script>
-    // Find the time input elements
+    // Find the time input elements and validate they exist
 const eventStartHour = document.getElementById('eventStartHour');
 const eventStartMinute = document.getElementById('eventStartMinute');
 const eventStartAmPm = document.getElementById('eventStartAmPm');
@@ -688,209 +699,167 @@ const eventEndHour = document.getElementById('eventEndHour');
 const eventEndMinute = document.getElementById('eventEndMinute');
 const eventEndAmPm = document.getElementById('eventEndAmPm');
 
-// Function to validate and adjust time
-function validateTime(hour, minute, ampm) {
-    if (ampm === 'AM' && (hour < 8 || (hour === 12))) {
-        return { hour: 8, minute: 0, ampm: 'AM' };
+// Ensure all elements exist before adding event listeners
+if (eventStartHour && eventStartMinute && eventStartAmPm && 
+    eventEndHour && eventEndMinute && eventEndAmPm) {
+    
+    // Function to validate and adjust time
+    function validateTime(hour, minute, ampm) {
+        if (ampm === 'AM' && (hour < 8 || (hour === 12))) {
+            return { hour: 8, minute: 0, ampm: 'AM' };
+        }
+        return { hour, minute, ampm };
     }
-    return { hour, minute, ampm };
-}
 
-// Add event listeners to all start time inputs
-[eventStartHour, eventStartMinute, eventStartAmPm].forEach(element => {
-    element.addEventListener('change', function() {
-        const validatedTime = validateTime(
-            parseInt(eventStartHour.value) || 8,
-            parseInt(eventStartMinute.value) || 0,
-            eventStartAmPm.value
-        );
-        
-        eventStartHour.value = validatedTime.hour;
-        eventStartMinute.value = validatedTime.minute < 10 ? '0' + validatedTime.minute : validatedTime.minute;
-        eventStartAmPm.value = validatedTime.ampm;
-        
-        updateEndTime();
+    // Add event listeners to all start time inputs
+    [eventStartHour, eventStartMinute, eventStartAmPm].forEach(element => {
+        element.addEventListener('change', function() {
+            const validatedTime = validateTime(
+                parseInt(eventStartHour.value) || 8,
+                parseInt(eventStartMinute.value) || 0,
+                eventStartAmPm.value
+            );
+            
+            eventStartHour.value = validatedTime.hour;
+            eventStartMinute.value = validatedTime.minute < 10 ? '0' + validatedTime.minute : validatedTime.minute;
+            eventStartAmPm.value = validatedTime.ampm;
+            
+            updateEndTime();
+        });
     });
-});
 
-// Function to update end time based on start time
-function updateEndTime() {
-    let startHour = parseInt(eventStartHour.value) || 8;
-    let startMinute = parseInt(eventStartMinute.value) || 0;
-    let startAmPm = eventStartAmPm.value;
-    
-    // Calculate end time (1 hour later)
-    let endHour = startHour;
-    let endMinute = startMinute;
-    let endAmPm = startAmPm;
-    
-    // Add 1 hour
-    endHour += 1;
-    
-    // Handle hour overflow
-    if (endHour > 12) {
-        endHour = endHour - 12;
-        // Toggle AM/PM if we cross 12
-        if (startHour === 12) {
+    // Function to update end time based on start time
+    function updateEndTime() {
+        let startHour = parseInt(eventStartHour.value) || 8;
+        let startMinute = parseInt(eventStartMinute.value) || 0;
+        let startAmPm = eventStartAmPm.value;
+        
+        // Calculate end time (1 hour later)
+        let endHour = startHour;
+        let endMinute = startMinute;
+        let endAmPm = startAmPm;
+        
+        // Add 1 hour
+        endHour += 1;
+        
+        // Handle hour overflow
+        if (endHour > 12) {
+            endHour = endHour - 12;
+            // Toggle AM/PM if we cross 12
+            if (startHour === 12) {
+                endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
+            }
+        }
+        
+        // Handle special case of 11 AM/PM to 12 PM/AM
+        if (startHour === 11) {
             endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
         }
+        
+        // Update end time fields
+        eventEndHour.value = endHour;
+        eventEndMinute.value = startMinute < 10 ? '0' + startMinute : startMinute;
+        eventEndAmPm.value = endAmPm;
     }
-    
-    // Handle special case of 11 AM/PM to 12 PM/AM
-    if (startHour === 11) {
-        endAmPm = startAmPm === 'AM' ? 'PM' : 'AM';
-    }
-    
-    // Update end time fields
-    eventEndHour.value = endHour;
-    eventEndMinute.value = startMinute < 10 ? '0' + startMinute : startMinute;
-    eventEndAmPm.value = endAmPm;
 }
-
-// Initialize time fields on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default start time to 8:00 AM
-    eventStartHour.value = '8';
-    eventStartMinute.value = '00';
-    eventStartAmPm.value = 'AM';
-    
-    // Update end time based on initial start time
-    updateEndTime();
-});
 
 // Guest list handling
 function openPopup() {
+    const guestNumber = document.getElementById('guestNumber');
     const guestInputsDiv = document.getElementById('guest-inputs');
-    const numberOfGuests = parseInt(document.getElementById('guests').value) || 0;
+    
+    if (!guestNumber || !guestInputsDiv) {
+        console.error('Required elements not found');
+        return;
+    }
+
+    const numberOfGuests = parseInt(guestNumber.value) || 0;
+    
+    // Validate number of guests
+    if (numberOfGuests < 1 || numberOfGuests > 30) {
+        alert('Please enter a valid number of guests (1-30)');
+        guestNumber.value = '1';
+        return;
+    }
     
     // Clear existing inputs
     guestInputsDiv.innerHTML = '';
     
     // Create input fields based on the number entered
-    if (numberOfGuests > 0 && numberOfGuests <= 30) {
-        for (let i = 0; i < numberOfGuests; i++) {
-            const inputField = document.createElement('input');
-            inputField.type = 'text';
-            inputField.className = 'guest-name';
-            inputField.placeholder = `Guest ${i + 1}`;
-            inputField.required = true;
-            guestInputsDiv.appendChild(inputField);
-        }
-        document.getElementById('guest-popup').style.display = 'flex';
-    } else {
-        alert('Please enter a valid number of guests (1-30)');
+    for (let i = 0; i < numberOfGuests; i++) {
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.className = 'guest-name';
+        inputField.placeholder = `Guest ${i + 1}`;
+        inputField.required = true;
+        guestInputsDiv.appendChild(inputField);
+    }
+    
+    // Show the popup
+    const popup = document.getElementById('guest-popup');
+    if (popup) {
+        popup.style.display = 'flex';
     }
 }
 
-// Modify the form submission to handle guest list properly
-document.getElementById('eventForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
-
-    // Collect guest names from the popup input fields
-    const guestNames = [];
-    const guestInputs = document.querySelectorAll('.guest-name');
-    guestInputs.forEach(input => {
-        if (input.value.trim() !== '') {
-            guestNames.push(input.value.trim());
-        }
-    });
-
-    const formData = {
-        HomeownerName: document.getElementById('HomeownerName').value,
-        eventName: document.getElementById('eventName').value,
-        eventDate: document.getElementById('date').value,
-        startTime: document.getElementById('eventStartHour').value + ':' + 
-                  document.getElementById('eventStartMinute').value + ' ' + 
-                  document.getElementById('eventStartAmPm').value,
-        endTime: document.getElementById('eventEndHour').value + ':' + 
-                document.getElementById('eventEndMinute').value + ' ' + 
-                document.getElementById('eventEndAmPm').value,
-        amenity: document.querySelector('input[name="amenity"]:checked').value,
-        eventType: document.getElementById('eventType')?.value || '',
-        guests: {
-            number: parseInt(document.getElementById('guests').value),
-            names: guestNames
-        },
-        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
-    };
-
-    try {
-        const response = await fetch('/addevent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showSuccessModal();
-        } else {
-            alert(result.message || 'Failed to create event. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred. Please try again.');
+// Close popup function
+function closePopup() {
+    const popup = document.getElementById('guest-popup');
+    if (popup) {
+        popup.style.display = 'none';
     }
-});
+}
 
-    function showCustomAlert(message) {
-            const alertElement = document.getElementById('customAlert');
-            const messageElement = document.getElementById('customAlertMessage');
-            messageElement.textContent = message;
-            alertElement.style.display = 'block';
-        }
+// Initialize all functionality when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize time fields
+    if (eventStartHour && eventStartMinute && eventStartAmPm) {
+        eventStartHour.value = '8';
+        eventStartMinute.value = '00';
+        eventStartAmPm.value = 'AM';
+        updateEndTime();
+    }
 
-        function closeCustomAlert() {
-            const alertElement = document.getElementById('customAlert');
-            alertElement.style.display = 'none';
-        }
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            const userEmail = localStorage.getItem('email');
-            console.log('User email from localStorage:', userEmail); // Debug log
-
-            if (!userEmail) {
-                try {
-                    const response = await fetch('/api/user-info');
-                    const data = await response.json();
-                    if (data.success) {
-                        console.log('User email from API:', data.email); // Debug log
-                        document.getElementById('userEmail').value = data.email;
-                    } else {
-                        console.error('Failed to fetch user email:', data.message); // Debug log
-                    }
-                } catch (error) {
-                    console.error('Error fetching user email:', error);
-                }
-            } else {
-                document.getElementById('userEmail').value = userEmail;
-            }
+    // Initialize guest number input validation
+    const guestNumber = document.getElementById('guestNumber');
+    if (guestNumber) {
+        guestNumber.addEventListener('input', function() {
+            let value = parseInt(this.value) || 1;
+            if (value > 30) value = 30;
+            if (value < 1) value = 1;
+            this.value = value;
         });
+    }
 
-        document.getElementById('eventForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+    // Form submission handling
+    const form = document.getElementById('eventForm');
+    if (form) {
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            // Collect guest names from the popup input fields
+            const guestNames = [];
+            const guestInputs = document.querySelectorAll('.guest-name');
+            guestInputs.forEach(input => {
+                if (input.value.trim() !== '') {
+                    guestNames.push(input.value.trim());
+                }
+            });
 
             const formData = {
-              HomeownerName: document.getElementById('HomeownerName').value,
-                userEmail: document.getElementById('userEmail').value,
-                eventName: document.getElementById('eventName').value,
-                eventDate: document.getElementById('eventDate').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                amenity: document.getElementById('amenity').value,
+                HomeownerName: document.getElementById('HomeownerName')?.value || '',
+                eventName: document.getElementById('eventName')?.value || '',
+                eventDate: document.getElementById('date')?.value || '',
+                startTime: `${eventStartHour?.value || '8'}:${eventStartMinute?.value || '00'} ${eventStartAmPm?.value || 'AM'}`,
+                endTime: `${eventEndHour?.value || '9'}:${eventEndMinute?.value || '00'} ${eventEndAmPm?.value || 'AM'}`,
+                amenity: document.querySelector('input[name="amenity"]:checked')?.value || '',
+                eventType: document.getElementById('eventType')?.value || '',
                 guests: {
-                        number: numberOfGuests,
-                        names: guestNames 
-                    },
-                homeownerStatus: document.getElementById('homeownerStatus').value
+                    number: parseInt(document.getElementById('guestNumber')?.value || '1'),
+                    names: guestNames
+                },
+                homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
             };
-
-            console.log('Submitting event data:', formData); // Debug log
-
-            sessionStorage.setItem('eventData', JSON.stringify(formData));
 
             try {
                 const response = await fetch('/addevent', {
@@ -902,36 +871,60 @@ document.getElementById('eventForm').addEventListener('submit', async function(e
                 });
 
                 const result = await response.json();
+
                 if (result.success) {
-                    console.log('Event created successfully'); // Debug log
-                    window.location.href = 'eventfin.html';
+                    showSuccessModal();
                 } else {
-                    console.error('Failed to create event:', result.message); // Debug log
-                    alert(result.message || 'Failed to create event');
+                    alert(result.message || 'Failed to create event. Please try again.');
                 }
             } catch (error) {
-                console.error('Error creating event:', error);
-                alert('An error occurred while creating the event');
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
             }
         });
-            
-        function showSuccessModal() {
-    document.getElementById('successModal').style.display = 'flex';
+    }
+
+    // Load user email if available
+    const userEmail = localStorage.getItem('email');
+    if (userEmail) {
+        const userEmailInput = document.getElementById('userEmail');
+        if (userEmailInput) {
+            userEmailInput.value = userEmail;
+        }
+    }
+});
+
+// Modal functions
+function showSuccessModal() {
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
 }
 
 function closeSuccessModal() {
-    document.getElementById('successModal').style.display = 'none';
-    window.location.href = 'HoHome.html'; // Redirect to homepage
-    document.getElementById('eventForm').reset();
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    window.location.href = 'HoHome.html';
 }
 
-// popup--------------------------------------------------------------
-// fixxed to 30 fields
-function closePopup() {
-    document.getElementById('guest-popup').style.display = 'none';
+function showCustomAlert(message) {
+    const alertElement = document.getElementById('customAlert');
+    const messageElement = document.getElementById('customAlertMessage');
+    if (alertElement && messageElement) {
+        messageElement.textContent = message;
+        alertElement.style.display = 'block';
+    }
 }
 
-
+function closeCustomAlert() {
+    const alertElement = document.getElementById('customAlert');
+    if (alertElement) {
+        alertElement.style.display = 'none';
+    }
+}
 </script>
 <div id="customAlert" class="custom-alert">
   <div class="custom-alert-content">
