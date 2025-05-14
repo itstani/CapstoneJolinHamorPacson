@@ -5426,8 +5426,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configure static file serving
-const path = require('path');
+// Configure static file serving - using existing path require
 app.use(express.static(path.join(__dirname)));
 
 // Add static middleware for specific directories
