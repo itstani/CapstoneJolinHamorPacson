@@ -799,64 +799,33 @@
                     method: 'GET',
                     credentials: 'include',
                     headers: {
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const data = await response.json();
+                console.log('Event details received:', data);
                 
                 if (!data.success || !data.event) {
                     throw new Error('Failed to fetch event details');
                 }
 
                 const event = data.event;
-                const guestList = event.guests && event.guests.names ? event.guests.names.join(', ') : 'No guest list provided';
-                
-                const detailsHtml = `
+                modalContent.innerHTML = `
                     <div style="padding: 20px;">
                         <h3 style="color: #AF2630; margin-bottom: 20px;">${event.eventName}</h3>
-                        <div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <p><strong>Homeowner Name:</strong> ${event.HomeownerName}</p>
-                            <p><strong>Date:</strong> ${event.eventDate}</p>
+                        <div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px;">
+                            <p><strong>Date:</strong> ${new Date(event.eventDate).toLocaleDateString()}</p>
                             <p><strong>Time:</strong> ${formatTime(event.startTime)} - ${formatTime(event.endTime)}</p>
                             <p><strong>Amenity:</strong> ${event.amenity}</p>
-                            <p><strong>Event Type:</strong> ${event.eventType || 'Not specified'}</p>
-                            <p><strong>Number of Guests:</strong> ${event.guests ? event.guests.number : 0}</p>
-                            <p><strong>Guest List:</strong> ${guestList}</p>
-                            <p><strong>Homeowner Status:</strong> ${event.homeownerStatus}</p>
-                            <p><strong>Payment Status:</strong> ${event.isPaid ? 'Paid' : 'Pending Payment'}</p>
+                            <p><strong>Status:</strong> ${event.isPaid ? 'Paid' : 'Pending Payment'}</p>
                         </div>
-                        ${event.userEmail === userEmail ? `
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button onclick="editEvent('${event._id}')" 
-                                        style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px; cursor: pointer;">
-                                    Edit Event
-                                </button>
-                                <button onclick="deleteEvent('${event._id}')"
-                                        style="background-color: #666; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                                    Delete Event
-                                </button>
-                            </div>
-                        ` : ''}
                     </div>
                 `;
-                
-                modalContent.innerHTML = detailsHtml;
             } catch (error) {
-                console.error('Error fetching event details:', error);
-                modalContent.innerHTML = `
-                    <div style="color: #AF2630; padding: 20px; text-align: center;">
-                        <p>Error loading event details. Please try again.</p>
-                        <button onclick="closeModal()" 
-                                style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">
-                            Close
-                        </button>
-                    </div>
-                `;
+                console.error('Error:', error);
+                modalContent.innerHTML = '<div style="color: red; padding: 20px;">Error loading event details</div>';
             }
         }
 
