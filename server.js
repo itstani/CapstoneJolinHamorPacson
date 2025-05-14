@@ -2405,6 +2405,7 @@ app.get("/api/event/:id", async (req, res) => {
     })
   }
 })
+
 // Add this to server.js
 app.get("/api/debug/notifications", async (req, res) => {
   try {
@@ -5330,104 +5331,59 @@ app.use([
   "/Webpages/HoHome.html",
   "/Webpages/homeowner-dashboard.html",
   "/api/user-events"
-], requireAuth);
-
-// Update existing routes to use middleware
-app.get("/api/user-events/:email", requireAuth, async (req, res) => {
-  // ... existing code ...
-});
-
-// Add catch-all middleware for static files
-app.use((req, res, next) => {
-  // List of public paths that don't require authentication
-  const publicPaths = [
-    "/login.html",
-    "/images/",
-    "/CSS/",
-    "/api/login",
-    "/api/check-auth",
-    "/api/logout",
-    "/api/check-dashboard-access",
-    "/api/check-dues-status",
-    "/MDPayment.html",
-    "/monthly-payments.html",
-    "/unauthorized.html"
-  ];
-
-  // Check if the current path is public
-  const isPublicPath = publicPaths.some(path => 
-    req.path === path || req.path.startsWith(path)
-  );
-
-  if (isPublicPath) {
-    return next();
-  }
-
-  // For non-public paths, check authentication
+], (req, res, next) => {
   if (!req.session || !req.session.user) {
-    console.log(`Protected path ${req.path} accessed without authentication`);
-    
-    // If it's an API request, return JSON response
-    if (req.path.startsWith('/api/')) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required"
-      });
-    }
-    
-    // For regular page requests, redirect to login
-    return res.redirect("/login.html");
+    console.log("No session or user found - redirecting to login");
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+      redirect: "/login.html"
+    });
   }
-
-  // For admin paths, check admin role
-  const adminPaths = [
-    "/AdHome.html",
-    "/admincalender.html",
-    "/analytics.html",
-    "/hotable.html",
-    "/MonthlyPayments.html",
-    "/Webpages/AdHome.html",
-    "/Webpages/admincalender.html",
-    "/Webpages/analytics.html",
-    "/Webpages/hotable.html",
-    "/Webpages/MonthlyPayments.html"
-  ];
-
-  const isAdminPath = adminPaths.some(path => 
-    req.path === path || req.path.endsWith(path)
-  );
-
-  if (isAdminPath && req.session.user.role !== "admin") {
-    console.log(`Admin path ${req.path} accessed by non-admin user`);
-    
-    // If it's an API request, return JSON response
-    if (req.path.startsWith('/api/')) {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required"
-      });
-    }
-    
-    // For regular page requests, redirect to unauthorized
-    return res.redirect("/unauthorized.html");
-  }
-
   next();
 });
 
-// Configure static file serving - using existing path require
-app.use(express.static(path.join(__dirname)));
-
-// Add static middleware for specific directories
-app.use('/Webpages', express.static(path.join(__dirname, 'Webpages')));
-app.use('/images', express.static(path.join(__dirname, 'images')));
-app.use('/CSS', express.static(path.join(__dirname, 'CSS')));
-
-// Add admin routes protection
-app.use('/admin/*', (req, res, next) => {
-  if (req.session && req.session.user && req.session.user.role === "admin") {
-    next(); // Allow access to admin pages
-  } else {
-    res.redirect("/login.html"); // Redirect to login if not authenticated as admin
+// Authentication middleware
+const checkAuth = (req, res, next) => {
+  if (!req.session || !req.session.user) {
+    console.log("No session or user found - redirecting to login");
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+      redirect: "/login.html"
+    });
   }
-});
+  next();
+};
+
+// Role-based access control middleware
+const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.session?.user?.role || 
+        !allowedRoles.includes(req.session.user.role.toLowerCase())) {
+      console.log(`Invalid role: ${req.session.user.role}`);
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized role",
+        redirect: "/login.html?unauthorized=true"
+      });
+    }
+    next();
+  };
+};
+
+// Apply middleware to routes
+app.use([
+  "/Webpages/HoHome.html",
+  "/Webpages/homeowner-dashboard.html",
+  "/api/user-events"
+], checkAuth);
+
+// Admin and guard only routes
+app.use([
+  "/Webpages/AdHome.html",
+  "/Webpages/admincalender.html",
+  "/Webpages/analytics.html",
+  "/Webpages/hotable.html",
+  "/Webpages/MonthlyPayments.html"
+], checkAuth, checkRole(['admin', 'guard']));
