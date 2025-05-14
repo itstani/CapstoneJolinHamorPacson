@@ -12,6 +12,7 @@ const { MongoClient, ServerApiVersion } = require("mongodb")
 const schedule = require("node-schedule")
 const officegen = require("officegen")
 const mongoose = require("mongoose")
+const { MemoryStore } = require('express-session')
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -24,20 +25,21 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // Configure CORS
 app.use(cors({
-  origin: process.env.NODE_ENV === "production" 
-    ? ["https://avidasetting.onrender.com", "https://capstone-jolin-hamor-pacson.vercel.app"]
-    : "http://localhost:3000",
+  origin: [
+    "https://avidasetting.onrender.com",
+    "https://capstone-jolin-hamor-pacson.vercel.app"
+  ],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "Cookie"],
-  exposedHeaders: ["set-cookie"],
-}))
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
 // Configure session
 app.use(session({
   secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
   resave: false,
   saveUninitialized: false,
+  store: new MemoryStore(),
   cookie: {
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
@@ -46,7 +48,7 @@ app.use(session({
     domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined
   },
   proxy: true
-}))
+}));
 
 // Add trust proxy for secure cookies in production
 if (process.env.NODE_ENV === "production") {
@@ -71,6 +73,8 @@ app.use((req, res, next) => {
   console.log("Session exists:", !!req.session)
   console.log("User in session:", req.session?.user)
   console.log("Cookies:", req.headers.cookie)
+  console.log("Origin:", req.headers.origin)
+  console.log("Referer:", req.headers.referer)
   console.log("========================")
   next()
 })
@@ -154,6 +158,8 @@ app.use((req, res, next) => {
   console.log("Session exists:", !!req.session);
   console.log("User in session:", req.session?.user);
   console.log("Cookies:", req.headers.cookie);
+  console.log("Origin:", req.headers.origin);
+  console.log("Referer:", req.headers.referer);
   console.log("========================");
   next();
 });
@@ -726,6 +732,18 @@ app.post("/api/login", async (req, res) => {
       role: user.role || "homeowner",
     };
 
+    // Set session cookie options
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    };
+
+    if (process.env.NODE_ENV === "production") {
+      cookieOptions.domain = ".onrender.com";
+    }
+
     // Save session before sending response
     req.session.save(async (err) => {
       if (err) {
@@ -739,22 +757,15 @@ app.post("/api/login", async (req, res) => {
       // Log successful login
       await logActivity("login", `User ${user.username} logged in successfully`);
 
-      // Set cookie options based on environment
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      };
-
-      if (process.env.NODE_ENV === "production") {
-        cookieOptions.domain = ".onrender.com";
-      }
-
-      // Set session cookie
+      // Set session cookie and send response
       res.cookie("connect.sid", req.sessionID, cookieOptions);
 
-      console.log(`Successful login for: ${login}, role: ${user.role || "homeowner"}`);
+      console.log("Login successful - Session details:", {
+        sessionID: req.sessionID,
+        user: req.session.user,
+        cookieOptions
+      });
+
       res.json({
         success: true,
         username: user.username,
@@ -5285,448 +5296,132 @@ app.use((req, res, next) => {
 })
 
 // ... existing code ...
-// Place this just before static file middleware
 
+// Add session check middleware
+const requireAuth = (req, res, next) => {
+  console.log("=== Auth Check ===");
+  console.log("Session:", req.session);
+  console.log("User:", req.session?.user);
+  console.log("Cookies:", req.headers.cookie);
+  console.log("=================");
 
-app.get("/api/get-all-accounts", async (req, res) => {
-  try {
-    console.log('Fetching all accounts...');
-    const db = await connectToDatabase();
-    
-    // Check if user is admin
-    if (!req.session.user || req.session.user.role !== "admin") {
-        console.log('Non-admin user attempted to access accounts');
-        return res.status(403).json({
-            success: false,
-            message: 'Unauthorized access'
-        });
-    }
-
-    console.log('User is admin, proceeding with account fetch');
-    const accounts = await db.collection('acc').find({}, {
-        projection: {
-            username: 1,
-            email: 1,
-            password: 1,
-            status: 1,
-            _id: 0
-        }
-    }).toArray();
-
-    console.log(`Found ${accounts.length} accounts`);
-    console.log('First account sample:', accounts[0]);
-    
-    const response = {
-        success: true,
-        accounts: accounts
-    };
-    
-    console.log('Sending response:', JSON.stringify(response));
-    res.json(response);
-  } catch (error) {
-    console.error("Error fetching accounts:", error);
-    console.error("Error stack:", error.stack);
-    res.status(500).json({
+  if (!req.session || !req.session.user) {
+    console.log("No session or user found - redirecting to login");
+    return res.status(401).json({
       success: false,
-      message: "Failed to fetch accounts",
-      error: error.message
+      message: "Authentication required",
+      redirect: "/login.html"
     });
   }
-});
+  next();
+};
 
-// Endpoint to check if a user has unpaid dues
-app.post('/api/check-dues-status', async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ hasUnpaidDues: false, message: "Email required" });
-    }
-
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-
-    // Find the homeowner by email (case-insensitive)
-    const homeowner = await homeownersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } });
-
-    if (!homeowner) {
-      return res.status(404).json({ hasUnpaidDues: false, message: "Homeowner not found" });
-    }
-
-    // Check if the paymentStatus is "Not Paid" or "Delinquent"
-    const hasUnpaidDues = homeowner.paymentStatus === "Not Paid" || homeowner.paymentStatus === "Delinquent";
-    res.json({
-      hasUnpaidDues,
-      dueAmount: hasUnpaidDues ? (homeowner.dueAmount || "5000.00") : "0.00"
+const requireAdmin = (req, res, next) => {
+  if (!req.session?.user?.role || req.session.user.role !== "admin") {
+    console.log("Non-admin access attempt");
+    return res.status(403).json({
+      success: false,
+      message: "Admin access required",
+      redirect: "/login.html?unauthorized=true"
     });
-  } catch (error) {
-    console.error("Error in /api/check-dues-status:", error);
-    res.status(500).json({ hasUnpaidDues: false, message: "Server error" });
   }
+  next();
+};
+
+// Apply middleware to protected routes
+app.use([
+  "/Webpages/AdHome.html",
+  "/Webpages/admincalender.html",
+  "/Webpages/analytics.html",
+  "/Webpages/hotable.html",
+  "/Webpages/MonthlyPayments.html"
+], requireAuth, requireAdmin);
+
+app.use([
+  "/Webpages/HoHome.html",
+  "/Webpages/homeowner-dashboard.html",
+  "/api/user-events"
+], requireAuth);
+
+// Update existing routes to use middleware
+app.get("/api/user-events/:email", requireAuth, async (req, res) => {
+  // ... existing code ...
 });
 
-async function checkHomeownerAccounts() {
-  try {
-      console.log('Starting checkHomeownerAccounts...');
-      
-      // Process homeowners in smaller batches
-      const batchSize = 5;
-      for (let i = 0; i < homeowners.length; i += batchSize) {
-          const batch = homeowners.slice(i, i + batchSize);
-          await Promise.all(batch.map(async (homeowner) => {
-              if (homeowner.email) {
-                  try {
-                      const response = await fetch(`/api/check-account/${encodeURIComponent(homeowner.email)}`);
-                      if (response.ok) {
-                          const data = await response.json();
-                          if (data.success) {
-                              homeowner.hasAccount = true;
-                              homeowner.username = data.username;
-                              homeowner.accountPassword = data.password;
-                              homeowner.accountStatus = data.status;
-                          } else {
-                              homeowner.hasAccount = false;
-                              homeowner.username = null;
-                              homeowner.accountPassword = null;
-                              homeowner.accountStatus = null;
-                          }
-                      }
-                  } catch (error) {
-                      console.error(`Error checking account for ${homeowner.email}:`, error);
-                  }
-              }
-          }));
-      }
-      
-      console.log('Finished checking homeowner accounts');
-      displayHomeowners(homeowners);
-  } catch (error) {
-      console.error('Error in checkHomeownerAccounts:', error);
+// Add catch-all middleware for static files
+app.use((req, res, next) => {
+  // List of public paths that don't require authentication
+  const publicPaths = [
+    "/login.html",
+    "/images/",
+    "/CSS/",
+    "/api/login",
+    "/api/check-auth",
+    "/api/logout",
+    "/api/check-dashboard-access",
+    "/api/check-dues-status",
+    "/MDPayment.html",
+    "/monthly-payments.html",
+    "/unauthorized.html"
+  ];
+
+  // Check if the current path is public
+  const isPublicPath = publicPaths.some(path => 
+    req.path === path || req.path.startsWith(path)
+  );
+
+  if (isPublicPath) {
+    return next();
   }
-}
 
-// Endpoint to check a single account
-app.get('/api/check-account/:email', async (req, res) => {
-    try {
-        const email = req.params.email;
-        const db = await connectToDatabase();
-        
-        const account = await db.collection('acc').findOne(
-            { email: { $regex: new RegExp(`^${email}$`, "i") } },
-            {
-                projection: {
-                    username: 1,
-                    email: 1,
-                    password: 1,
-                    status: 1,
-                    _id: 0
-                }
-            }
-        );
-
-        if (account) {
-            res.json({
-                success: true,
-                username: account.username,
-                password: account.password,
-                status: account.status
-            });
-        } else {
-            res.status(404).json({
-                success: false,
-                message: 'Account not found'
-            });
-        }
-    } catch (error) {
-        console.error('Error checking account:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error checking account'
-        });
+  // For non-public paths, check authentication
+  if (!req.session || !req.session.user) {
+    console.log(`Protected path ${req.path} accessed without authentication`);
+    
+    // If it's an API request, return JSON response
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required"
+      });
     }
-});
+    
+    // For regular page requests, redirect to login
+    return res.redirect("/login.html");
+  }
 
-async function loadHomeowners() {
-    try {
-        const response = await fetch('/getHomeowners');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        homeowners = await response.json();
-        console.log('Loaded homeowners:', homeowners.length);
-        
-        // Display homeowners immediately since account info is already included
-        displayHomeowners(homeowners);
-        
-        // Set up periodic refresh
-        setInterval(async () => {
-            try {
-                const refreshResponse = await fetch('/getHomeowners');
-                if (refreshResponse.ok) {
-                    homeowners = await refreshResponse.json();
-                    displayHomeowners(homeowners);
-                }
-            } catch (error) {
-                console.error('Error refreshing homeowners:', error);
-            }
-        }, 30000); // Refresh every 30 seconds
-    } catch (error) {
-        console.error('Error loading homeowners:', error);
-        document.getElementById('homeownersTableBody').innerHTML = `
-            <tr>
-                <td colspan="9" style="text-align: center; color: red;">
-                    Failed to load homeowners. Please try again.
-                </td>
-            </tr>
-        `;
-    }
-}
+  // For admin paths, check admin role
+  const adminPaths = [
+    "/AdHome.html",
+    "/admincalender.html",
+    "/analytics.html",
+    "/hotable.html",
+    "/MonthlyPayments.html",
+    "/Webpages/AdHome.html",
+    "/Webpages/admincalender.html",
+    "/Webpages/analytics.html",
+    "/Webpages/hotable.html",
+    "/Webpages/MonthlyPayments.html"
+  ];
 
-// Endpoint to allow admin to set a new password for a homeowner
-app.post('/api/admin/set-homeowner-password/:id', async (req, res) => {
-  try {
-    // Check if user is authenticated as admin
-    if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
+  const isAdminPath = adminPaths.some(path => 
+    req.path === path || req.path.endsWith(path)
+  );
+
+  if (isAdminPath && req.session.user.role !== "admin") {
+    console.log(`Admin path ${req.path} accessed by non-admin user`);
+    
+    // If it's an API request, return JSON response
+    if (req.path.startsWith('/api/')) {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized. Only administrators can set passwords.'
+        message: "Admin access required"
       });
     }
-
-    const { id } = req.params;
-    const { newPassword } = req.body;
-
-    if (!id || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Homeowner ID and new password are required.'
-      });
-    }
-
-    const db = await connectToDatabase();
-    const accCollection = db.collection('acc');
-
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update the account with the new password
-    const result = await accCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { password: hashedPassword } }
-    );
-
-    if (result.modifiedCount > 0) {
-      await logActivity('passwordSet', `Admin set a new password for account ID ${id}`);
-      res.json({ success: true, message: 'Password updated successfully.' });
-    } else {
-      res.status(404).json({ success: false, message: 'Account not found or password not updated.' });
-    }
-  } catch (error) {
-    console.error('Error setting new password:', error);
-    res.status(500).json({ success: false, message: 'Error setting new password.' });
+    
+    // For regular page requests, redirect to unauthorized
+    return res.redirect("/unauthorized.html");
   }
-});
 
-// Add endpoint for delinquent homeowners
-const staticMiddleware = express.static(path.join(__dirname))
-
-// Add logout endpoint
-app.post('/api/logout', (req, res) => {
-  // Destroy the session
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Error destroying session:', err);
-      return res.status(500).json({ success: false, message: 'Error logging out' });
-    }
-    
-    // Clear session cookie
-    res.clearCookie('connect.sid');
-    
-    res.json({ success: true, message: 'Logged out successfully' });
-  });
-});
-
-// Add this with your other endpoints
-app.post('/api/check-dashboard-access', async (req, res) => {
-  const { password } = req.body;
-  
-  try {
-    console.log('Checking dashboard access...');
-    const db = await connectToDatabase();
-    const usersCollection = db.collection('acc');
-    
-    // Log the password attempt (but not the actual password)
-    console.log('Attempting dashboard access verification');
-    
-    // First try to find the admin user
-    const adminUser = await usersCollection.findOne({ role: 'admin' });
-    console.log('Admin user found:', adminUser ? 'Yes' : 'No');
-    
-    if (adminUser) {
-      // Compare password with admin's password
-      const isValidPassword = await bcrypt.compare(password, adminUser.password);
-      console.log('Admin password check:', isValidPassword ? 'Valid' : 'Invalid');
-      
-      if (isValidPassword) {
-        console.log('Admin access granted');
-        return res.json({
-          success: true,
-          role: 'admin'
-        });
-      }
-    }
-    
-    // If admin check failed, try Guard with case-insensitive search
-    const guardUser = await usersCollection.findOne({
-      role: { $regex: new RegExp('^guard$', 'i') }  // Case-insensitive match for 'guard'
-    });
-    console.log('Guard user found:', guardUser ? 'Yes' : 'No');
-    
-    if (guardUser) {
-      // Compare password with guard's password
-      const isValidPassword = await bcrypt.compare(password, guardUser.password);
-      console.log('Guard password check:', isValidPassword ? 'Valid' : 'Invalid');
-      
-      if (isValidPassword) {
-        console.log('Guard access granted');
-        return res.json({
-          success: true,
-          role: guardUser.role  // Use the actual role from the database
-        });
-      }
-    }
-
-    // Log all users in the collection to debug
-    console.log('Checking all users in collection...');
-    const allUsers = await usersCollection.find({}).toArray();
-    console.log('All users:', allUsers.map(user => ({ role: user.role, email: user.email })));
-    
-    // If neither admin nor guard password matched
-    console.log('Access denied: Invalid password');
-    return res.json({
-      success: false,
-      message: 'Invalid password. Only Admin and Guard can access the dashboard.'
-    });
-    
-  } catch (error) {
-    console.error('Error checking dashboard access:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'An error occurred while checking access.'
-    });
-  }
-});
-
-// Add this endpoint for fetching individual event details
-app.get('/api/event/:id', async (req, res) => {
-    try {
-        const eventId = req.params.id;
-        
-        if (!eventId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Event ID is required'
-            });
-        }
-
-        const db = await connectToDatabase();
-        const eventsCollection = db.collection('events');
-        const aeventsCollection = db.collection('aevents');
-        
-        let event = null;
-        let objectId;
-
-        // Try to convert to ObjectId
-        try {
-            objectId = new ObjectId(eventId);
-        } catch (e) {
-            console.log('Invalid ObjectId format, will try other lookup methods');
-        }
-
-        // First try: Direct ObjectId lookup in both collections
-        if (objectId) {
-            event = await eventsCollection.findOne({ _id: objectId }) || 
-                   await aeventsCollection.findOne({ _id: objectId });
-        }
-
-        // Second try: String comparison with _id
-        if (!event) {
-            const allEvents = await aeventsCollection.find({}).limit(20).toArray();
-            event = allEvents.find(e => e._id.toString() === eventId);
-        }
-
-        // Third try: Look by eventName in both collections
-        if (!event) {
-            event = await eventsCollection.findOne({ eventName: eventId }) ||
-                   await aeventsCollection.findOne({ eventName: eventId });
-        }
-
-        if (event) {
-            console.log('Event found:', event);
-            res.json({
-                success: true,
-                event: event
-            });
-        } else {
-            res.status(404).json({
-                success: false,
-                message: 'Event not found'
-            });
-        }
-    } catch (error) {
-        console.error('Error fetching event details:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error while fetching event details',
-            error: error.message
-        });
-    }
-});
-
-// Add endpoint for deleting an event
-app.delete('/api/event/:id', async (req, res) => {
-    try {
-        const eventId = req.params.id;
-        
-        // Validate MongoDB ObjectId
-        if (!mongoose.Types.ObjectId.isValid(eventId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid event ID format'
-            });
-        }
-
-        // Find the event first to check ownership
-        const event = await Event.findById(eventId);
-        
-        if (!event) {
-            return res.status(404).json({
-                success: false,
-                message: 'Event not found'
-            });
-        }
-
-        // Check if the user owns this event
-        if (event.userEmail !== req.session.email) {
-            return res.status(403).json({
-                success: false,
-                message: 'You do not have permission to delete this event'
-            });
-        }
-
-        // Delete the event
-        await Event.findByIdAndDelete(eventId);
-
-        res.json({
-            success: true,
-            message: 'Event deleted successfully'
-        });
-    } catch (error) {
-        console.error('Error deleting event:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error deleting event'
-        });
-    }
+  next();
 });

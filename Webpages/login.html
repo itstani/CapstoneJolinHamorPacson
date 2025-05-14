@@ -885,16 +885,24 @@
                 showError('Login successful! Redirecting...', true);
                 
                 // Wait for session to be established
-                const authResponse = await fetch(`${baseUrl}/api/check-auth`, {
+                const authCheckResponse = await fetch(`${baseUrl}/api/check-auth`, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
                     }
                 });
 
-                if (!authResponse.ok) {
+                if (!authCheckResponse.ok) {
                     throw new Error('Failed to establish session');
+                }
+
+                const authData = await authCheckResponse.json();
+                console.log('Auth check response:', authData);
+
+                if (!authData.authenticated) {
+                    throw new Error('Session not established');
                 }
                 
                 // Redirect after ensuring session is established
@@ -912,18 +920,13 @@
                 document.getElementById('delinquentModal').style.display = 'block';
                 return false; // Prevent form submission
             } else {
-                // Handle failed login
-                showError(data.message || 'Invalid credentials');
-                if (incrementLoginAttempts()) {
-                    showError(isAccountLocked());
-                }
-                return false; // Prevent form submission
+                showError(data.message || 'Login failed. Please check your credentials.');
             }
         } catch (error) {
             console.error('Login error:', error);
             showError('An error occurred during login. Please try again.');
-            return false; // Prevent form submission
         }
+        return false;
     }
 
     // Check lockout status on page load
