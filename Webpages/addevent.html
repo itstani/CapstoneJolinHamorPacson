@@ -820,6 +820,33 @@ document.addEventListener('DOMContentLoaded', function() {
         updateEndTime();
     }
 
+    // Add event listeners for amenity selection
+    const amenityInputs = document.querySelectorAll('input[name="amenity"]');
+    const previewImage = document.getElementById('amenityPreview');
+    
+    // Function to update preview image
+    function updatePreviewImage(amenityValue) {
+        const imagePaths = {
+            'Pool': '../images/poolimg.png',
+            'Clubhouse': '../images/clubhouseimg.png',
+            'Court': '../images/courtimg.png'
+        };
+        previewImage.src = imagePaths[amenityValue] || '../images/poolimg.png';
+    }
+
+    // Add change event listeners to radio buttons
+    amenityInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            updatePreviewImage(this.value);
+        });
+    });
+
+    // Set initial preview image based on default selection
+    const defaultAmenity = document.querySelector('input[name="amenity"]:checked');
+    if (defaultAmenity) {
+        updatePreviewImage(defaultAmenity.value);
+    }
+
     // Initialize guest number input validation
     const guestNumber = document.getElementById('guestNumber');
     if (guestNumber) {
