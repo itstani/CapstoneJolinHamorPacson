@@ -700,7 +700,7 @@
           <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="this.onerror=null; this.src='/images/placeholder.png';">
       </div>
 
-      <form id="loginForm">
+      <form id="loginForm" onsubmit="handleLoginSubmit(event); return false;" method="POST">
           <div class="column">
               <div class="col-12">
                   <input type="text" class="rounded-input" placeholder="Enter Email" id="login" name="login" required>
@@ -845,13 +845,17 @@
 
     // Handle form submission
     async function handleLoginSubmit(event) {
-        event.preventDefault();
+        if (event) {
+            event.preventDefault();
+        }
         
         const email = document.getElementById('login').value;
         const password = document.getElementById('password').value;
         
         try {
-            const baseUrl = window.location.origin; // Get the base URL of the current environment
+            const baseUrl = window.location.origin;
+            console.log('Attempting login...', { email, baseUrl }); // Debug log
+            
             const response = await fetch(`${baseUrl}/api/login`, {
                 method: 'POST',
                 headers: {
@@ -897,6 +901,7 @@
                 const redirectUrl = `${baseUrl}${data.redirectUrl}`;
                 console.log('Redirecting to:', redirectUrl); // Debug log
                 window.location.href = redirectUrl;
+                return false; // Prevent form submission
             } else if (data.isDelinquent) {
                 // Handle delinquent account
                 localStorage.setItem('username', data.username);
@@ -905,16 +910,19 @@
                 
                 document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
                 document.getElementById('delinquentModal').style.display = 'block';
+                return false; // Prevent form submission
             } else {
                 // Handle failed login
                 showError(data.message || 'Invalid credentials');
                 if (incrementLoginAttempts()) {
                     showError(isAccountLocked());
                 }
+                return false; // Prevent form submission
             }
         } catch (error) {
             console.error('Login error:', error);
             showError('An error occurred during login. Please try again.');
+            return false; // Prevent form submission
         }
     }
 
@@ -980,13 +988,11 @@
                 // Toggle the eye icon
                 const eyeIcon = this.querySelector('.eye-icon');
                 if (type === 'password') {
-                    // Show the "eye" icon (password is hidden)
                     eyeIcon.innerHTML = `
                         <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                     `;
                 } else {
-                    // Show the "eye-off" icon (password is visible)
                     eyeIcon.innerHTML = `
                         <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
                         <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
@@ -1012,15 +1018,6 @@
             errorMsg.textContent = 'An error occurred. Please try logging in again.';
             errorMsg.style.display = 'block';
             errorMsg.style.color = '#AF2630';
-        }
-        
-        // Setup login form handler
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault(); // Ensure form doesn't submit normally
-                handleLoginSubmit(e);
-            });
         }
     });
     
