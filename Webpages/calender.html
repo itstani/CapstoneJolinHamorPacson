@@ -592,7 +592,12 @@
                             time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
                             amenity: event.amenity,
                             userEmail: event.userEmail,
-                            isPaid: event.isPaid
+                            isPaid: event.isPaid,
+                            HomeownerName: event.HomeownerName,
+                            eventType: event.eventType,
+                            guests: event.guests,
+                            homeownerStatus: event.homeownerStatus,
+                            _id: event._id
                         });
                     }
                 } catch (error) {
@@ -698,22 +703,20 @@
             let html = `<h3>Events on ${date}</h3>`;
             
             if (events.length) {
-                for (let i = 0; i < events.length; i++) {
-                    const event = events[i];
-                    const isUserEvent = event.userEmail === userEmail ? 
-                        '<p style="color: #AF2630; font-style: italic;">This is your event</p>' : '';
-                    
+                events.forEach(event => {
+                    const isUserEvent = event.userEmail === userEmail;
                     html += `
-                        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                        <div class="event-item" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;" 
+                             onclick="showFullEventDetails('${event._id}')">
                             <p><strong>${event.name}</strong></p>
                             <p>Time: ${event.time}</p>
                             <p>Location: ${event.amenity}</p>
                             <p>Status: ${event.isPaid ? 'Confirmed' : 'Payment Pending'}</p>
-                            ${isUserEvent}
-                            <p style="color: #555; font-style: italic; margin-top: 5px;">To see details, click here</p>
+                            ${isUserEvent ? '<p style="color: #AF2630; font-style: italic;">This is your event</p>' : ''}
+                            <p style="color: #AF2630; text-decoration: underline; margin-top: 10px;">Click for more details</p>
                         </div>
                     `;
-                }
+                });
             } else {
                 html += '<p>No events for this day.</p>';
             }
@@ -780,6 +783,119 @@
         // Show error message
         function showError(message) {
             daysGrid.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Add new function to show full event details
+        async function showFullEventDetails(eventId) {
+            if (!eventId) {
+                console.error('No event ID provided');
+                return;
+            }
+
+            try {
+                modalContent.innerHTML = '<div style="text-align: center; padding: 20px;">Loading event details...</div>';
+
+                const response = await fetch(`/api/event/${eventId}`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success || !data.event) {
+                    throw new Error('Failed to fetch event details');
+                }
+
+                const event = data.event;
+                const guestList = event.guests && event.guests.names ? event.guests.names.join(', ') : 'No guest list provided';
+                
+                const detailsHtml = `
+                    <div style="padding: 20px;">
+                        <h3 style="color: #AF2630; margin-bottom: 20px;">${event.eventName}</h3>
+                        <div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <p><strong>Homeowner Name:</strong> ${event.HomeownerName}</p>
+                            <p><strong>Date:</strong> ${event.eventDate}</p>
+                            <p><strong>Time:</strong> ${formatTime(event.startTime)} - ${formatTime(event.endTime)}</p>
+                            <p><strong>Amenity:</strong> ${event.amenity}</p>
+                            <p><strong>Event Type:</strong> ${event.eventType || 'Not specified'}</p>
+                            <p><strong>Number of Guests:</strong> ${event.guests ? event.guests.number : 0}</p>
+                            <p><strong>Guest List:</strong> ${guestList}</p>
+                            <p><strong>Homeowner Status:</strong> ${event.homeownerStatus}</p>
+                            <p><strong>Payment Status:</strong> ${event.isPaid ? 'Paid' : 'Pending Payment'}</p>
+                        </div>
+                        ${event.userEmail === userEmail ? `
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button onclick="editEvent('${event._id}')" 
+                                        style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px; cursor: pointer;">
+                                    Edit Event
+                                </button>
+                                <button onclick="deleteEvent('${event._id}')"
+                                        style="background-color: #666; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                                    Delete Event
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                modalContent.innerHTML = detailsHtml;
+            } catch (error) {
+                console.error('Error fetching event details:', error);
+                modalContent.innerHTML = `
+                    <div style="color: #AF2630; padding: 20px; text-align: center;">
+                        <p>Error loading event details. Please try again.</p>
+                        <button onclick="closeModal()" 
+                                style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">
+                            Close
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Add functions for editing and deleting events
+        function editEvent(eventId) {
+            // Store the event ID in session storage
+            sessionStorage.setItem('editEventId', eventId);
+            // Redirect to the edit page
+            window.location.href = `addevent.html?edit=${eventId}`;
+        }
+
+        async function deleteEvent(eventId) {
+            if (confirm('Are you sure you want to delete this event?')) {
+                try {
+                    const response = await fetch(`/api/event/${eventId}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.success) {
+                        alert('Event deleted successfully');
+                        closeModal();
+                        fetchApprovedEvents(); // Refresh the calendar
+                    } else {
+                        throw new Error(result.message || 'Failed to delete event');
+                    }
+                } catch (error) {
+                    console.error('Error deleting event:', error);
+                    alert('Failed to delete event. Please try again.');
+                }
+            }
         }
     </script>
 </body>

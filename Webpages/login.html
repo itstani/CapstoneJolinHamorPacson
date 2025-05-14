@@ -844,25 +844,18 @@
     }
 
     // Handle form submission
-    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+    async function handleLoginSubmit(event) {
         event.preventDefault();
-
-        // Check if account is locked
-        const lockStatus = isAccountLocked();
-        if (lockStatus) {
-            showError(lockStatus);
-            return;
-        }
-
-        const formData = new FormData(event.target);
-        const email = formData.get('login');
-        const password = formData.get('password');
-
+        
+        const email = document.getElementById('login').value;
+        const password = document.getElementById('password').value;
+        
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ login: email, password: password }),
                 credentials: 'include'
@@ -874,16 +867,24 @@
                 // Reset login attempts on successful login
                 resetLoginAttempts();
                 
-                // Store user info and redirect
+                // Store user info
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('email', data.email);
                 
-                // Show success message and redirect
+                // Show success message
                 showError('Login successful! Redirecting...', true);
                 
-                setTimeout(() => {
-                    window.location.href = data.redirectUrl;
-                }, 1000);
+                // Wait for session to be established
+                await fetch('/api/check-auth', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                // Redirect after ensuring session is established
+                window.location.href = data.redirectUrl;
             } else if (data.isDelinquent) {
                 // Handle delinquent account
                 localStorage.setItem('username', data.username);
@@ -893,22 +894,14 @@
                 document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
                 document.getElementById('delinquentModal').style.display = 'block';
             } else {
-                // Increment login attempts on failure
-                const isNowLocked = incrementLoginAttempts();
-                const attempts = parseInt(localStorage.getItem('loginAttempts') || '0');
-                const remainingAttempts = MAX_LOGIN_ATTEMPTS - attempts;
-
-                if (isNowLocked) {
-                    showError(`Too many failed attempts. Account locked for 5 minutes.`);
-                } else {
-                    showError(`Invalid credentials. ${remainingAttempts} attempts remaining before lockout.`);
-                }
+                // Handle failed login
+                handleFailedLogin(data.message || 'Invalid credentials');
             }
         } catch (error) {
             console.error('Login error:', error);
-            showError('An error occurred. Please try again.');
+            showError('An error occurred during login. Please try again.');
         }
-    });
+    }
 
     // Check lockout status on page load
     document.addEventListener('DOMContentLoaded', () => {

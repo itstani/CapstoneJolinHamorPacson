@@ -11,6 +11,7 @@ const { ObjectId } = require("mongodb")
 const { MongoClient, ServerApiVersion } = require("mongodb")
 const schedule = require("node-schedule")
 const officegen = require("officegen")
+const mongoose = require("mongoose")
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -23,25 +24,28 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // Configure CORS
 app.use(cors({
-  origin: process.env.NODE_ENV === "production" ? "https://avidasetting.onrender.com" : "http://localhost:3000",
+  origin: process.env.NODE_ENV === "production" 
+    ? ["https://avidasetting.onrender.com", "https://capstone-jolin-hamor-pacson.vercel.app"]
+    : "http://localhost:3000",
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "Cookie"],
+  exposedHeaders: ["set-cookie"],
 }))
 
 // Configure session
 app.use(session({
   secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true,
-    domain: process.env.NODE_ENV === "production" ? "avidasetting.onrender.com" : undefined,
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined
   },
-  proxy: true,
+  proxy: true
 }))
 
 // Replace the middleware registration in your server.js with this:
@@ -649,19 +653,19 @@ app.get("/api/generate-report", async (req, res) => {
 })
 
 app.post("/api/login", async (req, res) => {
-  const { login, password } = req.body
+  const { login, password } = req.body;
 
   try {
-    console.log(`Login attempt for: ${login}`)
-    const db = await connectToDatabase()
-    const usersCollection = db.collection("acc")
-    const homeownersCollection = db.collection("homeowners")
+    console.log(`Login attempt for: ${login}`);
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("acc");
+    const homeownersCollection = db.collection("homeowners");
 
     if (!login || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
-      })
+      });
     }
 
     // Find the user
@@ -670,35 +674,35 @@ app.post("/api/login", async (req, res) => {
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
-    })
+    });
 
     if (!user) {
-      console.log(`User not found: ${login}`)
+      console.log(`User not found: ${login}`);
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      })
+      });
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password)
+    const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      console.log(`Invalid password for user: ${login}`)
+      console.log(`Invalid password for user: ${login}`);
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
-      })
+      });
     }
 
     // Check if user is a homeowner
     if (user.role !== "admin") {
       // Check if homeowner is delinquent
-      const homeowner = await homeownersCollection.findOne({ email: user.email })
+      const homeowner = await homeownersCollection.findOne({ email: user.email });
 
       if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
         // User is delinquent, return special response
-        console.log(`User ${user.email} is delinquent, returning delinquent status`)
+        console.log(`User ${user.email} is delinquent, returning delinquent status`);
         return res.json({
           success: false,
           isDelinquent: true,
@@ -706,7 +710,7 @@ app.post("/api/login", async (req, res) => {
           email: user.email,
           dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
           message: "Account is delinquent. Please pay your monthly dues.",
-        })
+        });
       }
     }
 
@@ -715,28 +719,39 @@ app.post("/api/login", async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role || "homeowner",
-    }
+    };
 
-    // Log successful login
-    await logActivity("login", `User ${user.username} logged in successfully`)
+    // Save session before sending response
+    req.session.save(async (err) => {
+      if (err) {
+        console.error("Error saving session:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Error saving session",
+        });
+      }
 
-    console.log(`Successful login for: ${login}, role: ${user.role || "homeowner"}`)
-    res.json({
-      success: true,
-      username: user.username,
-      email: user.email,
-      role: user.role || "homeowner",
-      redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
-    })
+      // Log successful login
+      await logActivity("login", `User ${user.username} logged in successfully`);
+
+      console.log(`Successful login for: ${login}, role: ${user.role || "homeowner"}`);
+      res.json({
+        success: true,
+        username: user.username,
+        email: user.email,
+        role: user.role || "homeowner",
+        redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+      });
+    });
   } catch (error) {
-    console.error("Login error:", error)
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred during login",
       error: error.message,
-    })
+    });
   }
-})
+});
 
 app.get("/api/check-auth", (req, res) => {
   console.log("Auth check - Session:", req.session)
@@ -3147,93 +3162,69 @@ app.get("/api/user-events/:email", async (req, res) => {
 })
 
 app.get("/api/event/:eventId", async (req, res) => {
-  const { eventId } = req.params
-
-  try {
-    console.log("Fetching event with ID:", eventId)
-
-    const db = await connectToDatabase()
-    console.log("Connected to database:", db.databaseName)
-
-    const aeventsCollection = db.collection("aevents")
-    const notificationsCollection = db.collection("notifications")
-
-    // Try multiple approaches to find the event
-    let event = null
-
-    // First try: Direct ObjectId lookup
     try {
-      const objectId = new ObjectId(eventId)
-      event = await aeventsCollection.findOne({ _id: objectId })
-      console.log("ObjectId lookup result:", event ? "Found" : "Not found")
-    } catch (err) {
-      console.log("Invalid ObjectId format, trying string comparison")
-    }
-
-    // Second try: String comparison with _id
-    if (!event) {
-      const allEvents = await aeventsCollection.find({}).limit(20).toArray()
-      event = allEvents.find((e) => e._id.toString() === eventId)
-      console.log("String _id comparison result:", event ? "Found" : "Not found")
-    }
-
-    // Third try: Look by eventName
-    if (!event) {
-      event = await aeventsCollection.findOne({ eventName: eventId })
-      console.log("eventName lookup result:", event ? "Found" : "Not found")
-    }
-
-    // Fourth try: Find the notification and get user email
-    if (!event) {
-      console.log("Trying to find notification with relatedId:", eventId)
-      const notification = await notificationsCollection.findOne({ relatedId: eventId })
-
-      if (notification && notification.userEmail) {
-        console.log("Found notification for user:", notification.userEmail)
-
-        // Get the most recent event for this user
-        const userEvents = await aeventsCollection
-          .find({ userEmail: notification.userEmail })
-          .sort({ _id: -1 })
-          .limit(1)
-          .toArray()
-
-        if (userEvents.length > 0) {
-          event = userEvents[0]
-          console.log("Found most recent event for user:", event.eventName)
+        const eventId = req.params.id;
+        
+        if (!eventId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Event ID is required'
+            });
         }
-      }
-    }
 
-    if (event) {
-      console.log("Event found:", event)
-      res.json({ success: true, event })
-    } else {
-      // If all attempts fail, dump some debug info
-      const sampleEvents = await aeventsCollection.find({}).limit(3).toArray()
-      console.log(
-        "Sample events in database:",
-        sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
-      )
+        const db = await connectToDatabase();
+        const eventsCollection = db.collection('events');
+        const aeventsCollection = db.collection('aevents');
+        
+        let event = null;
+        let objectId;
 
-      res.status(404).json({
-        success: false,
-        message: "Event not found",
-        debug: {
-          requestedId: eventId,
-          sampleEvents: sampleEvents.map((e) => ({ id: e._id.toString(), name: e.eventName })),
-        },
-      })
+        // Try to convert to ObjectId
+        try {
+            objectId = new ObjectId(eventId);
+        } catch (e) {
+            console.log('Invalid ObjectId format, will try other lookup methods');
+        }
+
+        // First try: Direct ObjectId lookup in both collections
+        if (objectId) {
+            event = await eventsCollection.findOne({ _id: objectId }) || 
+                   await aeventsCollection.findOne({ _id: objectId });
+        }
+
+        // Second try: String comparison with _id
+        if (!event) {
+            const allEvents = await aeventsCollection.find({}).limit(20).toArray();
+            event = allEvents.find(e => e._id.toString() === eventId);
+        }
+
+        // Third try: Look by eventName in both collections
+        if (!event) {
+            event = await eventsCollection.findOne({ eventName: eventId }) ||
+                   await aeventsCollection.findOne({ eventName: eventId });
+        }
+
+        if (event) {
+            console.log('Event found:', event);
+            res.json({
+                success: true,
+                event: event
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching event details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching event details',
+            error: error.message
+        });
     }
-  } catch (error) {
-    console.error("Error fetching event details:", error)
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching event details",
-      error: error.message,
-    })
-  }
-})
+});
 
 // Update the notifications endpoint to include more detailed logging
 app.get("/api/notifications", async (req, res) => {
@@ -5607,4 +5598,117 @@ app.post('/api/check-dashboard-access', async (req, res) => {
       message: 'An error occurred while checking access.'
     });
   }
+});
+
+// Add this endpoint for fetching individual event details
+app.get('/api/event/:id', async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        
+        if (!eventId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Event ID is required'
+            });
+        }
+
+        const db = await connectToDatabase();
+        const eventsCollection = db.collection('events');
+        const aeventsCollection = db.collection('aevents');
+        
+        let event = null;
+        let objectId;
+
+        // Try to convert to ObjectId
+        try {
+            objectId = new ObjectId(eventId);
+        } catch (e) {
+            console.log('Invalid ObjectId format, will try other lookup methods');
+        }
+
+        // First try: Direct ObjectId lookup in both collections
+        if (objectId) {
+            event = await eventsCollection.findOne({ _id: objectId }) || 
+                   await aeventsCollection.findOne({ _id: objectId });
+        }
+
+        // Second try: String comparison with _id
+        if (!event) {
+            const allEvents = await aeventsCollection.find({}).limit(20).toArray();
+            event = allEvents.find(e => e._id.toString() === eventId);
+        }
+
+        // Third try: Look by eventName in both collections
+        if (!event) {
+            event = await eventsCollection.findOne({ eventName: eventId }) ||
+                   await aeventsCollection.findOne({ eventName: eventId });
+        }
+
+        if (event) {
+            console.log('Event found:', event);
+            res.json({
+                success: true,
+                event: event
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching event details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching event details',
+            error: error.message
+        });
+    }
+});
+
+// Add endpoint for deleting an event
+app.delete('/api/event/:id', async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        
+        // Validate MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(eventId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid event ID format'
+            });
+        }
+
+        // Find the event first to check ownership
+        const event = await Event.findById(eventId);
+        
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+        }
+
+        // Check if the user owns this event
+        if (event.userEmail !== req.session.email) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to delete this event'
+            });
+        }
+
+        // Delete the event
+        await Event.findByIdAndDelete(eventId);
+
+        res.json({
+            success: true,
+            message: 'Event deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting event:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting event'
+        });
+    }
 });
