@@ -5194,14 +5194,14 @@ app.get("/break-auth-loop", (req, res) => {
 // Custom middleware to handle API requests before serving static files
 
 app.use((req, res, next) => {
-  // If it's an API request or specifically wants JSON, skip static serving
-
-  if (req.path.startsWith("/api") || req.headers.accept?.includes("application/json")) {
-    return next()
+  // If the request is for a static file, let express.static handle it
+  if (req.path.startsWith('/images/') || 
+      req.path.startsWith('/CSS/') || 
+      req.path.startsWith('/Webpages/')) {
+    return express.static(path.join(__dirname))(req, res, next);
   }
-
-  return staticMiddleware(req, res, next)
-})
+  next();
+});
 
 
 // Add this endpoint to serve static files with authentication check
@@ -5424,4 +5424,22 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+// Configure static file serving
+const path = require('path');
+app.use(express.static(path.join(__dirname)));
+
+// Add static middleware for specific directories
+app.use('/Webpages', express.static(path.join(__dirname, 'Webpages')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/CSS', express.static(path.join(__dirname, 'CSS')));
+
+// Add admin routes protection
+app.use('/admin/*', (req, res, next) => {
+  if (req.session && req.session.user && req.session.user.role === "admin") {
+    next(); // Allow access to admin pages
+  } else {
+    res.redirect("/login.html"); // Redirect to login if not authenticated as admin
+  }
 });
