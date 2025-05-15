@@ -1187,6 +1187,110 @@ app.get("/api/monthly-payments/:id", async (req, res) => {
   }
 })
 
+app.post("/api/check-address-exists", async (req, res) => {
+  try {
+    const { blockNumber, lotNumber, phaseNumber } = req.body;
+
+    if (!blockNumber || !lotNumber || !phaseNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Block, Lot, and Phase numbers are required"
+      });
+    }
+
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+
+    // Convert inputs to numbers for comparison
+    const blockNum = parseInt(blockNumber, 10);
+    const lotNum = parseInt(lotNumber, 10);
+    const phaseNum = parseInt(phaseNumber, 10);
+
+    console.log("Searching for address:", { blockNum, lotNum, phaseNum });
+
+    // Get all homeowners and manually check the address structure
+    const allHomeowners = await homeownersCollection.find({}).toArray();
+    console.log(`Found ${allHomeowners.length} total homeowners to check`);
+
+    // Function to safely extract number from various formats
+    const extractNumber = (value) => {
+      if (value === undefined || value === null) return null;
+      
+      // If it's already a number
+      if (typeof value === 'number') return value;
+      
+      // If it's a string that can be parsed as a number
+      if (typeof value === 'string') {
+        const parsed = parseInt(value, 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+      
+      // If it's an object with $numberInt property
+      if (typeof value === 'object' && value.$numberInt) {
+        return parseInt(value.$numberInt, 10);
+      }
+      
+      return null;
+    };
+
+    // Manually check each document
+    let existingHomeowner = null;
+    
+    for (const homeowner of allHomeowners) {
+      if (!homeowner.Address) continue;
+      
+      // Handle different possible structures
+      let addressObj = homeowner.Address;
+      let docBlock, docLot, docPhase;
+      
+      // Case 1: Address is an object with Block, Lot, Phase properties
+      if (typeof addressObj === 'object') {
+        docBlock = extractNumber(addressObj.Block);
+        docLot = extractNumber(addressObj.Lot);
+        docPhase = extractNumber(addressObj.Phase);
+      } 
+      // Case 2: Address is a string containing block, lot, phase info
+      else if (typeof addressObj === 'string') {
+        const blockMatch = addressObj.match(/Block\s*(\d+)/i);
+        const lotMatch = addressObj.match(/Lot\s*(\d+)/i);
+        const phaseMatch = addressObj.match(/Phase\s*(\d+)/i);
+        
+        docBlock = blockMatch ? parseInt(blockMatch[1], 10) : null;
+        docLot = lotMatch ? parseInt(lotMatch[1], 10) : null;
+        docPhase = phaseMatch ? parseInt(phaseMatch[1], 10) : null;
+      }
+      
+      // If we found a match
+      if (docBlock === blockNum && docLot === lotNum && docPhase === phaseNum) {
+        existingHomeowner = homeowner;
+        break;
+      }
+    }
+
+    // Log the result
+    console.log("Address check result:", {
+      blockNumber,
+      lotNumber,
+      phaseNumber,
+      found: !!existingHomeowner,
+      homeownerId: existingHomeowner ? existingHomeowner._id : null
+    });
+
+    res.json({
+      success: true,
+      exists: !!existingHomeowner,
+      message: existingHomeowner ? "This address is already taken" : "Address is available"
+    });
+  } catch (error) {
+    console.error("Error checking address:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while checking address",
+      error: error.message
+    });
+  }
+});
+
 // Approve payment endpoint
 app.post("/api/monthly-payments/:id/approve", async (req, res) => {
   try {

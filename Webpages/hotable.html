@@ -645,7 +645,7 @@
                 <option value="all">All Statuses</option>
                 <option value="Compliant">Compliant</option>
                 <option value="Delinquent">Delinquent</option>
-                <option value="Not Paid">Not Paid</option>
+                <option value="Almost Due">Almost Due</option>
             </select>
             <select id="stickerFilter" onchange="filterHomeowners()">
                 <option value="all">All Sticker Status</option>
@@ -657,6 +657,12 @@
                 <option value="all">All Account Status</option>
                 <option value="has_account">Has Account</option>
                 <option value="no_account">No Account</option>
+            </select>
+            <select id="phaseFilter" onchange="filterHomeowners()">
+                <option value="all">All Phases</option>
+                <option value="1">Phase 1</option>
+                <option value="2">Phase 2</option>
+                
             </select>
         </div>
         
@@ -706,8 +712,20 @@
                 
                 <div class="form-group">
                     <label for="address">Address</label>
-                    <input type="text" id="address" name="address" required placeholder="Block 4 Lot 6 Phase 1">
-                    <small style="color: #666; font-size: 12px;">Format: Block X Lot Y Phase Z</small>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="blockNumber">Block</label>
+                            <input type="number" id="blockNumber" name="blockNumber" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="lotNumber">Lot</label>
+                            <input type="number" id="lotNumber" name="lotNumber" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="phaseNumber">Phase</label>
+                            <input type="number" id="phaseNumber" name="phaseNumber" required min="1">
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-row">
@@ -724,9 +742,9 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="paymentStatus">Payment Status</label>
-                        <select id="paymentStatus" name="paymentStatus">
+                        <select id="PStatus" name="paymentStatus">
                             <option value="Compliant">Compliant</option>
-                            <option value="Not Paid">Not Paid</option>
+                            <option value="Almost Due">Almost Due</option>
                             <option value="Delinquent">Delinquent</option>
                         </select>
                     </div>
@@ -889,8 +907,8 @@
                     <label for="recipientType">Recipients</label>
                     <select id="recipientType">
                         <option value="delinquent">All Delinquent Homeowners</option>
-                        <option value="not_paid">Homeowners with Not Paid Status</option>
-                        <option value="all_delinquent">All Delinquent & Not Paid</option>
+                        <option value="almost_due">Homeowners with Almost Due Status</option>
+                        <option value="all_delinquent">All Delinquent & Almost Due</option>
                     </select>
                 </div>
                 
@@ -951,7 +969,7 @@
                         <label for="editPaymentStatus">Payment Status</label>
                         <select id="editPaymentStatus" name="paymentStatus">
                             <option value="Compliant">Compliant</option>
-                            <option value="Not Paid">Not Paid</option>
+                            <option value="Almost Due">Almost Due</option>
                             <option value="Delinquent">Delinquent</option>
                         </select>
                     </div>
@@ -1182,345 +1200,398 @@
         }
         
         // Function to display homeowners
-        function displayHomeowners(homeownersToDisplay) {
-            const tableBody = document.getElementById('homeownersTableBody');
-            tableBody.innerHTML = '';
-            
-            if (homeownersToDisplay.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="9" style="text-align: center;">
-                            No homeowners found.
-                        </td>
-                    </tr>
+        
+// Update the displayHomeowners function to handle the new record structure
+function displayHomeowners(homeownersToDisplay) {
+    const tableBody = document.getElementById('homeownersTableBody');
+    tableBody.innerHTML = '';
+    
+    if (homeownersToDisplay.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center;">
+                    No homeowners found.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    homeownersToDisplay.forEach(homeowner => {
+        const row = document.createElement('tr');
+        
+        // Payment status class - now using Status field
+        let PStatusClass = 'status-compliant';
+        if (homeowner.PStatus !== 'Compliant') {
+            PStatusClass = 'status-delinquent';
+        }
+        let HStatusClass = 'status-compliant';
+        if (homeowner.HStatus !== 'Compliant') {
+            HStatusClass = 'status-delinquent';
+        }
+        
+        // Car sticker status class - now using carSticker field
+        let carStickerClass = 'status-undetermined';
+        if (homeowner.carSticker === 'has') {
+            carStickerClass = 'status-has-sticker';
+        } else if (homeowner.carSticker === 'no') {
+            carStickerClass = 'status-no-sticker';
+        }
+        
+        // Format address from the new structure
+        let formattedAddress = '';
+        if (homeowner.Address && typeof homeowner.Address === 'object') {
+            // New structure with Block, Lot, Phase as an object
+            const block = homeowner.Address.Block ? homeowner.Address.Block.$numberInt || homeowner.Address.Block : '';
+            const lot = homeowner.Address.Lot ? homeowner.Address.Lot.$numberInt || homeowner.Address.Lot : '';
+            const phase = homeowner.Address.Phase ? homeowner.Address.Phase.$numberInt || homeowner.Address.Phase : '';
+            formattedAddress = `Block ${block} Lot ${lot} Phase ${phase}`;
+        } else {
+            // Fallback to old structure
+            formattedAddress = homeowner.Address || '';
+        }
+        
+        // Account status with password and account status
+        let accountStatus = '<span class="status-badge status-delinquent">No</span>';
+        if (homeowner.hasAccount) {
+            if (homeowner.username) {
+                accountStatus = `
+                    <span class="status-badge status-compliant">${homeowner.username}</span>
+                    <br>
                 `;
-                return;
-            }
-            
-            homeownersToDisplay.forEach(homeowner => {
-                const row = document.createElement('tr');
-                
-                // Payment status class
-                let paymentStatusClass = 'status-compliant';
-                if (homeowner.paymentStatus === 'Delinquent' || homeowner.paymentStatus === 'Not Paid') {
-                    paymentStatusClass = 'status-delinquent';
-                }
-                
-                // Homeowner status class
-                let homeownerStatusClass = 'status-compliant';
-                if (homeowner.homeownerStatus === 'Delinquent') {
-                    homeownerStatusClass = 'status-delinquent';
-                }
-                
-                // Car sticker status class
-                let carStickerClass = 'status-undetermined';
-                if (homeowner.carStickerStatus === 'Has Sticker') {
-                    carStickerClass = 'status-has-sticker';
-                } else if (homeowner.carStickerStatus === 'No Sticker') {
-                    carStickerClass = 'status-no-sticker';
-                }
-                
-                // Account status with password and account status
-                let accountStatus = '<span class="status-badge status-delinquent">No</span>';
-                if (homeowner.hasAccount) {
-                    if (homeowner.username) {
-                        let accountStatusClass = 'status-compliant';
-                        if (homeowner.accountStatus === 'Unpaid') {
-                            accountStatusClass = 'status-delinquent';
-                        }
-                        
-                        accountStatus = `
-                            <span class="status-badge status-compliant">${homeowner.username}</span>
-                            <br>
-                          
-                            <br>
-                    
-                        `;
-                    } else {
-                        accountStatus = '<span class="status-badge status-compliant">Yes</span>';
-                    }
-                }
-                
-                row.innerHTML = `
-                    <td>${homeowner.lastName || ''}</td>
-                    <td>${homeowner.firstName || ''}</td>
-                    <td>${homeowner.Address || ''}</td>
-                    <td>${homeowner.phoneNumber || ''}</td>
-                    <td><span class="status-badge ${paymentStatusClass}">${homeowner.paymentStatus || 'Compliant'}</span></td>
-                    <td><span class="status-badge ${homeownerStatusClass}">${homeowner.homeownerStatus || 'Compliant'}</span></td>
-                    <td><span class="status-badge ${carStickerClass}">${homeowner.carStickerStatus || 'Undetermined'}</span></td>
-                    <td>${accountStatus}</td>
-                    <td>
-                        <button onclick="editHomeowner('${homeowner._id}')" style="background: none; border: none; cursor: pointer;">
-                            <img src="/images/edit.png" alt="Edit" width="20" height="20" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEgNEgxMkM5LjI0IDQgNyA2LjI0IDcgOVYxMUg0QzIuOSAxMSAyIDExLjkgMiAxM1YyMEMyIDIxLjEgMi45IDIyIDQgMjJIMTJDMTMuMSAyMiAxNCAxMS4xIDE0IDIwVjEzQzE0IDExLjkgMTMuMSAxMSAxMiAxMUg5VjlDOSA3LjM0IDEwLjM0IDYgMTIgNkgxM0MxNC42NiA2IDE2IDcuMzQgMTYgOVYxMUgxOFY5QzE4IDYuMjQgMTUuNzYgNCAxMyA0SDExWiIgZmlsbD0iIzMzMyIvPjwvc3ZnPg=='">
-                        </button>
-                    </td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-        }
-        
-        // Function to filter homeowners
-        function filterHomeowners() {
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const stickerFilter = document.getElementById('stickerFilter').value;
-            const accountFilter = document.getElementById('accountFilter').value;
-            
-            const filteredHomeowners = homeowners.filter(homeowner => {
-                // Search filter
-                const matchesSearch = 
-                    (homeowner.firstName && homeowner.firstName.toLowerCase().includes(searchInput)) ||
-                    (homeowner.lastName && homeowner.lastName.toLowerCase().includes(searchInput)) ||
-                    (homeowner.Address && homeowner.Address.toLowerCase().includes(searchInput)) ||
-                    (homeowner.phoneNumber && homeowner.phoneNumber.toLowerCase().includes(searchInput)) ||
-                    (homeowner.email && homeowner.email.toLowerCase().includes(searchInput));
-                
-                // Status filter
-                const matchesStatus = 
-                    statusFilter === 'all' || 
-                    homeowner.paymentStatus === statusFilter || 
-                    homeowner.homeownerStatus === statusFilter;
-                
-                // Sticker filter
-                const matchesSticker = 
-                    stickerFilter === 'all' || 
-                    homeowner.carStickerStatus === stickerFilter;
-                
-                // Account filter
-                const matchesAccount = 
-                    accountFilter === 'all' || 
-                    (accountFilter === 'has_account' && homeowner.hasAccount) || 
-                    (accountFilter === 'no_account' && !homeowner.hasAccount);
-                
-                return matchesSearch && matchesStatus && matchesSticker && matchesAccount;
-            });
-            
-            displayHomeowners(filteredHomeowners);
-        }
-        
-        // Function to edit homeowner
-        async function editHomeowner(homeownerId) {
-            try {
-                // Find the homeowner in our local array
-                currentHomeowner = homeowners.find(h => h._id === homeownerId);
-                
-                if (!currentHomeowner) {
-                    console.error('Homeowner not found:', homeownerId);
-                    return;
-                }
-                
-                // Populate the form
-                document.getElementById('editHomeownerId').value = currentHomeowner._id;
-                document.getElementById('editFirstName').value = currentHomeowner.firstName || '';
-                document.getElementById('editLastName').value = currentHomeowner.lastName || '';
-                document.getElementById('editAddress').value = currentHomeowner.Address || '';
-                document.getElementById('editPhoneNumber').value = currentHomeowner.phoneNumber || '';
-                document.getElementById('editLandLine').value = currentHomeowner.landLine || '';
-                document.getElementById('editPaymentStatus').value = currentHomeowner.paymentStatus || 'Compliant';
-                document.getElementById('editHomeownerStatus').value = currentHomeowner.homeownerStatus || 'Compliant';
-                document.getElementById('editCarStickerStatus').value = currentHomeowner.carStickerStatus || 'undetermined';
-                
-                // Populate account credentials if available
-                const accountUsername = document.getElementById('accountUsername');
-                const accountPassword = document.getElementById('accountPassword');
-                
-                if (currentHomeowner.hasAccount) {
-                    accountUsername.value = currentHomeowner.username || '';
-                    accountPassword.value = '';
-                } else {
-                    accountUsername.value = 'No account';
-                    accountPassword.value = '';
-                }
-                
-                // Open the modal
-                openModal('editHomeownerModal');
-            } catch (error) {
-                console.error('Error editing homeowner:', error);
-                alert('Failed to load homeowner details. Please try again.');
+            } else {
+                accountStatus = '<span class="status-badge status-compliant">Yes</span>';
             }
         }
         
-        // Function to reset homeowner password
-        async function resetHomeownerPassword() {
-            try {
-                if (!currentHomeowner || !currentHomeowner._id) {
-                    console.error('No homeowner selected for password reset');
-                    return;
-                }
-                
-                const response = await fetch(`/api/homeowner-credentials/${currentHomeowner._id}?resetPassword=true`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.success && data.newPassword) {
-                    // Show the new password
-                    const newPasswordContainer = document.getElementById('newPasswordContainer');
-                    const newPasswordField = document.getElementById('newPassword');
-                    
-                    newPasswordField.value = data.newPassword;
-                    newPasswordContainer.style.display = 'block';
-                    
-                    // Show success message
-                    const statusMessage = document.getElementById('editStatusMessage');
-                    statusMessage.textContent = 'Password reset successfully. Please copy the new password now.';
-                    statusMessage.className = 'status-message success';
-                    statusMessage.style.display = 'block';
-                } else {
-                    // Show error message
-                    const statusMessage = document.getElementById('editStatusMessage');
-                    statusMessage.textContent = data.message || 'Failed to reset password. Please try again.';
-                    statusMessage.className = 'status-message error';
-                    statusMessage.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Error resetting password:', error);
-                const statusMessage = document.getElementById('editStatusMessage');
-                statusMessage.textContent = 'Error resetting password. Please try again.';
-                statusMessage.className = 'status-message error';
-                statusMessage.style.display = 'block';
+        // Map carSticker values to display text
+        let carStickerDisplay = 'Undetermined';
+        if (homeowner.carSticker === 'has') {
+            carStickerDisplay = 'Has Sticker';
+        } else if (homeowner.carSticker === 'no') {
+            carStickerDisplay = 'No Sticker';
+        }
+        
+        row.innerHTML = `
+            <td>${homeowner.lastName || ''}</td>
+            <td>${homeowner.firstName || ''}</td>
+            <td>${formattedAddress}</td>
+            <td>${homeowner.phoneNumber || ''}</td>
+            <td><span class="status-badge ${PStatusClass}">${homeowner.PStatus || 'Compliant'}</span></td>
+            <td><span class="status-badge ${HStatusClass}">${homeowner.HStatus || 'Compliant'}</span></td>
+            <td><span class="status-badge ${carStickerClass}">${carStickerDisplay}</span></td>
+            <td>${accountStatus}</td>
+            <td>
+                <button onclick="editHomeowner('${homeowner._id}')" style="background: none; border: none; cursor: pointer;">
+                    <img src="/images/edit.png" alt="Edit" width="20" height="20" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEgNEgxMkM5LjI0IDQgNyA2LjI0IDcgOVYxMUg0QzIuOSAxMSAyIDExLjkgMiAxM1YyMEMyIDIxLjEgMi45IDIyIDQgMjJIMTJDMTMuMSAyMiAxNCAxMS4xIDE0IDIwVjEzQzE0IDExLjkgMTMuMSAxMSAxMiAxMUg5VjlDOSA3LjM0IDEwLjM0IDYgMTIgNkgxM0MxNC42NiA2IDE2IDcuMzQgMTYgOVYxMUgxOFY5QzE4IDYuMjQgMTUuNzYgNCAxMyA0SDExWiIgZmlsbD0iIzMzMyIvPjwvc3ZnPg=='">
+                </button>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
+
+// Update the filterHomeowners function to use the new field names
+function filterHomeowners() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const stickerFilter = document.getElementById('stickerFilter').value;
+    const accountFilter = document.getElementById('accountFilter').value;
+    const phaseFilter = document.getElementById('phaseFilter').value;
+    
+    const filteredHomeowners = homeowners.filter(homeowner => {
+        // Search filter
+        const matchesSearch = 
+            (homeowner.firstName && homeowner.firstName.toLowerCase().includes(searchInput)) ||
+            (homeowner.lastName && homeowner.lastName.toLowerCase().includes(searchInput)) ||
+            (homeowner.email && homeowner.email.toLowerCase().includes(searchInput)) ||
+            (homeowner.phoneNumber && homeowner.phoneNumber.toLowerCase().includes(searchInput));
+        
+        // Add address search for both old and new structure
+        let addressSearchMatch = false;
+        if (homeowner.Address) {
+            if (typeof homeowner.Address === 'object') {
+                // New structure
+                const block = homeowner.Address.Block ? (homeowner.Address.Block.$numberInt || homeowner.Address.Block) : '';
+                const lot = homeowner.Address.Lot ? (homeowner.Address.Lot.$numberInt || homeowner.Address.Lot) : '';
+                const phase = homeowner.Address.Phase ? (homeowner.Address.Phase.$numberInt || homeowner.Address.Phase) : '';
+                const formattedAddress = `Block ${block} Lot ${lot} Phase ${phase}`.toLowerCase();
+                addressSearchMatch = formattedAddress.includes(searchInput);
+            } else {
+                // Old structure
+                addressSearchMatch = homeowner.Address.toLowerCase().includes(searchInput);
             }
         }
         
-        // Function to copy text to clipboard
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            element.select();
-            document.execCommand('copy');
+        // Status filter - now using Status field
+        const matchesStatus = 
+            statusFilter === 'all' || 
+            homeowner.Status === statusFilter;
+        
+        // Sticker filter - now using carSticker field
+        let matchesSticker = stickerFilter === 'all';
+        if (stickerFilter === 'Has Sticker' && homeowner.carSticker === 'has') {
+            matchesSticker = true;
+        } else if (stickerFilter === 'No Sticker' && homeowner.carSticker === 'no') {
+            matchesSticker = true;
+        } else if (stickerFilter === 'undetermined' && 
+                  (homeowner.carSticker === 'undetermined' || !homeowner.carSticker)) {
+            matchesSticker = true;
+        }
+        
+        // Account filter
+        const matchesAccount = 
+            accountFilter === 'all' || 
+            (accountFilter === 'has_account' && homeowner.hasAccount) || 
+            (accountFilter === 'no_account' && !homeowner.hasAccount);
+        
+        // Phase filter
+        let matchesPhase = phaseFilter === 'all';
+        if (!matchesPhase && homeowner.Address) {
+            if (typeof homeowner.Address === 'object' && homeowner.Address.Phase) {
+                const phase = homeowner.Address.Phase.$numberInt || homeowner.Address.Phase;
+                matchesPhase = phase.toString() === phaseFilter;
+            } else if (typeof homeowner.Address === 'string') {
+                // Try to extract phase from string address
+                const phaseMatch = homeowner.Address.match(/Phase\s+(\d+)/i);
+                if (phaseMatch && phaseMatch[1] === phaseFilter) {
+                    matchesPhase = true;
+                }
+            }
+        }
+        
+        return (matchesSearch || addressSearchMatch) && matchesStatus && matchesSticker && matchesAccount && matchesPhase;
+    });
+    
+    displayHomeowners(filteredHomeowners);
+}
+
+// Update the editHomeowner function to handle the new field structure
+async function editHomeowner(homeownerId) {
+    try {
+        // Find the homeowner in our local array
+        currentHomeowner = homeowners.find(h => h._id === homeownerId);
+        
+        if (!currentHomeowner) {
+            console.error('Homeowner not found:', homeownerId);
+            return;
+        }
+        
+        // Populate the form
+        document.getElementById('editHomeownerId').value = currentHomeowner._id;
+        document.getElementById('editFirstName').value = currentHomeowner.firstName || '';
+        document.getElementById('editLastName').value = currentHomeowner.lastName || '';
+        
+        // Handle the new Address structure
+        let addressValue = '';
+        if (currentHomeowner.Address && typeof currentHomeowner.Address === 'object') {
+            // New structure with Block, Lot, Phase as an object
+            const block = currentHomeowner.Address.Block ? currentHomeowner.Address.Block.$numberInt || currentHomeowner.Address.Block : '';
+            const lot = currentHomeowner.Address.Lot ? currentHomeowner.Address.Lot.$numberInt || currentHomeowner.Address.Lot : '';
+            const phase = currentHomeowner.Address.Phase ? currentHomeowner.Address.Phase.$numberInt || currentHomeowner.Address.Phase : '';
+            addressValue = `Block ${block} Lot ${lot} Phase ${phase}`;
+        } else {
+            // Fallback to old structure
+            addressValue = currentHomeowner.Address || '';
+        }
+        document.getElementById('editAddress').value = addressValue;
+        
+        document.getElementById('editPhoneNumber').value = currentHomeowner.phoneNumber || '';
+        document.getElementById('editLandLine').value = currentHomeowner.landline || '';
+        
+        // Update to use Status field
+        document.getElementById('editPaymentStatus').value = currentHomeowner.PStatus || 'Compliant';
+        document.getElementById('editHomeownerStatus').value = currentHomeowner.HStatus || 'Compliant';
+        
+        // Update to use carSticker field
+        let carStickerValue = 'undetermined';
+        if (currentHomeowner.carSticker === 'has') {
+            carStickerValue = 'Has Sticker';
+        } else if (currentHomeowner.carSticker === 'no') {
+            carStickerValue = 'No Sticker';
+        }
+        document.getElementById('editCarStickerStatus').value = carStickerValue;
+        
+        // Populate account credentials if available
+        const accountUsername = document.getElementById('accountUsername');
+        const accountPassword = document.getElementById('accountPassword');
+        
+        if (currentHomeowner.hasAccount) {
+            accountUsername.value = currentHomeowner.username || '';
+            accountPassword.value = '';
+        } else {
+            accountUsername.value = 'No account';
+            accountPassword.value = '';
+        }
+        
+        // Open the modal
+        openModal('editHomeownerModal');
+    } catch (error) {
+        console.error('Error editing homeowner:', error);
+        alert('Failed to load homeowner details. Please try again.');
+    }
+}
+
+// Update the form submission handler to use the new field structure
+document.getElementById('editHomeownerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    try {
+        const homeownerId = document.getElementById('editHomeownerId').value;
+        
+        // Parse the address to extract Block, Lot, and Phase
+        const addressInput = document.getElementById('editAddress').value;
+        const blockMatch = addressInput.match(/Block\s+(\d+)/i);
+        const lotMatch = addressInput.match(/Lot\s+(\d+)/i);
+        const phaseMatch = addressInput.match(/Phase\s+(\d+)/i);
+        
+        // Create the Address object with the new structure
+        const addressObject = {
+            Block: blockMatch ? { $numberInt: blockMatch[1] } : { $numberInt: "0" },
+            Lot: lotMatch ? { $numberInt: lotMatch[1] } : { $numberInt: "0" },
+            Phase: phaseMatch ? { $numberInt: phaseMatch[1] } : { $numberInt: "0" }
+        };
+        
+        // Map the car sticker status to the new format
+        let carStickerValue = 'undetermined';
+        const selectedCarSticker = document.getElementById('editCarStickerStatus').value;
+        if (selectedCarSticker === 'Has Sticker') {
+            carStickerValue = 'has';
+        } else if (selectedCarSticker === 'No Sticker') {
+            carStickerValue = 'no';
+        }
+        
+        // Prepare the update data with the new field structure
+        const updateData = {
+            firstName: document.getElementById('editFirstName').value,
+            lastName: document.getElementById('editLastName').value,
+            Address: addressObject,
+            phoneNumber: document.getElementById('editPhoneNumber').value,
+            landline: document.getElementById('editLandLine').value,
+            PStatus: document.getElementById('editPaymentStatus').value,
+            HStatus: document.getElementById('editHomeownerStatus').value,
+            carSticker: carStickerValue
+        };
+        
+        // Send the update request
+        const response = await fetch(`/updateHomeownerById/${homeownerId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        });
+        
+        const data = await response.json();
+        
+        // Show status message
+        const statusMessage = document.getElementById('editStatusMessage');
+        if (data.success) {
+            statusMessage.textContent = 'Homeowner updated successfully.';
+            statusMessage.className = 'status-message success';
             
-            // Show temporary tooltip or message
-            const originalText = element.nextElementSibling.textContent;
-            element.nextElementSibling.textContent = 'Copied!';
+            // Update the homeowner in our local array
+            const index = homeowners.findIndex(h => h._id === homeownerId);
+            if (index !== -1) {
+                homeowners[index] = { ...homeowners[index], ...updateData };
+            }
+            
+            // Refresh the table
+            displayHomeowners(homeowners);
+            
+            // Close the modal after a short delay
             setTimeout(() => {
-                element.nextElementSibling.textContent = originalText;
+                closeModal('editHomeownerModal');
             }, 1500);
+        } else {
+            statusMessage.textContent = data.message || 'Failed to update homeowner.';
+            statusMessage.className = 'status-message error';
         }
         
-        // Function to save homeowner changes
-        document.getElementById('editHomeownerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            try {
-                const homeownerId = document.getElementById('editHomeownerId').value;
-                
-                // Prepare the update data
-                const updateData = {
-                    firstName: document.getElementById('editFirstName').value,
-                    lastName: document.getElementById('editLastName').value,
-                    Address: document.getElementById('editAddress').value,
-                    phoneNumber: document.getElementById('editPhoneNumber').value,
-                    landLine: document.getElementById('editLandLine').value,
-                    paymentStatus: document.getElementById('editPaymentStatus').value,
-                    homeownerStatus: document.getElementById('editHomeownerStatus').value,
-                    carStickerStatus: document.getElementById('editCarStickerStatus').value
-                };
-                
-                // Send the update request
-                const response = await fetch(`/updateHomeownerById/${homeownerId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updateData)
-                });
-                
-                const data = await response.json();
-                
-                // Show status message
-                const statusMessage = document.getElementById('editStatusMessage');
-                if (data.success) {
-                    statusMessage.textContent = 'Homeowner updated successfully.';
-                    statusMessage.className = 'status-message success';
-                    
-                    // Update the homeowner in our local array
-                    const index = homeowners.findIndex(h => h._id === homeownerId);
-                    if (index !== -1) {
-                        homeowners[index] = { ...homeowners[index], ...updateData };
-                    }
-                    
-                    // Refresh the table
-                    displayHomeowners(homeowners);
-                    
-                    // Close the modal after a short delay
-                    setTimeout(() => {
-                        closeModal('editHomeownerModal');
-                    }, 1500);
-                } else {
-                    statusMessage.textContent = data.message || 'Failed to update homeowner.';
-                    statusMessage.className = 'status-message error';
-                }
-                
-                statusMessage.style.display = 'block';
-            } catch (error) {
-                console.error('Error updating homeowner:', error);
-                const statusMessage = document.getElementById('editStatusMessage');
-                statusMessage.textContent = 'Error updating homeowner. Please try again.';
-                statusMessage.className = 'status-message error';
-                statusMessage.style.display = 'block';
-            }
+        statusMessage.style.display = 'block';
+    } catch (error) {
+        console.error('Error updating homeowner:', error);
+        const statusMessage = document.getElementById('editStatusMessage');
+        statusMessage.textContent = 'Error updating homeowner. Please try again.';
+        statusMessage.className = 'status-message error';
+        statusMessage.style.display = 'block';
+    }
+});
+
+// Update the generate account form submission to use the new field structure
+document.getElementById('generateAccountForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    try {
+        // Create the Address object with the new structure
+        const addressObject = {
+            Block: { $numberInt: document.getElementById('blockNumber').value },
+            Lot: { $numberInt: document.getElementById('lotNumber').value },
+            Phase: { $numberInt: document.getElementById('phaseNumber').value }
+        };
+        
+        // Map the car sticker status to the new format
+        let carStickerValue = 'undetermined';
+        const selectedCarSticker = document.getElementById('carStickerStatus').value;
+        if (selectedCarSticker === 'Has Sticker') {
+            carStickerValue = 'has';
+        } else if (selectedCarSticker === 'No Sticker') {
+            carStickerValue = 'no';
+        }
+        
+        // Prepare the homeowner data with the new field structure
+        const homeownerData = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            Address: addressObject,
+            phoneNumber: document.getElementById('phoneNumber').value,
+            landline: document.getElementById('landLine').value,
+            PStatus: document.getElementById('PStatus').value,
+            HStatus: document.getElementById('HStatus').value,
+            carSticker: carStickerValue
+        };
+        
+        // Send the request to generate an account
+        const response = await fetch('/api/homeowners/generate-account', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(homeownerData)
         });
         
-        // Function to generate a homeowner account
-        document.getElementById('generateAccountForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        const data = await response.json();
+        
+        // Show status message
+        const statusMessage = document.getElementById('accountStatusMessage');
+        if (data.success) {
+            statusMessage.textContent = 'Account generated successfully.';
+            statusMessage.className = 'status-message success';
             
-            try {
-                // Prepare the homeowner data
-                const homeownerData = {
-                    firstName: document.getElementById('firstName').value,
-                    lastName: document.getElementById('lastName').value,
-                    address: document.getElementById('address').value,
-                    phoneNumber: document.getElementById('phoneNumber').value,
-                    landLine: document.getElementById('landLine').value,
-                    paymentStatus: document.getElementById('paymentStatus').value,
-                    carStickerStatus: document.getElementById('carStickerStatus').value
-                };
-                
-                // Send the request to generate an account
-                const response = await fetch('/api/homeowners/generate-account', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(homeownerData)
-                });
-                
-                const data = await response.json();
-                
-                // Show status message
-                const statusMessage = document.getElementById('accountStatusMessage');
-                if (data.success) {
-                    statusMessage.textContent = 'Account generated successfully.';
-                    statusMessage.className = 'status-message success';
-                    
-                    // Display the generated account credentials
-                    document.getElementById('generatedUsername').textContent = data.account.username;
-                    document.getElementById('generatedPassword').textContent = data.account.password;
-                    document.getElementById('generatedAccount').style.display = 'block';
-                    
-                    // Reload homeowners after a short delay
-                    setTimeout(() => {
-                        loadHomeowners();
-                    }, 1000);
-                } else {
-                    statusMessage.textContent = data.error || 'Failed to generate account.';
-                    statusMessage.className = 'status-message error';
-                }
-                
-                statusMessage.style.display = 'block';
-            } catch (error) {
-                console.error('Error generating account:', error);
-                const statusMessage = document.getElementById('accountStatusMessage');
-                statusMessage.textContent = 'Error generating account. Please try again.';
-                statusMessage.className = 'status-message error';
-                statusMessage.style.display = 'block';
-            }
-        });
+            // Display the generated account credentials
+            document.getElementById('generatedUsername').textContent = data.account.username;
+            document.getElementById('generatedPassword').textContent = data.account.password;
+            document.getElementById('generatedAccount').style.display = 'block';
+            
+            // Reload homeowners after a short delay
+            setTimeout(() => {
+                loadHomeowners();
+            }, 1000);
+        } else {
+            statusMessage.textContent = data.error || 'Failed to generate account.';
+            statusMessage.className = 'status-message error';
+        }
+        
+        statusMessage.style.display = 'block';
+    } catch (error) {
+        console.error('Error generating account:', error);
+        const statusMessage = document.getElementById('accountStatusMessage');
+        statusMessage.textContent = 'Error generating account. Please try again.';
+        statusMessage.className = 'status-message error';
+        statusMessage.style.display = 'block';
+    }
+});
         
         // Function to check for missing accounts
         async function checkMissingAccounts() {
@@ -1695,6 +1766,9 @@
                     url += `&startDate=${startDate}&endDate=${endDate}`;
                 }
                 
+                // Add address structure parameter to inform the server about the new structure
+                url += '&addressStructure=new';
+                
                 // Open the URL in a new tab to download the report
                 window.open(url, '_blank');
                 
@@ -1750,6 +1824,8 @@
                     statusMessage.textContent = data.message || 'Failed to send notifications.';
                     statusMessage.className = 'status-message error';
                 }
+                
+                statusMessage.style.display = 'block';
             } catch (error) {
                 console.error('Error sending notifications:', error);
                 const statusMessage = document.getElementById('notificationStatusMessage');
@@ -1845,6 +1921,177 @@
                 alert("An error occurred during logout. Please try again.");
             }
         }
+
+        // Client-side address validation script
+document.addEventListener("DOMContentLoaded", () => {
+  // Get the form elements
+  const generateAccountForm = document.getElementById("generateAccountForm")
+  const blockNumberInput = document.getElementById("blockNumber")
+  const lotNumberInput = document.getElementById("lotNumber")
+  const phaseNumberInput = document.getElementById("phaseNumber")
+  const submitButton = generateAccountForm.querySelector('button[type="submit"]')
+
+  // Create address error message element
+  const addressErrorMsg = document.createElement("div")
+  addressErrorMsg.className = "error-message"
+  addressErrorMsg.style.color = "#AF2630"
+  addressErrorMsg.style.fontSize = "12px"
+  addressErrorMsg.style.marginTop = "5px"
+  addressErrorMsg.style.display = "none"
+
+  // Add the error message after the phase number input
+  phaseNumberInput.parentNode.appendChild(addressErrorMsg)
+
+  // Function to check if address exists
+  async function checkAddressExists() {
+    // Clear previous error message
+    addressErrorMsg.style.display = "none"
+    submitButton.disabled = false
+
+    const blockNumber = blockNumberInput.value.trim()
+    const lotNumber = lotNumberInput.value.trim()
+    const phaseNumber = phaseNumberInput.value.trim()
+
+    // Only check if all three fields have values
+    if (!blockNumber || !lotNumber || !phaseNumber) {
+      return
+    }
+
+    try {
+      // Show loading indicator
+      addressErrorMsg.textContent = "Checking address..."
+      addressErrorMsg.style.color = "#666"
+      addressErrorMsg.style.display = "block"
+
+      console.log("Sending address check request:", { blockNumber, lotNumber, phaseNumber })
+
+      const response = await fetch("/api/check-address-exists", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ blockNumber, lotNumber, phaseNumber }),
+      })
+
+      const data = await response.json()
+      console.log("Address check response:", data)
+
+      // Clear loading indicator
+      addressErrorMsg.style.display = "none"
+
+      if (data.exists) {
+        // Address is taken
+        addressErrorMsg.textContent = data.message || "This address is already taken"
+        addressErrorMsg.style.color = "#AF2630"
+        addressErrorMsg.style.display = "block"
+        submitButton.disabled = true
+
+        // Also show message in the status area if it exists
+        const statusMessage = document.getElementById("accountStatusMessage")
+        if (statusMessage) {
+          statusMessage.textContent = "This address is already assigned to a homeowner"
+          statusMessage.className = "status-message error"
+          statusMessage.style.display = "block"
+        }
+      } else {
+        // Address is available
+        addressErrorMsg.textContent = data.message || "Address is available"
+        addressErrorMsg.style.color = "#4CAF50"
+        addressErrorMsg.style.display = "block"
+        submitButton.disabled = false
+
+        // Clear status message
+        const statusMessage = document.getElementById("accountStatusMessage")
+        if (statusMessage) {
+          statusMessage.textContent = ""
+          statusMessage.style.display = "none"
+        }
+      }
+    } catch (error) {
+      console.error("Error checking address:", error)
+      addressErrorMsg.textContent = "Error checking address. Please try again."
+      addressErrorMsg.style.color = "#AF2630"
+      addressErrorMsg.style.display = "block"
+    }
+  }
+
+  // Add event listeners to the input fields
+  blockNumberInput.addEventListener("blur", checkAddressExists)
+  lotNumberInput.addEventListener("blur", checkAddressExists)
+  phaseNumberInput.addEventListener("blur", checkAddressExists)
+
+  // Add form submit handler to prevent submission if address exists
+  generateAccountForm.addEventListener("submit", async function (e) {
+    // Prevent default form submission
+    e.preventDefault()
+
+    // Check if address exists before submitting
+    const blockNumber = blockNumberInput.value.trim()
+    const lotNumber = lotNumberInput.value.trim()
+    const phaseNumber = phaseNumberInput.value.trim()
+
+    if (!blockNumber || !lotNumber || !phaseNumber) {
+      return
+    }
+
+    try {
+      console.log("Checking address before form submission:", { blockNumber, lotNumber, phaseNumber })
+
+      const response = await fetch("/api/check-address-exists", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ blockNumber, lotNumber, phaseNumber }),
+      })
+
+      const data = await response.json()
+      console.log("Form submission address check response:", data)
+
+      if (data.exists) {
+        addressErrorMsg.textContent = data.message || "This address is already taken"
+        addressErrorMsg.style.color = "#AF2630"
+        addressErrorMsg.style.display = "block"
+
+        // Also show message in the status area
+        const statusMessage = document.getElementById("accountStatusMessage")
+        if (statusMessage) {
+          statusMessage.textContent = "This address is already assigned to a homeowner"
+          statusMessage.className = "status-message error"
+          statusMessage.style.display = "block"
+        }
+
+        return // Prevent form submission
+      } else {
+        console.log("Address is available, submitting form")
+        // If address doesn't exist, submit the form
+        this.submit()
+      }
+    } catch (error) {
+      console.error("Error checking address during form submission:", error)
+      // Allow form submission if there's an error checking the address
+      console.log("Error occurred, allowing form submission anyway")
+      this.submit()
+    }
+  })
+})
+
+
+  document.getElementById("logoutButton").addEventListener("click", async () => {
+          try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
+            } else {
+              showCustomAlert("Logout failed. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert("An error occurred during logout. Please try again.");
+          }
+        });
+      
     </script>
 </body>
 </html>

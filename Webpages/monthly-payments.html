@@ -450,6 +450,71 @@
   .due-critical {
     color: #721C24;
   }
+
+  /* Action buttons container */
+  .action-buttons-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .action-btn {
+    background-color: #AF2630;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s;
+  }
+
+  .action-btn:hover {
+    background-color: #8E1F27;
+  }
+
+  .action-btn img {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Report Modal styles */
+  #reportModal .modal-content {
+    max-width: 600px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .form-group select, .form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+
+  .form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+  }
   </style>
 </head>
 <body>
@@ -485,6 +550,14 @@
 
   <div class="main-content">
     <h1>Monthly Dues Payments</h1>
+    
+    <!-- Add action buttons container -->
+    <div class="action-buttons-container">
+      <button class="action-btn" onclick="openModal('reportModal')">
+        <img src="/images/file-text.png" alt="Report" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTQgMkg2QzUuNDY5NTcgMiA0Ljk2MDg2IDIuMjEwNzEgNC41ODU3OSAyLjU4NTc5QzQuMjEwNzEgMi45NjA4NiA0IDMuNDY5NTcgNCA0VjIwQzQgMjAuNTMwNCA0LjIxMDcxIDIxLjAzOTEgNC41ODU3OSAyMS40MTQyQzQuOTYwODYgMjEuNzg5MyA1LjQ2OTU3IDIyIDYgMjJIMThDMTguNTMwNCAyMiAxOS4wMzkxIDIxLjc4OTMgMTkuNDE0MiAyMS40MTQyQzE5Ljc4OTMgMjEuMDM5MSAyMCAyMC41MzA0IDIwIDIwVjhMMTQgMloiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE0IDJWOEgyMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTYgMTNIMTIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE2IDE3SDgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTggMTNINyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4='">
+        Generate Payment Report
+      </button>
+    </div>
     
     <div class="tabs">
       <div class="tab active" data-status="all">All Payments</div>
@@ -556,12 +629,73 @@
     </div>
   </div>
 
+  <!-- Report Modal -->
+  <div id="reportModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Generate Payment Report</h2>
+        <span class="close-modal" onclick="closeModal('reportModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="reportType">Report Type</label>
+          <select id="reportType">
+            <option value="monthly_summary">Monthly Summary</option>
+            <option value="delinquent_owners">Delinquent Homeowners</option>
+            <option value="payment_history">Payment History</option>
+            <option value="homeowner_details">Homeowner Details</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="reportFormat">Format</label>
+          <select id="reportFormat">
+            <option value="excel">Excel (.xlsx)</option>
+            <option value="csv">CSV</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="reportDateRange">Date Range</label>
+          <select id="reportDateRange" onchange="toggleCustomDateRange()">
+            <option value="current_month">Current Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="last_quarter">Last Quarter</option>
+            <option value="last_year">Last Year</option>
+            <option value="all_time">All Time</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        
+        <div id="customDateRange" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="startDate">Start Date</label>
+              <input type="date" id="startDate">
+            </div>
+            <div class="form-group">
+              <label for="endDate">End Date</label>
+              <input type="date" id="endDate">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('reportModal')">Cancel</button>
+        <button class="btn btn-approve" onclick="generateReport()">Generate Report</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Global variables
 let currentStatus = "all";
 let currentPage = 1;
 let totalPages = 1;
 let searchTerm = "";
+
+
 
 // Initialize the page
 document.addEventListener("DOMContentLoaded", function() {
@@ -600,25 +734,37 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // Function to switch tabs
 function switchTab(status) {
-  // Update active tab
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.classList.remove('active');
-  });
-  document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
-  
-  // Update current status and reset to page 1
-  currentStatus = status;
-  currentPage = 1;
-  
-  // Load payments for the selected status
-  loadPayments();
-}
+      // Update active tab
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
+      
+      // Update current status and reset to page 1
+      currentStatus = status;
+      currentPage = 1;
+      
+      // Load payments for the selected status
+      loadPayments();
+    }
 
 // Function to load payments
 async function loadPayments() {
   try {
-    const paymentsContainer = document.getElementById('paymentsContainer');
-    const tableBody = document.getElementById('paymentsTableBody');
+    // Determine which table body to use based on current status
+    let tableBody;
+    if (currentStatus === 'approved' || currentStatus === 'all' || currentStatus === 'rejected') {
+      tableBody = document.getElementById('paymentsTableBody');
+    } else if (currentStatus === 'pending') {
+      tableBody = document.getElementById('pendingPaymentsTableBody');
+    } else if (currentStatus === 'due') {
+      tableBody = document.getElementById('duePaymentsTableBody');
+    }
+    
+    if (!tableBody) {
+      console.error('Table body not found for status:', currentStatus);
+      return;
+    }
     
     // Show loading state
     tableBody.innerHTML = `
@@ -666,14 +812,6 @@ async function loadPayments() {
           'Cache-Control': 'no-cache'
         }
       });
-      
-      console.log('Delinquent homeowners response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
     } else {
       // Fetch regular payments
       const params = new URLSearchParams({
@@ -695,25 +833,11 @@ async function loadPayments() {
       });
     }
     
-    // Get the response text first
-    const responseText = await response.text();
-    console.log("Response text:", responseText);
-
-    // Check if the response is HTML (login page)
-    if (responseText.trim().toLowerCase().startsWith('<!doctype html>')) {
-      console.log("Session expired, redirecting to login page");
-      window.location.href = '/Webpages/login.html';
-      return;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-
-    // Try to parse the JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Error parsing JSON:", parseError);
-      throw new Error("Invalid JSON response from server");
-    }
+    
+    const data = await response.json();
     
     if (data.success) {
       // Update pagination info
@@ -724,7 +848,7 @@ async function loadPayments() {
       if (currentStatus === 'due') {
         // Handle delinquent homeowners
         if (Array.isArray(data.homeowners)) {
-          renderDelinquentHomeowners(data.homeowners);
+          renderDuePayments(data.homeowners);
         } else {
           console.error("Expected homeowners array but got:", data.homeowners);
           tableBody.innerHTML = `
@@ -755,7 +879,14 @@ async function loadPayments() {
     }
   } catch (error) {
     console.error('Error loading data:', error);
-    const tableBody = document.getElementById('paymentsTableBody');
+    // Find an appropriate table body to show the error
+    let tableBody = document.getElementById('paymentsTableBody');
+    if (!tableBody && currentStatus === 'pending') {
+      tableBody = document.getElementById('pendingPaymentsTableBody');
+    } else if (!tableBody && currentStatus === 'due') {
+      tableBody = document.getElementById('duePaymentsTableBody');
+    }
+    
     if (tableBody) {
       tableBody.innerHTML = `
         <tr>
@@ -768,64 +899,146 @@ async function loadPayments() {
   }
 }
 
-// Function to render delinquent homeowners
-function renderDelinquentHomeowners(homeowners) {
-  const tableBody = document.getElementById('paymentsTableBody');
-  
-  if (!homeowners || homeowners.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align: center;">No delinquent homeowners found.</td>
-      </tr>
-    `;
-    return;
-  }
-  
-  tableBody.innerHTML = '';
-  
-  homeowners.forEach(homeowner => {
-    try {
-      const row = document.createElement('tr');
-      
-      // Calculate days overdue
-      const lastPaymentDate = new Date(homeowner.lastPaymentDate || new Date());
-      const today = new Date();
-      const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
-      
-      // Determine severity class
-      const severityClass = daysOverdue > 60 ? 'overdue-severe' : 
-                           daysOverdue > 30 ? 'overdue-moderate' : 'overdue-mild';
-      
-      row.innerHTML = `
-        <td>
-          ${homeowner.name || 'N/A'}
-          <div class="small text-muted">${homeowner.email || 'No email'}</div>
-          <div class="days-overdue ${severityClass}">${daysOverdue} days overdue</div>
-        </td>
-        <td>₱${homeowner.monthlyDue || '0.00'}</td>
-        <td>${homeowner.paymentMethod || 'N/A'}</td>
-        <td>
-          ${new Date(homeowner.lastPaymentDate || new Date()).toLocaleDateString()}<br>
-          <span class="small text-muted">Last Payment</span>
-        </td>
-        <td><span class="status status-rejected">Delinquent</span></td>
-        <td>
-          <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id || ''}')">
-            View Details
-          </button>
-          <button class="btn btn-approve" onclick="sendReminder('${homeowner._id || ''}')">
-            Send Reminder
-          </button>
-        </td>
-      `;
-      
-      tableBody.appendChild(row);
-    } catch (error) {
-      console.error('Error rendering homeowner:', error, homeowner);
-    }
-  });
-}
 
+    function renderHomeowners(homeowners) {
+      const tableBody = document.getElementById('paymentsTableBody');
+      tableBody.innerHTML = '';
+
+      homeowners.forEach(homeowner => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${homeowner.firstName} ${homeowner.lastName}</td>
+          <td>₱${homeowner.monthlyDue}</td>
+          <td>Monthly Due</td>
+          <td>${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</td>
+          <td><span class="status status-approved">Approved</span></td>
+          <td>
+            <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id}')">
+              View Details
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function renderPendingHomeowners(homeowners) {
+      const tableBody = document.getElementById('pendingPaymentsTableBody');
+      tableBody.innerHTML = '';
+
+      homeowners.forEach(homeowner => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${homeowner.firstName} ${homeowner.lastName}</td>
+          <td>₱${homeowner.monthlyDue}</td>
+          <td>Monthly Due</td>
+          <td>${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</td>
+          <td><span class="status status-pending">Pending</span></td>
+          <td>
+            <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id}')">
+              View Details
+            </button>
+            <button class="btn btn-approve" onclick="approvePayment('${homeowner._id}')">
+              Approve
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+
+    function renderDelinquentHomeowners(homeowners) {
+      const tableBody = document.getElementById('duePaymentsTableBody');
+      tableBody.innerHTML = '';
+
+      homeowners.forEach(homeowner => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${homeowner.firstName} ${homeowner.lastName}</td>
+          <td>₱${homeowner.monthlyDue}</td>
+          <td>Monthly Due</td>
+          <td>${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</td>
+          <td><span class="status status-rejected">Delinquent</span></td>
+          <td>
+            <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id}')">
+              View Details
+            </button>
+            <button class="btn btn-approve" onclick="sendReminder('${homeowner._id}')">
+              Send Reminder
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+function renderDuePayments(homeowners) {
+      const tableBody = document.getElementById('paymentsTableBody');
+      
+      if (!homeowners || homeowners.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center;">No homeowners with due payments found.</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tableBody.innerHTML = '';
+      
+      homeowners.forEach(homeowner => {
+        try {
+          const row = document.createElement('tr');
+          
+          // Calculate days since last payment
+          const lastPaymentDate = new Date(homeowner.lastPaymentDate || new Date());
+          const today = new Date();
+          const daysSincePayment = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+          
+          // Determine severity class
+          let severityClass = 'overdue-mild';
+          if (daysSincePayment > 60) {
+            severityClass = 'overdue-severe';
+          } else if (daysSincePayment > 30) {
+            severityClass = 'overdue-moderate';
+          }
+          
+          // Format the status display
+          const statusDisplay = homeowner.Status || 'Delinquent';
+          const statusClass = statusDisplay === 'Delinquent' ? 'status-rejected' : 'status-pending';
+          
+          row.innerHTML = `
+            <td>
+              ${homeowner.firstName} ${homeowner.lastName || 'N/A'}
+              <div class="small text-muted">${homeowner.email || 'No email'}</div>
+              <div class="days-overdue ${severityClass}">${daysSincePayment} days since last payment</div>
+            </td>
+            <td>₱${homeowner.monthlyDue || homeowner.dueAmount || '0.00'}</td>
+            <td>Monthly Due</td>
+            <td>
+              ${new Date(homeowner.lastPaymentDate || new Date()).toLocaleDateString()}<br>
+              <span class="small text-muted">${daysSincePayment} days ago</span>
+            </td>
+            <td>
+              <span class="status ${statusClass}">${statusDisplay}</span>
+              ${statusDisplay === 'Delinquent' ? `<div class="delinquent-days">${daysSincePayment} days</div>` : ''}
+            </td>
+            <td>
+              <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id}')">
+                View Details
+              </button>
+              <button class="btn btn-approve" onclick="sendReminder('${homeowner._id}')">
+                Send Reminder
+              </button>
+            </td>
+          `;
+          
+          tableBody.appendChild(row);
+        } catch (error) {
+          console.error('Error rendering homeowner:', error, homeowner);
+        }
+      });
+    }
 // Function to view homeowner details
 async function viewHomeownerDetails(homeownerId) {
   try {
@@ -897,71 +1110,50 @@ async function sendReminder(homeownerId) {
 
 // Function to render payments
 function renderPayments(payments) {
-  const tableBody = document.getElementById('paymentsTableBody');
-  
-  if (!payments || payments.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align: center;">No payments found.</td>
-      </tr>
-    `;
-    return;
-  }
-  
-  tableBody.innerHTML = '';
-  
-  payments.forEach(payment => {
-    try {
-      const row = document.createElement('tr');
-      
-      // Format date
-      const date = new Date(payment.timestamp || new Date()).toLocaleDateString();
-      const time = new Date(payment.timestamp || new Date()).toLocaleTimeString();
-      
-      // Determine status class
-      let statusClass = 'badge-secondary';
-      if (payment.status === 'approved') {
-        statusClass = 'badge-success';
-      } else if (payment.status === 'rejected') {
-        statusClass = 'badge-danger';
-      } else if (payment.status === 'pending') {
-        statusClass = 'badge-warning';
-      }
-      
-      row.innerHTML = `
-        <td>
-          ${payment.userName || 'N/A'}
-          <div class="small text-muted">${payment.userEmail || 'No email'}</div>
-        </td>
-        <td>₱${payment.amount || '0.00'}</td>
-        <td>${payment.paymentMethod || 'N/A'}</td>
-        <td>
-          ${date}<br>
-          <span class="small text-muted">${time}</span>
-        </td>
-        <td><span class="badge ${statusClass}">${payment.status || 'unknown'}</span></td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="viewPayment('${payment._id || ''}')">
-            View
-          </button>
-          ${payment.status === 'pending' ? `
-            <button class="btn btn-sm btn-success ml-1" onclick="approvePayment('${payment._id || ''}')">
-              Approve
-            </button>
-            <button class="btn btn-sm btn-danger ml-1" onclick="rejectPayment('${payment._id || ''}')">
-              Reject
-            </button>
-          ` : ''}
-        </td>
-      `;
-      
-      tableBody.appendChild(row);
-    } catch (error) {
-      console.error('Error rendering payment:', error, payment);
-    }
-  });
-}
+      const tableBody = document.getElementById('paymentsTableBody');
+      tableBody.innerHTML = '';
 
+      payments.forEach(payment => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${payment.homeowner.firstName} ${payment.homeowner.lastName}</td>
+          <td>₱${payment.amount}</td>
+          <td>${payment.description}</td>
+          <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+          <td><span class="status status-${payment.status.toLowerCase()}">${payment.status}</span></td>
+          <td>
+            <button class="btn btn-view" onclick="viewPaymentDetails('${payment._id}')">
+              View Details
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function viewHomeownerDetails(id) {
+      alert('View details for homeowner with ID: ' + id);
+    }
+
+    function approvePayment(id) {
+      alert('Approve payment for homeowner with ID: ' + id);
+    }
+
+    function sendReminder(id) {
+      alert('Send reminder to homeowner with ID: ' + id);
+    }
+
+    function updatePagination() {
+      const prevPageButton = document.getElementById('prevPage');
+      const nextPageButton = document.getElementById('nextPage');
+
+      prevPageButton.disabled = currentPage <= 1;
+      nextPageButton.disabled = currentPage >= totalPages;
+    }
+
+    function viewPaymentDetails(id) {
+      alert('View details for payment with ID: ' + id);
+    }
 // Function to update pagination
 function updatePagination() {
   const paginationElement = document.getElementById('pagination');
@@ -1013,49 +1205,36 @@ async function viewPayment(paymentId) {
       const payment = data.payment;
       
       // Populate modal with payment details
-      document.getElementById('paymentDetailsUserName').textContent = payment.userName || 'N/A';
-      document.getElementById('paymentDetailsUserEmail').textContent = payment.userEmail || 'N/A';
-      document.getElementById('paymentDetailsAmount').textContent = `₱${payment.amount || '0.00'}`;
-      document.getElementById('paymentDetailsMethod').textContent = payment.paymentMethod || 'N/A';
-      document.getElementById('paymentDetailsDate').textContent = new Date(payment.timestamp).toLocaleString();
-      document.getElementById('paymentDetailsStatus').textContent = payment.status || 'unknown';
-      
-      // Set status badge class
-      const statusBadge = document.getElementById('paymentDetailsStatusBadge');
-      statusBadge.className = 'badge';
-      if (payment.status === 'approved') {
-        statusBadge.classList.add('badge-success');
-      } else if (payment.status === 'rejected') {
-        statusBadge.classList.add('badge-danger');
-      } else if (payment.status === 'pending') {
-        statusBadge.classList.add('badge-warning');
-      } else {
-        statusBadge.classList.add('badge-secondary');
-      }
-      
-      // Show receipt image if available
-      const receiptContainer = document.getElementById('receiptImageContainer');
-      if (payment.receiptImage) {
-        receiptContainer.innerHTML = `<img src="${payment.receiptImage}" class="img-fluid" alt="Receipt">`;
-        receiptContainer.style.display = 'block';
-      } else {
-        receiptContainer.style.display = 'none';
-      }
-      
-      // Set payment ID for approve/reject buttons
-      document.getElementById('approvePaymentBtn').setAttribute('data-id', payment._id);
-      document.getElementById('rejectPaymentBtn').setAttribute('data-id', payment._id);
-      
-      // Show/hide approve/reject buttons based on status
-      const actionButtons = document.getElementById('paymentActionButtons');
-      if (payment.status === 'pending') {
-        actionButtons.style.display = 'block';
-      } else {
-        actionButtons.style.display = 'none';
-      }
+      document.getElementById('paymentDetails').innerHTML = `
+        <div class="payment-details">
+          <p><strong>Name:</strong> ${payment.userName || 'N/A'}</p>
+          <p><strong>Email:</strong> ${payment.userEmail || 'N/A'}</p>
+          <p><strong>Amount:</strong> ₱${payment.amount || '0.00'}</p>
+          <p><strong>Payment Method:</strong> ${payment.paymentMethod || 'N/A'}</p>
+          <p><strong>Date:</strong> ${new Date(payment.timestamp).toLocaleString()}</p>
+          <p><strong>Status:</strong> ${payment.status || 'unknown'}</p>
+          <p><strong>Address:</strong> ${payment.address || 'N/A'}</p>
+          ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
+        </div>
+        ${payment.receiptImage ? `
+          <div class="receipt-container">
+            <h3>Receipt</h3>
+            <img src="${payment.receiptImage}" class="receipt-image" alt="Receipt">
+          </div>
+        ` : ''}
+      `;
       
       // Show modal
-      $('#paymentDetailsModal').modal('show');
+      document.getElementById('viewModal').style.display = 'block';
+      
+      // Set up close button
+      document.getElementById('closeViewButton').onclick = function() {
+        document.getElementById('viewModal').style.display = 'none';
+      };
+      
+      document.getElementById('closeViewModal').onclick = function() {
+        document.getElementById('viewModal').style.display = 'none';
+      };
     } else {
       throw new Error(data.message || 'Failed to load payment details');
     }
@@ -1088,7 +1267,7 @@ async function approvePayment(paymentId) {
     if (data.success) {
       alert('Payment approved successfully!');
       // Close modal if open
-      $('#paymentDetailsModal').modal('hide');
+      document.getElementById('viewModal').style.display = 'none';
       // Reload payments
       loadPayments();
     } else {
@@ -1102,44 +1281,133 @@ async function approvePayment(paymentId) {
 
 // Function to reject payment
 async function rejectPayment(paymentId) {
-  const reason = prompt('Please enter a reason for rejecting this payment:');
+  // Show the reject modal
+  document.getElementById('rejectModal').style.display = 'block';
   
-  if (reason === null) {
-    return; // User cancelled
+  // Set up the cancel button
+  document.getElementById('cancelReject').onclick = function() {
+    document.getElementById('rejectModal').style.display = 'none';
+  };
+  
+  // Set up the close button
+  document.getElementById('closeRejectModal').onclick = function() {
+    document.getElementById('rejectModal').style.display = 'none';
+  };
+  
+  // Set up the confirm button
+  document.getElementById('confirmReject').onclick = async function() {
+    const reason = document.getElementById('rejectionReason').value.trim();
+    
+    if (!reason) {
+      alert('Please provide a reason for rejection.');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/monthly-payments/${paymentId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Payment rejected successfully!');
+        // Close modals
+        document.getElementById('rejectModal').style.display = 'none';
+        document.getElementById('viewModal').style.display = 'none';
+        // Reset form
+        document.getElementById('rejectionReason').value = '';
+        // Reload payments
+        loadPayments();
+      } else {
+        throw new Error(data.message || 'Failed to reject payment');
+      }
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      alert('Error rejecting payment. Please try again.');
+    }
+  };
+}
+
+// Function to open modal
+function openModal(modalId) {
+  document.getElementById(modalId).style.display = 'block';
+  
+  // If it's the report modal, set the current month as default
+  if (modalId === 'reportModal') {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    document.getElementById('startDate').value = formatDate(firstDay);
+    document.getElementById('endDate').value = formatDate(lastDay);
   }
+}
+
+// Function to close modal
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+}
+
+// Function to toggle custom date range
+function toggleCustomDateRange() {
+  const dateRange = document.getElementById('reportDateRange').value;
+  const customDateRange = document.getElementById('customDateRange');
   
-  if (!reason.trim()) {
-    alert('A reason is required to reject a payment.');
-    return;
+  if (dateRange === 'custom') {
+    customDateRange.style.display = 'block';
+  } else {
+    customDateRange.style.display = 'none';
   }
-  
+}
+
+// Function to format date for input fields
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Function to generate report
+function generateReport() {
   try {
-    const response = await fetch(`/api/monthly-payments/${paymentId}/reject`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ reason })
-    });
+    const reportType = document.getElementById('reportType').value;
+    const reportFormat = document.getElementById('reportFormat').value;
+    const reportDateRange = document.getElementById('reportDateRange').value;
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Build the URL with query parameters
+    let url = `/api/generate-payment-report?type=${reportType}&format=${reportFormat}&range=${reportDateRange}`;
+    
+    // Add custom date range if selected
+    if (reportDateRange === 'custom') {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      if (!startDate || !endDate) {
+        alert('Please select both start and end dates for custom range.');
+        return;
+      }
+      
+      url += `&startDate=${startDate}&endDate=${endDate}`;
     }
     
-    const data = await response.json();
+    // Open the URL in a new tab to download the report
+    window.open(url, '_blank');
     
-    if (data.success) {
-      alert('Payment rejected successfully!');
-      // Close modal if open
-      $('#paymentDetailsModal').modal('hide');
-      // Reload payments
-      loadPayments();
-    } else {
-      throw new Error(data.message || 'Failed to reject payment');
-    }
+    // Close the modal
+    closeModal('reportModal');
   } catch (error) {
-    console.error('Error rejecting payment:', error);
-    alert('Error rejecting payment. Please try again.');
+    console.error('Error generating report:', error);
+    alert('Error generating report. Please try again.');
   }
 }
 
