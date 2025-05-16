@@ -607,6 +607,7 @@
         </tbody>
       </table>
 
+      <!-- Due Payments Table -->
       <table class="payments-table" id="duePaymentsTable" style="display: none;">
         <thead>
           <tr>
@@ -723,30 +724,81 @@
   </div>
 
   <script>
-    // Add these variables at the top of your script section, after the closing </div> tag
-    let currentStatus = 'all';
-    let currentPage = 1;
-    let searchTerm = '';
-    let totalPages = 1;
+    // Global variables
+let currentStatus = "all";
+let currentPage = 1;
+let totalPages = 1;
+let searchTerm = "";
 
-    // Add the getTableBodyForStatus function
-    function getTableBodyForStatus(status) {
-      switch (status) {
-        case 'pending':
-          return document.getElementById('pendingPaymentsTableBody');
-        case 'due':
-          return document.getElementById('duePaymentsTableBody');
-        case 'approved':
-          return document.getElementById('approvedPaymentsTableBody');
-        case 'rejected':
-          return document.getElementById('rejectedPaymentsTableBody');
-        default:
-          return document.getElementById('paymentsTableBody');
+
+
+// Initialize the page
+document.addEventListener("DOMContentLoaded", function() {
+  // Set up tab click handlers
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const status = this.dataset.status;
+      switchTab(status);
+    });
+  });
+
+  // Set up search input handler
+  document.getElementById('searchInput').addEventListener('input', function() {
+    searchTerm = this.value;
+    currentPage = 1;
+    loadPayments();
+  });
+
+  // Load initial payments
+  loadPayments();
+
+  // Check authentication status
+  fetch('/api/check-auth', {
+    credentials: 'include'
+  })
+  .then(response => {
+    if (!response.ok) {
+      window.location.href = '/Webpages/login.html';
+    }
+  })
+  .catch(error => {
+    console.error('Auth check failed:', error);
+    window.location.href = '/Webpages/login.html';
+  });
+});
+
+// Function to switch tabs
+function switchTab(status) {
+      // Update active tab
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
+      
+      // Hide all tables
+      document.getElementById('allPaymentsTable').style.display = 'none';
+      document.getElementById('pendingPaymentsTable').style.display = 'none';
+      document.getElementById('duePaymentsTable').style.display = 'none';
+      
+      // Show the appropriate table
+      if (status === 'pending') {
+        document.getElementById('pendingPaymentsTable').style.display = 'table';
+      } else if (status === 'due') {
+        document.getElementById('duePaymentsTable').style.display = 'table';
+      } else {
+        document.getElementById('allPaymentsTable').style.display = 'table';
       }
+      
+      // Update current status and reset to page 1
+      currentStatus = status;
+      currentPage = 1;
+      
+      // Load payments for the selected status
+      loadPayments();
     }
 
-    // Updated loadPayments function
-    async function loadPayments() {
+// Function to load payments
+async function loadPayments() {
       try {
         // Show loading state
         const tableBody = getTableBodyForStatus(currentStatus);
@@ -754,14 +806,14 @@
           console.error('Table body not found for status:', currentStatus);
           return;
         }
-
+        
         tableBody.innerHTML = '<tr><td colspan="6" class="loading">Loading payments...</td></tr>';
-
+        
         // Build the API URL with filters
         let url;
         if (currentStatus === 'due') {
-          // Use the homeowners endpoint for due payments with proper URL encoding
-          url = '/api/homeowners?PStatus=' + encodeURIComponent('Almost Due,Delinquent');
+          // Use the homeowners endpoint for due payments
+          url = '/api/homeowners?PStatus=Almost due,Delinquent';
         } else {
           // Use the regular payments endpoint for other statuses
           url = `/api/monthly-payments?status=${currentStatus}&page=${currentPage}`;
@@ -769,50 +821,19 @@
             url += `&search=${encodeURIComponent(searchTerm)}`;
           }
         }
-
-        console.log('Fetching from URL:', url);
-
-        // Add proper headers for JSON response
-        const response = await fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
+        
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('Non-JSON response:', text);
-          throw new Error('Response is not JSON');
-        }
-
+        
         const data = await response.json();
-        console.log('Response data:', data);
-
+        
         if (data.success) {
           if (currentStatus === 'due') {
             // Handle homeowners with due payments
-            const dueHomeowners = data.homeowners || [];
-            console.log('Due homeowners:', dueHomeowners);
-            
-            if (dueHomeowners.length > 0) {
-              // Transform homeowners data to match the expected format
-              const transformedData = dueHomeowners.map(homeowner => ({
-                firstName: homeowner.firstName,
-                lastName: homeowner.lastName,
-                email: homeowner.email,
-                amount: homeowner.monthlyDue || homeowner.MDAmount || '1500.00',
-                lastPaymentDate: homeowner.lastPaymentDate,
-                PStatus: homeowner.PStatus,
-                _id: homeowner._id
-              }));
-              
-              renderPayments(transformedData);
+            if (data.homeowners && data.homeowners.length > 0) {
+              renderPayments(data.homeowners);
             } else {
               tableBody.innerHTML = `
                 <tr>
@@ -826,7 +847,7 @@
             // Handle regular payments
             if (data.payments && data.payments.length > 0) {
               renderPayments(data.payments);
-              // Update pagination
+              // Update pagination for regular payments
               totalPages = Math.ceil(data.total / data.perPage);
               updatePagination();
             } else {
@@ -849,8 +870,7 @@
           tableBody.innerHTML = `
             <tr>
               <td colspan="6" class="error-state">
-                <p>Error loading payments: ${error.message}</p>
-                <p>Please check the console for more details.</p>
+                <p>Error loading payments. Please try again.</p>
               </td>
             </tr>
           `;
@@ -858,202 +878,115 @@
       }
     }
 
-    // Function to switch tabs
-    function switchTab(status) {
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
-
-      // Hide all tables
-      document.querySelectorAll('.payments-table').forEach(table => {
-        table.style.display = 'none';
-      });
-
-      // Show the appropriate table
-      const tableId = status === 'due' ? 'duePaymentsTable' : 'allPaymentsTable';
-      document.getElementById(tableId).style.display = 'table';
-
-      currentStatus = status;
-      currentPage = 1;
-      loadPayments();
+    // Helper function to get the correct table body based on status
+    function getTableBodyForStatus(status) {
+      switch (status) {
+        case 'pending':
+          return document.getElementById('pendingPaymentsTableBody');
+        case 'due':
+          return document.getElementById('duePaymentsTableBody');
+        default:
+          return document.getElementById('paymentsTableBody');
+      }
     }
 
-    // Initialize the page
-    document.addEventListener('DOMContentLoaded', function() {
-      // Set up tab click handlers
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-          const status = this.dataset.status;
-          switchTab(status);
-        });
-      });
-
-      // Set up search input handler
-      const searchInput = document.getElementById('searchInput');
-      if (searchInput) {
-        searchInput.addEventListener('input', function() {
-          searchTerm = this.value;
-          currentPage = 1;
-          loadPayments();
-        });
-      }
-
-      // Load initial payments
-      loadPayments();
-    });
-
-    // Updated renderPayments function with better debugging and error handling
+    // Function to render payments
     function renderPayments(payments) {
-      console.log("renderPayments called with:", payments)
-
-      // Assuming these are defined in a higher scope or imported
-      // For demonstration purposes, let's define them here.
-      // In a real application, these should be properly imported or defined.
-      const currentStatus = window.currentStatus || "all" // Default to 'all' if not defined
-      const getTableBodyForStatus =
-        window.getTableBodyForStatus ||
-        ((status) => {
-          // Replace this with your actual logic to get the table body
-          // based on the status.  For example:
-          // if (status === 'due') return document.getElementById('due-payments-table-body');
-          // else if (status === 'paid') return document.getElementById('paid-payments-table-body');
-          // ... and so on.
-          return document.getElementById("all-payments-table-body") // Default
-        })
-
-      // Get the appropriate table body based on the current status
-      const tableBody = getTableBodyForStatus(currentStatus)
+      const tableBody = getTableBodyForStatus(currentStatus);
       if (!tableBody) {
-        console.error("Table body not found for status:", currentStatus)
-        return
+        console.error('Table body not found for status:', currentStatus);
+        return;
       }
+      
+      tableBody.innerHTML = '';
+      
+      payments.forEach(payment => {
+        const row = document.createElement('tr');
+        // Check if payment has homeowner data or if it's a direct homeowner object
+        const name = payment.homeowner ? 
+          `${payment.homeowner.firstName} ${payment.homeowner.lastName}` :
+          `${payment.firstName} ${payment.lastName}`;
+          
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>₱${payment.amount || payment.monthlyDue || '0'}</td>
+          <td>${payment.paymentMethod || 'N/A'}</td>
+          <td>${new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString()}</td>
+          <td><span class="status status-${(payment.status || payment.PStatus || '').toLowerCase()}">${payment.status || payment.PStatus || 'N/A'}</span></td>
+          <td>
+            <button class="btn btn-view" onclick="viewPaymentDetails('${payment._id}')">
+              View Details
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
 
-      tableBody.innerHTML = ""
-
-      if (!Array.isArray(payments)) {
-        console.error("Payments data is not an array:", payments)
-        tableBody.innerHTML = `
-          <tr>
-            <td colspan="6" class="error-state">
-              <p>Error: Invalid data format received.</p>
-              <p>Expected an array but got: ${typeof payments}</p>
-              <p>Check the console for more details.</p>
-            </td>
-          </tr>
-        `
-        return
-      }
-
-      if (payments.length === 0) {
+    // Function to render due payments
+    function renderDuePayments(homeowners) {
+      const tableBody = document.getElementById('duePaymentsTableBody');
+      if (!homeowners || homeowners.length === 0) {
         tableBody.innerHTML = `
           <tr>
             <td colspan="6" class="empty-state">
-              <p>No ${currentStatus === "all" ? "" : currentStatus} payments found.</p>
+              <p>No homeowners with due or delinquent payments found.</p>
             </td>
           </tr>
-        `
-        return
+        `;
+        return;
       }
 
-      console.log(`Rendering ${payments.length} payments for ${currentStatus} tab`)
-
-      payments.forEach((payment, index) => {
-        if (!payment) {
-          console.error(`Invalid payment object at index ${index}:`, payment)
-          return
+      tableBody.innerHTML = '';
+      
+      homeowners.forEach(homeowner => {
+        const row = document.createElement('tr');
+        
+        // Calculate days since last payment
+        const lastPaymentDate = new Date(homeowner.lastPaymentDate || new Date());
+        const today = new Date();
+        const daysSincePayment = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+        
+        // Determine payment status and styling
+        let statusClass = '';
+        let statusText = '';
+        let daysOverdueClass = '';
+        
+        if (homeowner.PStatus === 'Delinquent') {
+          statusClass = 'status-rejected';
+          statusText = 'Delinquent';
+          daysOverdueClass = 'overdue-severe';
+        } else if (homeowner.PStatus === 'Almost due') {
+          statusClass = 'status-pending';
+          statusText = 'Almost Due';
+          daysOverdueClass = 'overdue-moderate';
         }
-
-        const row = document.createElement("tr")
-
-        // Safely extract the name - handle both payment and homeowner objects
-        let name = "N/A"
-        try {
-          if (payment.userName) {
-            name = payment.userName
-          } else if (payment.firstName && payment.lastName) {
-            name = `${payment.firstName} ${payment.lastName}`
-          }
-        } catch (e) {
-          console.error("Error extracting name:", e)
-        }
-
-        // Safely extract amount - check all possible fields
-        const amount = payment.amount || payment.monthlyDue || payment.MDAmount || "1500.00"
-
-        // Safely extract other properties
-        const paymentMethod = payment.paymentMethod || "N/A"
-        const date = payment.timestamp || payment.lastPaymentDate || payment.createdAt || new Date()
-        const status = payment.status || payment.PStatus || payment.paymentStatus || "N/A"
-        const id = payment._id || ""
-
-        // For due payments, calculate days overdue
-        let daysOverdueHtml = ""
-        if (currentStatus === "due") {
-          // Use the calculated daysSincePayment if available, otherwise calculate it
-          let daysSincePayment = payment.daysSincePayment
-
-          if (daysSincePayment === undefined && payment.delinquentSince) {
-            const delinquentDate = new Date(payment.delinquentSince)
-            const today = new Date()
-            daysSincePayment = Math.floor((today - delinquentDate) / (1000 * 60 * 60 * 24))
-          } else if (daysSincePayment === undefined) {
-            daysSincePayment = 0
-          }
-
-          let overdueClass = "overdue-mild"
-          if (daysSincePayment > 60) {
-            overdueClass = "overdue-severe"
-          } else if (daysSincePayment > 30) {
-            overdueClass = "overdue-moderate"
-          }
-
-          daysOverdueHtml = `
-            <div class="days-overdue ${overdueClass}">
+        
+        row.innerHTML = `
+          <td>
+            ${homeowner.firstName} ${homeowner.lastName}
+            ${homeowner.email ? `<div class="small text-muted">${homeowner.email}</div>` : ''}
+          </td>
+          <td>₱${homeowner.monthlyDue || '5000.00'}</td>
+          <td>${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</td>
+          <td>
+            <span class="days-overdue ${daysOverdueClass}">
               ${daysSincePayment} days since last payment
-            </div>
-          `
-        }
-
-        // Create different row HTML based on the current tab
-        if (currentStatus === "due") {
-          row.innerHTML = `
-            <td>
-              ${name}
-              ${payment.email ? `<div class="small text-muted">${payment.email}</div>` : ""}
-            </td>
-            <td>₱${amount}</td>
-            <td>${new Date(date).toLocaleDateString()}</td>
-            <td>${daysOverdueHtml}</td>
-            <td><span class="status status-${status.toLowerCase().replace(/\s+/g, "-")}">${status}</span></td>
-            <td>
-              <button class="btn btn-view" onclick="viewPaymentDetails('${id}')">
-                View Details
-              </button>
-              <button class="btn btn-approve" onclick="sendReminder('${id}')">
-                Send Reminder
-              </button>
-            </td>
-          `
-        } else {
-          row.innerHTML = `
-            <td>${name}</td>
-            <td>₱${amount}</td>
-            <td>${paymentMethod}</td>
-            <td>${new Date(date).toLocaleDateString()}</td>
-            <td><span class="status status-${status.toLowerCase().replace(/\s+/g, "-")}">${status}</span></td>
-            <td>
-              <button class="btn btn-view" onclick="viewPaymentDetails('${id}')">
-                View Details
-              </button>
-            </td>
-          `
-        }
-
-        tableBody.appendChild(row)
-      })
-
-      console.log(`Rendered ${tableBody.children.length} payment rows`)
+            </span>
+          </td>
+          <td><span class="status ${statusClass}">${statusText}</span></td>
+          <td>
+            <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id}')">
+              View Details
+            </button>
+            <button class="btn btn-approve" onclick="sendReminder('${homeowner._id}')">
+              Send Reminder
+            </button>
+          </td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
     }
 
     // Function to view homeowner details
@@ -1161,6 +1094,32 @@
 
     function viewPaymentDetails(id) {
       alert('View details for payment with ID: ' + id);
+    }
+
+    // Function to update pagination
+    function updatePagination() {
+      const paginationElement = document.getElementById('pagination');
+      
+      if (totalPages <= 1) {
+        paginationElement.innerHTML = '';
+        return;
+      }
+      
+      let paginationHtml = `
+        <button class="btn btn-sm btn-outline-secondary" 
+                onclick="changePage(${currentPage - 1})" 
+                ${currentPage === 1 ? 'disabled' : ''}>
+          Previous
+        </button>
+        <span class="mx-2">Page ${currentPage} of ${totalPages}</span>
+        <button class="btn btn-sm btn-outline-secondary" 
+                onclick="changePage(${currentPage + 1})" 
+                ${currentPage === totalPages ? 'disabled' : ''}>
+          Next
+        </button>
+      `;
+      
+      paginationElement.innerHTML = paginationHtml;
     }
 
     // Function to view payment details
@@ -1399,7 +1358,6 @@
             alert("An error occurred during logout. Please try again.");
         }
     }
-
   </script>
   
 </body>
