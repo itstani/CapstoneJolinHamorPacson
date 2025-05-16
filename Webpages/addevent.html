@@ -620,12 +620,16 @@
       </div>
 
       <div id="eventTypeContainerP">
-        <label for="eventType">Will you exclusively use the pool?:</label>
-        <select id="eventType" name="eventType">
-          <option value="select">yes or no</option>
-          <option value="yes">yes</option>
-          <option value="no">no</option>
+        <label for="poolReservation">Pool Reservation Options:</label>
+        <select id="poolReservation" name="poolReservation" onchange="updatePoolPayment()">
+          <option value="no">Shared Pool Use</option>
+          <option value="yes">Exclusive Pool Reservation</option>
         </select>
+        <div id="poolPaymentInfo" style="margin-top: 15px; color: white;">
+          <p>Base Payment (₱100 per guest): <span id="basePayment">₱100</span></p>
+          <p id="reservationFee" style="display: none;">Reservation Fee: ₱1000</p>
+          <p>Total Payment: <span id="totalPayment">₱100</span></p>
+        </div>
       </div>
       
     <!-- guests --------------------------------------------------------->
@@ -860,6 +864,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (value > 30) value = 30;
             if (value < 1) value = 1;
             this.value = value;
+            updatePoolPayment();
         });
     }
 
@@ -878,6 +883,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    const guestNumber = parseInt(document.getElementById('guestNumber').value) || 1;
+    const isReserved = document.getElementById('poolReservation').value === 'yes';
+    const basePayment = guestNumber * 100;
+    const reservationFee = isReserved ? 1000 : 0;
+    const totalPayment = basePayment + reservationFee;
+
     const formData = {
                 HomeownerName: document.getElementById('HomeownerName')?.value || '',
                 eventName: document.getElementById('eventName')?.value || '',
@@ -886,8 +897,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 endTime: `${eventEndHour?.value || '9'}:${eventEndMinute?.value || '00'} ${eventEndAmPm?.value || 'AM'}`,
                 amenity: document.querySelector('input[name="amenity"]:checked')?.value || '',
         eventType: document.getElementById('eventType')?.value || '',
-                guests: {
-                    number: parseInt(document.getElementById('guestNumber')?.value || '1'),
+                poolReservation: {
+                    isReserved: isReserved,
+                    basePayment: basePayment,
+                    reservationFee: reservationFee,
+                    totalPayment: totalPayment
+                },
+        guests: {
+                    number: guestNumber,
                     names: guestNames
                 },
         homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
@@ -956,6 +973,97 @@ function closeCustomAlert() {
     if (alertElement) {
         alertElement.style.display = 'none';
 }
+}
+
+// Add this function to update the payment calculation
+function updatePoolPayment() {
+  const guestNumber = parseInt(document.getElementById('guestNumber').value) || 1;
+  const isReserved = document.getElementById('poolReservation').value === 'yes';
+  const basePayment = guestNumber * 100; // ₱100 per guest
+  const reservationFee = isReserved ? 1000 : 0; // Additional ₱1000 for reservation
+  const totalPayment = basePayment + reservationFee;
+
+  document.getElementById('basePayment').textContent = `₱${basePayment}`;
+  document.getElementById('reservationFee').style.display = isReserved ? 'block' : 'none';
+  document.getElementById('totalPayment').textContent = `₱${totalPayment}`;
+}
+
+// Update the existing guestNumber event listener
+document.getElementById('guestNumber').addEventListener('input', function() {
+  let value = parseInt(this.value) || 1;
+  if (value > 30) value = 30;
+  if (value < 1) value = 1;
+  this.value = value;
+  updatePoolPayment(); // Update payment when guest number changes
+});
+
+// Initialize payment calculation
+document.addEventListener('DOMContentLoaded', function() {
+  updatePoolPayment();
+});
+
+// Update the form submission to include pool reservation details
+const form = document.getElementById('eventForm');
+if (form) {
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const guestNames = [];
+    const guestInputs = document.querySelectorAll('.guest-name');
+    guestInputs.forEach(input => {
+      if (input.value.trim() !== '') {
+        guestNames.push(input.value.trim());
+      }
+    });
+
+    const guestNumber = parseInt(document.getElementById('guestNumber').value) || 1;
+    const isReserved = document.getElementById('poolReservation').value === 'yes';
+    const basePayment = guestNumber * 100;
+    const reservationFee = isReserved ? 1000 : 0;
+    const totalPayment = basePayment + reservationFee;
+
+    const formData = {
+      HomeownerName: document.getElementById('HomeownerName')?.value || '',
+      eventName: document.getElementById('eventName')?.value || '',
+      eventDate: document.getElementById('date')?.value || '',
+      startTime: `${eventStartHour?.value || '8'}:${eventStartMinute?.value || '00'} ${eventStartAmPm?.value || 'AM'}`,
+      endTime: `${eventEndHour?.value || '9'}:${eventEndMinute?.value || '00'} ${eventEndAmPm?.value || 'AM'}`,
+      amenity: document.querySelector('input[name="amenity"]:checked')?.value || '',
+      eventType: document.getElementById('eventType')?.value || '',
+      poolReservation: {
+        isReserved: isReserved,
+        basePayment: basePayment,
+        reservationFee: reservationFee,
+        totalPayment: totalPayment
+      },
+      guests: {
+        number: guestNumber,
+        names: guestNames
+      },
+      homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
+    };
+
+    try {
+      const response = await fetch('/addevent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        showSuccessModal();
+      } else {
+        alert(result.message || 'Failed to create event. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred. Please try again.');
+    }
+  });
 }
 </script>
 <div id="customAlert" class="custom-alert">

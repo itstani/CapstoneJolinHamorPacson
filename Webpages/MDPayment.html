@@ -382,7 +382,9 @@
             // Get user data from localStorage
             const userEmail = localStorage.getItem('email') || '';
             const userName = localStorage.getItem('username') || '';
-            const dueAmount = localStorage.getItem('dueAmount') || '0.00';
+            const dueAmount = localStorage.getItem('dueAmount') || '500.00';
+
+            //due amount should be 10 pesos per sqm per homeowner
             
             console.log("Retrieved from localStorage:", { userEmail, userName, dueAmount }); // Debug log
             

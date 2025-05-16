@@ -1615,10 +1615,20 @@ document.getElementById('generateAccountForm').addEventListener('submit', async 
                     homeownersWithoutAccounts.forEach(homeowner => {
                         const accountItem = document.createElement('div');
                         accountItem.className = 'account-item';
+                        
+                        // Format address properly
+                        let formattedAddress = 'No address';
+                        if (homeowner.Address && typeof homeowner.Address === 'object') {
+                            const block = homeowner.Address.Block ? homeowner.Address.Block.$numberInt || homeowner.Address.Block : '';
+                            const lot = homeowner.Address.Lot ? homeowner.Address.Lot.$numberInt || homeowner.Address.Lot : '';
+                            const phase = homeowner.Address.Phase ? homeowner.Address.Phase.$numberInt || homeowner.Address.Phase : '';
+                            formattedAddress = `Block ${block} Lot ${lot} Phase ${phase}`;
+                        }
+                        
                         accountItem.innerHTML = `
                             <div class="account-name">${homeowner.firstName} ${homeowner.lastName}</div>
                             <div class="account-email">${homeowner.email || 'No email'}</div>
-                            <div class="account-email">Address: ${homeowner.Address || 'No address'}</div>
+                            <div class="account-address">Address: ${formattedAddress}</div>
                         `;
                         accountsList.appendChild(accountItem);
                     });

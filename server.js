@@ -1049,9 +1049,9 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
   }
 })
 
-// Add this endpoint to server.js after other API endpoints
 app.get("/api/monthly-payments", async (req, res) => {
   try {
+    console.log("Monthly payments API called with status:", req.query.status)
     const db = await connectToDatabase()
     const paymentsCollection = db.collection("monthlyPayments")
     const homeownersCollection = db.collection("homeowners")
@@ -1063,83 +1063,141 @@ app.get("/api/monthly-payments", async (req, res) => {
     const skip = (page - 1) * limit
     const search = req.query.search || ""
 
+    console.log(`Processing request for status: ${status}, page: ${page}, search: "${search}"`)
+
     // Build the query
-    let query = {}
-    // Variable to store delinquent homeowners - declare it here so it's available throughout the function
-    let delinquentHomeowners = []
+    const query = {}
+    let payments = []
+    let totalPayments = 0
 
     if (status === "due") {
-      // For due payments, we need to get payments from delinquent homeowners
-      // First, get all delinquent homeowners
-      delinquentHomeowners = await homeownersCollection
-        .find({
-          $or: [{ paymentStatus: "Delinquent" }, { homeownerStatus: "Delinquent" }],
-        })
-        .toArray()
-
-      // Extract their emails
-      const delinquentEmails = delinquentHomeowners.map((h) => h.email)
-
-      // Find payments from these homeowners
-      query = { userEmail: { $in: delinquentEmails } }
+      console.log("Processing 'due' status request")
+      // For due payments, get homeowners with delinquent status
+      let homeownersQuery = {
+        $or: [
+          { PStatus: "Delinquent" },
+          { PStatus: "Almost Due" },
+          { paymentStatus: "Delinquent" },
+          { paymentStatus: "Not Paid" },
+          { homeownerStatus: "Delinquent" },
+        ],
+      }
 
       // Add search functionality if provided
       if (search) {
-        query.$and = [
-          { userEmail: { $in: delinquentEmails } },
-          {
-            $or: [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }],
-          },
-        ]
+        homeownersQuery = {
+          $and: [
+            homeownersQuery,
+            {
+              $or: [
+                { firstName: { $regex: search, $options: "i" } },
+                { lastName: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } },
+              ],
+            },
+          ],
+        }
       }
-    } else if (status !== "all") {
-      query.status = status
+
+      console.log("Homeowners query:", JSON.stringify(homeownersQuery))
+
+      // Get total count for pagination
+      totalPayments = await homeownersCollection.countDocuments(homeownersQuery)
+      console.log(`Found ${totalPayments} delinquent homeowners`)
+
+      // Get homeowners with pagination
+      const delinquentHomeowners = await homeownersCollection
+        .find(homeownersQuery)
+        .sort({ lastPaymentDate: 1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray()
+
+      console.log(`Retrieved ${delinquentHomeowners.length} homeowners for this page`)
+
+      // Process each homeowner to add necessary fields
+      // IMPORTANT: We're bypassing the address lookup to avoid the $numberInt error
+      payments = delinquentHomeowners.map((homeowner) => {
+        // Calculate days since last payment
+        let daysSincePayment = 0
+        let delinquentSince = null
+
+        if (homeowner.lastPaymentDate) {
+          delinquentSince = new Date(homeowner.lastPaymentDate)
+          const today = new Date()
+          daysSincePayment = Math.floor((today - delinquentSince) / (1000 * 60 * 60 * 24))
+        } else if (homeowner.createdAt) {
+          delinquentSince = new Date(homeowner.createdAt)
+          const today = new Date()
+          daysSincePayment = Math.floor((today - delinquentSince) / (1000 * 60 * 60 * 24))
+        } else {
+          delinquentSince = new Date()
+          daysSincePayment = 0
+        }
+
+        // Log the Address object structure for debugging
+        if (homeowner.Address) {
+          console.log("Homeowner Address structure:", JSON.stringify(homeowner.Address))
+        }
+
+        // Use default values for address-related fields
+        // This avoids the problematic address lookup
+        return {
+          _id: homeowner._id,
+          userName: `${homeowner.firstName || ""} ${homeowner.lastName || ""}`.trim(),
+          email: homeowner.email,
+          amount: homeowner.monthlyDue || "1500.00", // Default amount
+          monthlyDue: homeowner.monthlyDue || "1500.00",
+          MDAmount: "1500.00", // Default MDAmount
+          paymentMethod: "N/A",
+          timestamp: homeowner.lastPaymentDate || homeowner.createdAt || new Date(),
+          lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
+          status: homeowner.PStatus || homeowner.paymentStatus || homeowner.homeownerStatus || "Delinquent",
+          delinquentSince: delinquentSince,
+          daysSincePayment: daysSincePayment,
+          // Include original fields for reference
+          firstName: homeowner.firstName,
+          lastName: homeowner.lastName,
+        }
+      })
+
+      console.log(`Processed ${payments.length} payment objects`)
+    } else {
+      // For other statuses, use the existing logic
+      if (status !== "all") {
+        query.status = status
+      }
 
       // Add search functionality
       if (search) {
         query.$or = [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }]
       }
-    } else if (search) {
-      // Just search for all statuses
-      query.$or = [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }]
+
+      console.log("Payments query:", JSON.stringify(query))
+
+      // Get total count for pagination
+      totalPayments = await paymentsCollection.countDocuments(query)
+      console.log(`Found ${totalPayments} payments matching query`)
+
+      // Get payments with pagination
+      payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
+
+      console.log(`Retrieved ${payments.length} payments for this page`)
     }
 
-    // Get total count for pagination
-    const totalPayments = await paymentsCollection.countDocuments(query)
-
-    // Get payments with pagination
-    let payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
-
-    // If we're looking for due payments, add delinquent information
-    if (status === "due") {
-      // Create a map of homeowner data by email for quick lookup
-      const homeownerMap = {}
-      delinquentHomeowners.forEach((h) => {
-        homeownerMap[h.email] = h
-      })
-
-      // Enhance payment data with delinquent information
-      payments = payments.map((payment) => {
-        const homeowner = homeownerMap[payment.userEmail]
-        if (homeowner) {
-          return {
-            ...payment,
-            homeownerStatus: homeowner.homeownerStatus,
-            paymentStatus: homeowner.paymentStatus,
-            delinquentSince: homeowner.lastPaymentDate || homeowner.createdAt || payment.timestamp,
-          }
-        }
-        return payment
-      })
-    }
-
-    res.json({
+    // Send the response with consistent format
+    const response = {
       success: true,
-      payments,
+      payments: payments,
+      totalPayments: totalPayments,
+      perPage: limit,
+      itemsPerPage: limit, // Added for compatibility
       currentPage: page,
       totalPages: Math.ceil(totalPayments / limit) || 1,
-      totalPayments,
-    })
+    }
+
+    console.log(`Sending response with ${payments.length} payments`)
+    res.json(response)
   } catch (error) {
     console.error("Error fetching monthly payments:", error)
     res.status(500).json({
@@ -1149,6 +1207,35 @@ app.get("/api/monthly-payments", async (req, res) => {
     })
   }
 })
+
+// Add this function to your server.js to log the structure of the Address object
+function logAddressStructure(address) {
+  if (!address) {
+    console.log("Address is null or undefined")
+    return
+  }
+
+  console.log("Address object keys:", Object.keys(address))
+
+  // Log each property and its type
+  Object.entries(address).forEach(([key, value]) => {
+    console.log(`Address.${key}:`, {
+      value: value,
+      type: typeof value,
+      isObject: typeof value === "object",
+      isArray: Array.isArray(value),
+      constructor: value && value.constructor ? value.constructor.name : "N/A",
+    })
+
+    // If it's an object, log its structure too
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      console.log(`Address.${key} properties:`, Object.keys(value))
+    }
+  })
+}
+
+    
+
 
 app.get("/api/monthly-payments/:id", async (req, res) => {
   try {
@@ -4275,41 +4362,45 @@ app.get("/api/payment-report", async (req, res) => {
 
 app.post("/api/homeowners/generate-account", async (req, res) => {
   try {
-    const { firstName, lastName, address, phoneNumber, landLine, paymentStatus, carStickerStatus } = req.body
+    const { firstName, lastName, address, phoneNumber, landLine, paymentStatus, carStickerStatus } = req.body;
 
     if (!firstName || !lastName || !address || !phoneNumber) {
       return res.status(400).json({
         success: false,
         error: "Missing required fields",
-      })
+      });
     }
 
-    const db = await connectToDatabase()
-    const homeownersCollection = db.collection("homeowners")
-    const accCollection = db.collection("acc")
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    const accCollection = db.collection("acc");
 
-    // Generate username and email
-    const username =
-      (firstName.charAt(0) + lastName).toLowerCase().replace(/\s+/g, "") + Math.floor(100 + Math.random() * 900)
-    const email = username + "@example.com"
+    // Extract last digits of landline if available
+    const landlineLastDigits = landLine ? landLine.slice(-4) : Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Generate username in new format: LastInitialFirstInitialASCYearLandlineLastDigits
+    const currentYear = new Date().getFullYear();
+    const username = `${lastName.charAt(0)}${firstName.charAt(0)}ASC${currentYear}${landlineLastDigits}`.toUpperCase();
+
+    // Generate email (no longer required for display but kept for system functionality)
+    const systemEmail = `${username.toLowerCase()}@asc.system`;
 
     // Extract block and lot numbers from address
-    const blockMatch = address.match(/Block\s+(\d+)/i)
-    const lotMatch = address.match(/Lot\s+(\d+)/i)
+    const blockMatch = address.match(/Block\s+(\d+)/i);
+    const lotMatch = address.match(/Lot\s+(\d+)/i);
 
     if (!blockMatch || !lotMatch) {
       return res.status(400).json({
         success: false,
         error: "Address must contain valid Block and Lot numbers",
-      })
+      });
     }
 
-    const blockNumber = blockMatch[1]
-    const lotNumber = lotMatch[1]
-    const currentYear = new Date().getFullYear()
+    const blockNumber = blockMatch[1];
+    const lotNumber = lotMatch[1];
 
     // Generate password in the format: ASC + block + lot + year + !
-    const password = `ASC${blockNumber}${lotNumber}${currentYear}!`
+    const password = `ASC${blockNumber}${lotNumber}${currentYear}!`;
 
     // Check if username or email already exists
     const existingUser = await accCollection.findOne({
@@ -5569,6 +5660,99 @@ app.post('/api/check-dashboard-access', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'An error occurred while checking access.'
+    });
+  }
+});
+
+// Add this route handler for fetching homeowners with due payments
+app.get('/api/homeowners', requireAuth, async (req, res) => {
+  try {
+    const { PStatus } = req.query;
+    let query = {};
+
+    // If PStatus is provided, split it into an array and use $in operator
+    if (PStatus) {
+      const statusArray = PStatus.split(',').map(status => status.trim());
+      query.PStatus = { $in: statusArray };
+    }
+
+    const db = getClient();
+    const homeowners = await db.collection('homeowners')
+      .find(query)
+      .toArray();
+
+    res.json({
+      success: true,
+      homeowners: homeowners.map(homeowner => ({
+        _id: homeowner._id,
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        email: homeowner.email,
+        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        lastPaymentDate: homeowner.lastPaymentDate || new Date(),
+        PStatus: homeowner.PStatus || 'N/A',
+        delinquentSince: homeowner.delinquentSince,
+        daysSincePayment: homeowner.lastPaymentDate ? 
+          Math.floor((new Date() - new Date(homeowner.lastPaymentDate)) / (1000 * 60 * 60 * 24)) : 
+          0
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching homeowners:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch homeowners'
+    });
+  }
+});
+
+// Add this route handler for sending payment reminders
+app.post('/api/homeowners/:id/reminder', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getClient();
+    
+    // Find the homeowner
+    const homeowner = await db.collection('homeowners').findOne({ _id: ObjectId(id) });
+    
+    if (!homeowner) {
+      return res.status(404).json({
+        success: false,
+        message: 'Homeowner not found'
+      });
+    }
+
+    // Create a notification for the homeowner
+    await createNotification(
+      homeowner.email,
+      'payment_reminder',
+      `This is a reminder that your monthly payment is due.`,
+      homeowner._id,
+      'Payment Reminder',
+      null,
+      {
+        amount: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        dueDate: new Date(),
+        status: homeowner.PStatus
+      }
+    );
+
+    // Log the reminder activity
+    await logActivity('payment_reminder_sent', {
+      homeownerId: homeowner._id,
+      homeownerName: `${homeowner.firstName} ${homeowner.lastName}`,
+      email: homeowner.email
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment reminder sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending payment reminder:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send payment reminder'
     });
   }
 });
