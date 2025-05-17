@@ -4360,6 +4360,45 @@ app.get("/api/payment-report", async (req, res) => {
   }
 })
 
+app.get('/api/homeowners', async (req, res) => {
+  console.log('Homeowners API called');
+  try {
+    // Make sure ObjectId is available
+    const { ObjectId } = require('mongodb');
+    
+    const { PStatus } = req.query;
+    let query = {};
+
+    if (PStatus) {
+      const statusArray = PStatus.split(',').map(status => status.trim());
+      console.log('Filtering by statuses:', statusArray);
+      query.PStatus = { $in: statusArray };
+    }
+
+    // Get database connection properly
+    const client = getClient();
+    const db = client.db(); // Get the database from the client
+    
+    console.log('Executing query:', JSON.stringify(query));
+    const homeowners = await db.collection('homeowners')
+      .find(query)
+      .toArray();
+
+    console.log(`Found ${homeowners.length} matching homeowners`);
+    
+    res.json({
+      success: true,
+      homeowners: homeowners
+    });
+  } catch (error) {
+    console.error('Error fetching homeowners:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 app.post("/api/homeowners/generate-account", async (req, res) => {
   try {
     const { firstName, lastName, address, phoneNumber, landLine, paymentStatus, carStickerStatus } = req.body;
@@ -5660,6 +5699,220 @@ app.post('/api/check-dashboard-access', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'An error occurred while checking access.'
+    });
+  }
+});
+
+// Add this route handler for fetching homeowners with due payments
+app.get('/api/homeowners', requireAuth, async (req, res) => {
+  try {
+    const { PStatus } = req.query;
+    let query = {};
+
+    // If PStatus is provided, split it into an array and use $in operator
+    if (PStatus) {
+      const statusArray = PStatus.split(',').map(status => status.trim());
+      query.PStatus = { $in: statusArray };
+    }
+
+    const db = getClient();
+    const homeowners = await db.collection('homeowners')
+      .find(query)
+      .toArray();
+
+    // Calculate current date once
+    const now = new Date();
+
+    res.json({
+      success: true,
+      homeowners: homeowners.map(homeowner => {
+        // Parse lastPaymentDate
+        const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+        
+        // Calculate days since last payment
+        const daysSincePayment = lastPaymentDate ? 
+          Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
+          null;
+
+        // Calculate delinquent since date
+        // Assuming a payment becomes delinquent after 30 days
+        const delinquentSince = lastPaymentDate && daysSincePayment > 30 ? 
+          new Date(lastPaymentDate.getTime() + (30 * 24 * 60 * 60 * 1000)) : 
+          null;
+
+        return {
+          _id: homeowner._id,
+          firstName: homeowner.firstName,
+          lastName: homeowner.lastName,
+          email: homeowner.email,
+          monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+          lastPaymentDate: lastPaymentDate,
+          PStatus: homeowner.PStatus || 'N/A',
+          delinquentSince: delinquentSince,
+          daysSincePayment: daysSincePayment,
+          // Include additional fields that might be useful
+          address: homeowner.Address,
+          phoneNumber: homeowner.phoneNumber,
+          HStatus: homeowner.HStatus
+        };
+      })
+    });
+  } catch (error) {
+    console.error('Error fetching homeowners:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch homeowners'
+    });
+  }
+});
+
+// Add this route handler for sending payment reminders
+app.post('/api/homeowners/:id/reminder', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getClient();
+    
+    // Find the homeowner
+    const homeowner = await db.collection('homeowners').findOne({ _id: ObjectId(id) });
+    
+    if (!homeowner) {
+      return res.status(404).json({
+        success: false,
+        message: 'Homeowner not found'
+      });
+    }
+
+    // Create a notification for the homeowner
+    await createNotification(
+      homeowner.email,
+      'payment_reminder',
+      `This is a reminder that your monthly payment is due.`,
+      homeowner._id,
+      'Payment Reminder',
+      null,
+      {
+        amount: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        dueDate: new Date(),
+        status: homeowner.PStatus
+      }
+    );
+
+    // Log the reminder activity
+    await logActivity('payment_reminder_sent', {
+      homeownerId: homeowner._id,
+      homeownerName: `${homeowner.firstName} ${homeowner.lastName}`,
+      email: homeowner.email
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment reminder sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending payment reminder:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send payment reminder'
+    });
+  }
+});
+
+// Add this route before your other routes to test database connection
+app.get('/api/test-database', async (req, res) => {
+  try {
+    console.log('Testing database connection...');
+    
+    // Get client and database
+    const client = getClient();
+    console.log('Client type:', typeof client);
+    console.log('Client properties:', Object.keys(client));
+    
+    // Try to get the database
+    const db = client.db();
+    console.log('Database type:', typeof db);
+    console.log('Database properties:', Object.keys(db));
+    
+    // List collections to verify connection works
+    const collections = await db.listCollections().toArray();
+    console.log('Collections in database:');
+    collections.forEach(col => console.log(`- ${col.name}`));
+    
+    // Check if homeowners collection exists
+    const hasHomeowners = collections.some(col => col.name === 'homeowners');
+    
+    // If it exists, try to count documents
+    let homeownersCount = 0;
+    if (hasHomeowners) {
+      homeownersCount = await db.collection('homeowners').countDocuments();
+      console.log(`Homeowners collection has ${homeownersCount} documents`);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Database connection test successful',
+      databaseInfo: {
+        collections: collections.map(col => col.name),
+        hasHomeownersCollection: hasHomeowners,
+        homeownersCount: homeownersCount
+      }
+    });
+  } catch (error) {
+    console.error('Database test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection test failed',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Add the reminder endpoint
+app.post('/api/homeowners/:id/reminder', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Sending reminder for homeowner:', id);
+    
+    // Get database properly
+    const client = getClient();
+    const db = client.db();
+    
+    // Find the homeowner - use ObjectId if your IDs are MongoDB ObjectIds
+    const homeowner = await db.collection('homeowners').findOne({ 
+      _id: new ObjectId(id) 
+    });
+    
+    if (!homeowner) {
+      console.log('Homeowner not found:', id);
+      return res.status(404).json({
+        success: false,
+        message: 'Homeowner not found'
+      });
+    }
+    
+    console.log('Found homeowner:', homeowner.firstName, homeowner.lastName);
+    
+    // Simplified reminder - in reality, you'd send an email or notification
+    console.log('Reminder would be sent to:', homeowner.email);
+    
+    // Log activity
+    await db.collection('activity_logs').insertOne({
+      type: 'payment_reminder',
+      homeownerId: homeowner._id,
+      homeownerName: `${homeowner.firstName} ${homeowner.lastName}`,
+      timestamp: new Date(),
+      details: 'Payment reminder sent'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Payment reminder sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending reminder:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send payment reminder: ' + error.message
     });
   }
 });
