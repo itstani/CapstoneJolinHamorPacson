@@ -4370,25 +4370,78 @@ app.get('/api/homeowners', async (req, res) => {
     let query = {};
 
     if (PStatus) {
+      // Split the comma-separated PStatus values
       const statusArray = PStatus.split(',').map(status => status.trim());
-      console.log('Filtering by statuses:', statusArray);
+      console.log('Looking for homeowners with PStatus in:', statusArray);
+      
       query.PStatus = { $in: statusArray };
+      
+
     }
 
     // Get database connection properly
     const client = getClient();
     const db = client.db(); // Get the database from the client
     
-    console.log('Executing query:', JSON.stringify(query));
+    console.log('Executing MongoDB query:', JSON.stringify(query));
+    
+    // First check if the homeowners collection exists
+    const collections = await db.listCollections({ name: 'homeowners' }).toArray();
+    if (collections.length === 0) {
+      console.error('homeowners collection does not exist!');
+      return res.json({
+        success: true,
+        homeowners: [],
+        message: 'Collection not found'
+      });
+    }
+
+    // Get a sample document to see the structure
+    const sampleHomeowner = await db.collection('homeowners').findOne({});
+    console.log('Sample homeowner document:', sampleHomeowner);
+    
+    // Now execute the main query
     const homeowners = await db.collection('homeowners')
       .find(query)
       .toArray();
 
-    console.log(`Found ${homeowners.length} matching homeowners`);
+    console.log(`Found ${homeowners.length} matching homeowners with query:`, query);
+    if (homeowners.length > 0) {
+      console.log('First matching homeowner:', homeowners[0]);
+    }
     
+    // Calculate current date once
+    const now = new Date();
+    
+    const transformedHomeowners = homeowners.map(homeowner => {
+      // Parse lastPaymentDate
+      let lastPaymentDate = null;
+      try {
+        lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+      } catch (e) {
+        console.error('Error parsing lastPaymentDate:', e);
+      }
+      
+      // Calculate days since last payment
+      const daysSincePayment = lastPaymentDate ? 
+        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
+        null;
+
+      return {
+        _id: homeowner._id,
+        firstName: homeowner.firstName || 'Unknown',
+        lastName: homeowner.lastName || 'Homeowner',
+        email: homeowner.email || '',
+        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        lastPaymentDate: lastPaymentDate,
+        PStatus: homeowner.PStatus || 'N/A',
+        daysSincePayment: daysSincePayment || 0
+      };
+    });
+
     res.json({
       success: true,
-      homeowners: homeowners
+      homeowners: transformedHomeowners
     });
   } catch (error) {
     console.error('Error fetching homeowners:', error);
@@ -5913,6 +5966,91 @@ app.post('/api/homeowners/:id/reminder', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to send payment reminder: ' + error.message
+    });
+  }
+});
+
+app.get('/api/homeowners', async (req, res) => {
+  console.log('Homeowners API called');
+  try {
+    // Make sure ObjectId is available
+    const { ObjectId } = require('mongodb');
+    
+    const { PStatus } = req.query;
+    let query = {};
+
+    if (PStatus) {
+      // Split the comma-separated PStatus values
+      const statusArray = PStatus.split(',').map(status => status.trim());
+      console.log('Looking for homeowners with PStatus in:', statusArray);
+      
+      // Create a query that matches either status
+      query.PStatus = { $in: statusArray };
+    }
+
+    console.log('Query:', JSON.stringify(query));
+    
+    // Use the same endpoint that hotable.html uses to get homeowners
+    const response = await fetch('/getHomeowners');
+    if (!response.ok) {
+      throw new Error(`Error fetching homeowners: ${response.status}`);
+    }
+    
+    // Get all homeowners
+    let allHomeowners = await response.json();
+    console.log(`Fetched ${allHomeowners.length} homeowners`);
+    
+    // Filter them based on the PStatus query
+    let filteredHomeowners = allHomeowners;
+    if (query.PStatus && query.PStatus.$in) {
+      filteredHomeowners = allHomeowners.filter(homeowner => 
+        query.PStatus.$in.includes(homeowner.PStatus)
+      );
+    }
+    
+    console.log(`Filtered to ${filteredHomeowners.length} homeowners with matching PStatus`);
+    
+    // Transform homeowners data to include calculated fields
+    const now = new Date();
+    const transformedHomeowners = filteredHomeowners.map(homeowner => {
+      // Parse lastPaymentDate
+      let lastPaymentDate = null;
+      try {
+        lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+      } catch (e) {
+        console.error('Error parsing lastPaymentDate:', e);
+      }
+      
+      // Calculate days since last payment
+      const daysSincePayment = lastPaymentDate ? 
+        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
+        30; // Default to 30 days if no last payment date
+        
+      return {
+        _id: homeowner._id,
+        firstName: homeowner.firstName || 'Unknown',
+        lastName: homeowner.lastName || 'Homeowner',
+        email: homeowner.email || '',
+        phoneNumber: homeowner.phoneNumber || '',
+        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        lastPaymentDate: lastPaymentDate,
+        PStatus: homeowner.PStatus || 'N/A',
+        HStatus: homeowner.HStatus || 'N/A',
+        carSticker: homeowner.carSticker || 'undetermined',
+        Address: homeowner.Address || {},
+        daysSincePayment: daysSincePayment
+      };
+    });
+    
+    res.json({
+      success: true,
+      homeowners: transformedHomeowners
+    });
+  } catch (error) {
+    console.error('Error fetching homeowners:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 });
