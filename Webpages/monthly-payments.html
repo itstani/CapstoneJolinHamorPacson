@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+```typescriptreact file="monthly-payments.html"
+[v0-no-op-code-block-prefix]<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -747,117 +748,132 @@
     }
 
     // Updated loadPayments function
-    async function loadPayments() {
-      try {
-        // Show loading state
-        const tableBody = getTableBodyForStatus(currentStatus);
-        if (!tableBody) {
-          console.error('Table body not found for status:', currentStatus);
-          return;
-        }
+    function loadPayments() {
+  try {
+    // Show loading state
+    const tableBody = getTableBodyForStatus(currentStatus);
+    if (!tableBody) {
+      console.error('Table body not found for status:', currentStatus);
+      return;
+    }
 
-        tableBody.innerHTML = '<tr><td colspan="6" class="loading">Loading payments...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="6" class="loading">Loading payments...</td></tr>';
 
-        // Build the API URL with filters
-        let url;
-        if (currentStatus === 'due') {
-          // Use the homeowners endpoint for due payments with proper URL encoding
-          url = '/api/homeowners?PStatus=' + encodeURIComponent('Almost Due,Delinquent');
-        } else {
-          // Use the regular payments endpoint for other statuses
-          url = `/api/monthly-payments?status=${currentStatus}&page=${currentPage}`;
-          if (searchTerm) {
-            url += `&search=${encodeURIComponent(searchTerm)}`;
-          }
-        }
-
-        console.log('Fetching from URL:', url);
-
-        // Add proper headers for JSON response
-        const response = await fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('Non-JSON response:', text);
-          throw new Error('Response is not JSON');
-        }
-
-        const data = await response.json();
-        console.log('Response data:', data);
-
-        if (data.success) {
-          if (currentStatus === 'due') {
-            // Handle homeowners with due payments
-            const dueHomeowners = data.homeowners || [];
-            console.log('Due homeowners:', dueHomeowners);
-            
-            if (dueHomeowners.length > 0) {
-              // Transform homeowners data to match the expected format
-              const transformedData = dueHomeowners.map(homeowner => ({
-                firstName: homeowner.firstName,
-                lastName: homeowner.lastName,
-                email: homeowner.email,
-                amount: homeowner.monthlyDue || homeowner.MDAmount || '1500.00',
-                lastPaymentDate: homeowner.lastPaymentDate,
-                PStatus: homeowner.PStatus,
-                _id: homeowner._id
-              }));
-              
-              renderPayments(transformedData);
-            } else {
-              tableBody.innerHTML = `
-                <tr>
-                  <td colspan="6" class="empty-state">
-                    <p>No homeowners with due or delinquent payments found.</p>
-                  </td>
-                </tr>
-              `;
-            }
-          } else {
-            // Handle regular payments
-            if (data.payments && data.payments.length > 0) {
-              renderPayments(data.payments);
-              // Update pagination
-              totalPages = Math.ceil(data.total / data.perPage);
-              updatePagination();
-            } else {
-              tableBody.innerHTML = `
-                <tr>
-                  <td colspan="6" class="empty-state">
-                    <p>No ${currentStatus === 'all' ? '' : currentStatus} payments found.</p>
-                  </td>
-                </tr>
-              `;
-            }
-          }
-        } else {
-          throw new Error(data.message || 'Failed to load data');
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        const tableBody = getTableBodyForStatus(currentStatus);
-        if (tableBody) {
-          tableBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="error-state">
-                <p>Error loading payments: ${error.message}</p>
-                <p>Please check the console for more details.</p>
-              </td>
-            </tr>
-          `;
-        }
+    // Build the API URL with filters
+    let url;
+    if (currentStatus === 'due') {
+      // Use the homeowners endpoint for due payments with proper URL encoding
+      url = `/api/homeowners?PStatus=${encodeURIComponent('Almost Due,Delinquent')}`;
+    } else {
+      // Use the regular payments endpoint for other statuses
+      url = `/api/monthly-payments?status=${currentStatus}&page=${currentPage}`;
+      if (searchTerm) {
+        url += `&search=${encodeURIComponent(searchTerm)}`;
       }
     }
+
+    console.log('Fetching from URL:', url);
+
+    // Add proper headers for JSON response
+    fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        return response.text().then(text => {
+          console.error('Non-JSON response:', text);
+          throw new Error('Response is not JSON');
+        });
+      }
+      
+      return response.json();
+    })
+    .then(data => {
+      console.log('Response data:', data);
+      
+      if (data.success) {
+        if (currentStatus === 'due') {
+          // Handle homeowners with due payments
+          const dueHomeowners = data.homeowners || [];
+          console.log('Due homeowners:', dueHomeowners);
+          
+          if (dueHomeowners.length > 0) {
+            // Transform homeowners data to match the expected format
+            const transformedData = dueHomeowners.map(homeowner => ({
+              firstName: homeowner.firstName,
+              lastName: homeowner.lastName,
+              email: homeowner.email,
+              amount: homeowner.monthlyDue || homeowner.MDAmount || '1500.00',
+              lastPaymentDate: homeowner.lastPaymentDate,
+              PStatus: homeowner.PStatus,
+              _id: homeowner._id
+            }));
+            
+            renderPayments(transformedData);
+          } else {
+            tableBody.innerHTML = `
+              <tr>
+                <td colspan="6" class="empty-state">
+                  <p>No homeowners with due or delinquent payments found.</p>
+                </td>
+              </tr>
+            `;
+          }
+        } else {
+          // Handle regular payments
+          if (data.payments && data.payments.length > 0) {
+            renderPayments(data.payments);
+            // Update pagination
+            totalPages = Math.ceil(data.total / data.perPage);
+            updatePagination();
+          } else {
+            tableBody.innerHTML = `
+              <tr>
+                <td colspan="6" class="empty-state">
+                  <p>No ${currentStatus === 'all' ? '' : currentStatus} payments found.</p>
+                </td>
+              </tr>
+            `;
+          }
+        }
+      } else {
+        throw new Error(data.message || 'Failed to load data');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading data:', error);
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="error-state">
+            <p>Error loading payments: ${error.message}</p>
+            <p>Please check the console for more details.</p>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (error) {
+    console.error('Error in loadPayments function:', error);
+    const tableBody = getTableBodyForStatus(currentStatus);
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="error-state">
+            <p>Error loading payments: ${error.message}</p>
+            <p>Please check the console for more details.</p>
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
 
     // Function to switch tabs
     function switchTab(status) {
