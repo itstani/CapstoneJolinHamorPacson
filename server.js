@@ -5687,13 +5687,13 @@ app.post('/api/homeowners/:id/reminder', async (req, res) => {
         message: 'Homeowner not found'
       });
     }
-    
+
     // In a real application, you would send an email or notification here
     console.log(`Sending payment reminder to ${homeowner.firstName} ${homeowner.lastName} (${homeowner.email})`);
     
     // Log the activity
     await logActivity('paymentReminder', `Payment reminder sent to ${homeowner.firstName} ${homeowner.lastName}`);
-    
+
     res.json({
       success: true,
       message: 'Payment reminder sent successfully'
@@ -6052,3 +6052,50 @@ async function startServer() {
     process.exit(1)
   }
 }
+
+// ... existing code ...
+
+// Endpoint to check homeowners with Almost Due or Delinquent status
+app.get("/api/check-homeowners-due", requireAuth, async (req, res) => {
+  try {
+    console.log("API Call: /api/check-homeowners-due");
+    console.log("Session:", req.session);
+    console.log("Query:", req.query);
+
+    const client = await connectToDatabase();
+    const db = client.db("ASC");
+    const homeownersCollection = db.collection("homeowners");
+
+    // Construct query for Almost Due or Delinquent status
+    const query = {
+      PStatus: { $in: ["Almost Due", "Delinquent"] }
+    };
+
+    console.log("Final query:", JSON.stringify(query));
+
+    // Fetch homeowners with the specified status
+    const homeowners = await homeownersCollection.find(query).toArray();
+    console.log(`Found ${homeowners.length} homeowners with Almost Due or Delinquent status`);
+
+    // Transform the data to include calculated fields
+    const transformedHomeowners = homeowners.map(homeowner => {
+      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+      const daysSincePayment = lastPaymentDate ? Math.floor((new Date() - lastPaymentDate) / (1000 * 60 * 60 * 24)) : null;
+      const delinquentSince = homeowner.delinquentSince ? new Date(homeowner.delinquentSince) : null;
+
+      return {
+        ...homeowner,
+        daysSincePayment,
+        delinquentSince: delinquentSince ? delinquentSince.toISOString() : null,
+        lastPaymentDate: lastPaymentDate ? lastPaymentDate.toISOString() : null
+      };
+    });
+
+    res.json({ data: transformedHomeowners });
+  } catch (error) {
+    console.error("Error in /api/check-homeowners-due:", error);
+    res.status(500).json({ error: "Failed to fetch homeowners" });
+  }
+});
+
+// ... existing code ...

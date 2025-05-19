@@ -797,7 +797,7 @@
         const paymentsContainer = document.getElementById('paymentsContainer');
         const tableBody = document.getElementById('paymentsTableBody');
         
-        // Show loading state
+    // Show loading state
         tableBody.innerHTML = `
           <tr>
             <td colspan="6" style="text-align: center;">Loading ${currentStatus === 'due' ? 'delinquent homeowners' : 'payments'}...</td>
@@ -812,9 +812,9 @@
         if (!authCheck.ok) {
           console.log('Auth check failed:', authCheck.status);
           window.location.href = '/Webpages/login.html';
-          return;
-        }
-        
+      return;
+    }
+
         const authData = await authCheck.json();
         if (!authData.authenticated || authData.user.role !== 'admin') {
           console.log('Session expired or not admin, redirecting to login');
@@ -823,34 +823,34 @@
         }
         
         let response;
-        if (currentStatus === 'due') {
+    if (currentStatus === 'due') {
           const params = new URLSearchParams({
             page: currentPage,
             limit: 10
           });
           
-          if (searchTerm) {
+      if (searchTerm) {
             params.append('search', searchTerm);
-          }
-          
+    }
+
           console.log('Fetching delinquent homeowners with params:', params.toString());
-          
+
           // Use the check-homeowners-due endpoint for due payments
           response = await fetch(`/api/check-homeowners-due?${params.toString()}`, {
             credentials: 'include',
-            headers: {
-              'Accept': 'application/json',
+      headers: {
+        'Accept': 'application/json',
               'Cache-Control': 'no-cache'
             }
           });
           
           console.log('Delinquent homeowners response status:', response.status);
           
-          if (!response.ok) {
+      if (!response.ok) {
             const errorText = await response.text();
             console.error('Error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
         } else {
           // Fetch regular payments
           const params = new URLSearchParams({
@@ -902,48 +902,48 @@
             // Handle delinquent homeowners
             if (Array.isArray(data.homeowners)) {
               renderDelinquentHomeowners(data.homeowners);
-            } else {
-              console.error("Expected homeowners array but got:", data.homeowners);
-              tableBody.innerHTML = `
-                <tr>
-                  <td colspan="6" style="text-align: center; color: #721c24;">
-                    Error: Invalid data format received from server
-                  </td>
-                </tr>
-              `;
-            }
           } else {
-            // Handle regular payments
-            if (Array.isArray(data.payments)) {
-              renderPayments(data.payments);
-            } else {
-              console.error("Expected payments array but got:", data.payments);
-              tableBody.innerHTML = `
-                <tr>
+              console.error("Expected homeowners array but got:", data.homeowners);
+            tableBody.innerHTML = `
+              <tr>
                   <td colspan="6" style="text-align: center; color: #721c24;">
                     Error: Invalid data format received from server
-                  </td>
-                </tr>
-              `;
-            }
+                </td>
+              </tr>
+            `;
           }
         } else {
-          throw new Error(data.message || 'Failed to load data');
+          // Handle regular payments
+            if (Array.isArray(data.payments)) {
+            renderPayments(data.payments);
+          } else {
+              console.error("Expected payments array but got:", data.payments);
+            tableBody.innerHTML = `
+              <tr>
+                  <td colspan="6" style="text-align: center; color: #721c24;">
+                    Error: Invalid data format received from server
+                </td>
+              </tr>
+            `;
+          }
         }
-      } catch (error) {
+      } else {
+        throw new Error(data.message || 'Failed to load data');
+      }
+  } catch (error) {
         console.error('Error loading data:', error);
         const tableBody = document.getElementById('paymentsTableBody');
-        if (tableBody) {
-          tableBody.innerHTML = `
-            <tr>
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
               <td colspan="6" style="text-align: center; color: #721c24;">
                 ${error.message || 'Error loading data. Please try again.'}
-              </td>
-            </tr>
-          `;
-        }
-      }
+          </td>
+        </tr>
+      `;
     }
+  }
+}
 
     
 
@@ -1108,10 +1108,10 @@
               ${payment.status === 'pending' ? `
                 <button class="btn btn-sm btn-success ml-1" onclick="approvePayment('${payment._id || ''}')">
                   Approve
-                </button>
+              </button>
                 <button class="btn btn-sm btn-danger ml-1" onclick="rejectPayment('${payment._id || ''}')">
                   Reject
-                </button>
+              </button>
               ` : ''}
             </td>
           `;
@@ -1123,49 +1123,49 @@
       });
     }
 
- 
+
     // Function to view homeowner details
     async function viewHomeownerDetails(homeownerId) {
-        try {
-          const response = await fetch(`/api/homeowners/${homeownerId}`);
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            const homeowner = data.homeowner;
+      try {
+        const response = await fetch(`/api/homeowners/${homeownerId}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const homeowner = data.homeowner;
             
             // Safely extract address parts
             const address = homeowner.Address || {};
             const block = address.Block?.["$numberInt"] || address.Block || "";
             const lot = address.Lot?.["$numberInt"] || address.Lot || "";
             const phase = address.Phase?.["$numberInt"] || address.Phase || "";
-
-            // Populate modal with homeowner details
-            document.getElementById('paymentDetails').innerHTML = `
-              <div class="payment-details">
+          
+          // Populate modal with homeowner details
+          document.getElementById('paymentDetails').innerHTML = `
+            <div class="payment-details">
                 <p><strong>Name:</strong> ${homeowner.firstName} ${homeowner.lastName}</p>
                 <p><strong>Monthly Due:</strong> ₱${homeowner.MDAmount}</p>
-                <p><strong>Last Payment Date:</strong> ${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</p>
+              <p><strong>Last Payment Date:</strong> ${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</p>
                 <p><strong>Payment Status:</strong> ${homeowner.PStatus}</p>
                 <p><strong>Contact Number:</strong> ${homeowner.landline || 'N/A'}</p>
                 <p><strong>Address: </strong> Block <strong>${block}</strong> Lot <strong>${lot}</strong> Phase <strong>${phase}</strong></p>
-              </div>
-            `;
-            
-            // Show modal
-            document.getElementById('viewModal').style.display = 'block';
-          } else {
-            throw new Error(data.message || 'Failed to load homeowner details');
-          }
-        } catch (error) {
-          console.error('Error loading homeowner details:', error);
-          alert('Error loading homeowner details. Please try again.');
+            </div>
+          `;
+          
+          // Show modal
+          document.getElementById('viewModal').style.display = 'block';
+        } else {
+          throw new Error(data.message || 'Failed to load homeowner details');
         }
+      } catch (error) {
+        console.error('Error loading homeowner details:', error);
+        alert('Error loading homeowner details. Please try again.');
       }
+    }
 
 
     // Function to send reminder
