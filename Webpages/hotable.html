@@ -1670,7 +1670,7 @@ document.getElementById('generateAccountForm').addEventListener('submit', async 
                 const generateNewPasswords = document.getElementById('generateNewPasswords').checked;
                 
                 // Send the request to create missing accounts
-                const response = await fetch('/api/admin/create-homeowner-accounts', {
+                const response = await fetch('/api/admin/create-homeowner-account', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
