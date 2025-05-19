@@ -994,6 +994,8 @@
           const lastPaymentDate = new Date(homeowner.lastPaymentDate || new Date());
           const today = new Date();
           const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+          const daysADue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+          const daysUntilDue = 30- daysADue;
           
           const severityClass = daysOverdue > 60 ? 'overdue-severe' : 
                       daysOverdue > 30 ? 'overdue-moderate' : 'overdue-mild';
@@ -1002,7 +1004,7 @@
           if (homeowner.PStatus?.toLowerCase() === 'delinquent') {
             overdueLabel = `${daysOverdue} days overdue`;
           } else if (homeowner.PStatus?.toLowerCase() === 'almost due') {
-            overdueLabel = `${daysOverdue} days almost due`;
+            overdueLabel = `${daysUntilDue} Till due date`;
           } else {
             overdueLabel = `${daysOverdue} days`;
             console.warn("Unexpected PStatus:", homeowner.PStatus);
