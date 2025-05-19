@@ -1,5 +1,4 @@
-```typescriptreact file="monthly-payments.html"
-[v0-no-op-code-block-prefix]<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -767,7 +766,7 @@
           console.log('Fetching due payments from:', url);
         } else {
           // Use the regular payments endpoint for other statuses
-          url = `/api/monthly-payments?status=${currentStatus}&page=${currentPage}`;
+          url = `/api/monthly-payments?PStatus=${currentStatus}&page=${currentPage}`;
           if (searchTerm) {
             url += `&search=${encodeURIComponent(searchTerm)}`;
           }
@@ -806,15 +805,15 @@
               
               if (dueHomeowners.length > 0) {
                 // Transform homeowners data to match the expected format
-                const transformedData = dueHomeowners.map(homeowner => ({
-                  firstName: homeowner.firstName,
-                  lastName: homeowner.lastName,
-                  email: homeowner.email,
-                  amount: homeowner.monthlyDue || '1500.00',
-                  lastPaymentDate: homeowner.lastPaymentDate,
-                  PStatus: homeowner.PStatus,
-                  _id: homeowner._id,
-                  daysSincePayment: homeowner.daysSincePayment || 0
+                const transformedData = dueHomeowners.map(homeowners => ({
+                  firstName: homeowners.firstName,
+                  lastName: homeowners.lastName,
+                  email: homeowners.email,
+                  amount: address.MDAmount || '1500.00',
+                  lastPaymentDate: homeowners.lastPaymentDate,
+                  PStatus: homeowners.PStatus,
+                  _id: homeowners._id,
+                  daysSincePayment: homeowners.daysSincePayment || 0
                 }));
                 
                 renderPayments(transformedData);
@@ -924,9 +923,6 @@
     function renderPayments(payments) {
       console.log("renderPayments called with:", payments)
 
-      // Assuming these are defined in a higher scope or imported
-      // For demonstration purposes, let's define them here.
-      // In a real application, these should be properly imported or defined.
       const currentStatus = window.currentStatus || "all" // Default to 'all' if not defined
       const getTableBodyForStatus =
         window.getTableBodyForStatus ||

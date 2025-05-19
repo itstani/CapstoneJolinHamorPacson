@@ -69,19 +69,6 @@ const protectAdminRoutes = require("./auth-middleware")
 // Use the middleware to protect admin routes
 app.use(protectAdminRoutes)
 
-// Add this debug middleware right after session middleware
-app.use((req, res, next) => {
-  console.log("=== Session Debug Info ===")
-  console.log("Request path:", req.path)
-  console.log("Session ID:", req.sessionID)
-  console.log("Session exists:", !!req.session)
-  console.log("User in session:", req.session?.user)
-  console.log("Cookies:", req.headers.cookie)
-  console.log("Origin:", req.headers.origin)
-  console.log("Referer:", req.headers.referer)
-  console.log("========================")
-  next()
-})
 
 app.use(protectAdminRoutes);
 
@@ -5680,82 +5667,7 @@ app.post('/api/check-dashboard-access', async (req, res) => {
   }
 });
 
-// Add this route handler for fetching homeowners with due payments
-app.get('/api/homeowners', requireAuth, async (req, res) => {
-  try {
-    console.log('=== Homeowners API Request ===');
-    console.log('Session:', req.session);
-    console.log('User:', req.session?.user);
-    console.log('Query:', req.query);
-    
-    const { PStatus } = req.query;
-    let query = {};
 
-    // If PStatus is provided, split it into an array and use $in operator
-    if (PStatus) {
-      const statusArray = PStatus.split(',').map(status => status.trim());
-      console.log('Looking for homeowners with PStatus in:', statusArray);
-      query.PStatus = { $in: statusArray };
-    }
-
-    console.log('Final query:', JSON.stringify(query));
-    
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection('homeowners');
-    
-    // Get homeowners matching the query
-    const homeowners = await homeownersCollection.find(query).toArray();
-    console.log(`Found ${homeowners.length} homeowners matching query`);
-
-    // Calculate current date once
-    const now = new Date();
-
-    // Transform the data to include calculated fields
-    const transformedHomeowners = homeowners.map(homeowner => {
-      // Parse lastPaymentDate
-      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
-      
-      // Calculate days since last payment
-      const daysSincePayment = lastPaymentDate ? 
-        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
-        null;
-
-      // Calculate delinquent since date
-      // Assuming a payment becomes delinquent after 30 days
-      const delinquentSince = lastPaymentDate && daysSincePayment > 30 ? 
-        new Date(lastPaymentDate.getTime() + (30 * 24 * 60 * 60 * 1000)) : 
-        null;
-
-      return {
-        _id: homeowner._id,
-        firstName: homeowner.firstName,
-        lastName: homeowner.lastName,
-        email: homeowner.email,
-        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
-        lastPaymentDate: lastPaymentDate,
-        PStatus: homeowner.PStatus || 'N/A',
-        delinquentSince: delinquentSince,
-        daysSincePayment: daysSincePayment,
-        // Include additional fields that might be useful
-        address: homeowner.Address,
-        phoneNumber: homeowner.phoneNumber,
-        HStatus: homeowner.HStatus
-      };
-    });
-
-    console.log('Sending response with', transformedHomeowners.length, 'homeowners');
-    res.json({
-      success: true,
-      homeowners: transformedHomeowners
-    });
-  } catch (error) {
-    console.error('Error fetching homeowners:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
 
 // Add this route handler for sending payment reminders
 app.post('/api/homeowners/:id/reminder', requireAuth, async (req, res) => {
@@ -6002,25 +5914,27 @@ app.get('/api/check-homeowners-due', requireAuth, async (req, res) => {
     
     const db = await connectToDatabase();
     const homeownersCollection = db.collection('homeowners');
+    const addressCollection = db.collection('address');
     
     // Query for homeowners with Almost Due or Delinquent status
     const query = {
-      PStatus: { $in: ['Almost Due', 'Delinquent'] }
+      PStatus: ['Almost Due' || 'Delinquent'] 
     };
     
     console.log('Query:', JSON.stringify(query));
     
     // Get homeowners matching the query
     const homeowners = await homeownersCollection.find(query).toArray();
+    const address = await addressCollection.find(query).toArray();
     console.log(`Found ${homeowners.length} homeowners with due payments`);
 
     // Calculate current date once
     const now = new Date();
 
     // Transform the data to include calculated fields
-    const transformedHomeowners = homeowners.map(homeowner => {
+    const transformedHomeowners = homeowners.map(homeowners => {
       // Parse lastPaymentDate
-      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+      const lastPaymentDate = homeowners.lastPaymentDate ? new Date(homeowners.lastPaymentDate) : null;
       
       // Calculate days since last payment
       const daysSincePayment = lastPaymentDate ? 
@@ -6034,19 +5948,18 @@ app.get('/api/check-homeowners-due', requireAuth, async (req, res) => {
         null;
 
       return {
-        _id: homeowner._id,
-        firstName: homeowner.firstName,
-        lastName: homeowner.lastName,
-        email: homeowner.email,
-        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        _id: homeowners._id,
+        firstName: homeowners.firstName,
+        lastName: homeowners.lastName,
+        email: homeowners.email,
+        monthlyDue: address.monthlyDue || homeowners.MDAmount || 1500.00,
         lastPaymentDate: lastPaymentDate,
-        PStatus: homeowner.PStatus || 'N/A',
+        PStatus: homeowners.PStatus || 'N/A',
         delinquentSince: delinquentSince,
         daysSincePayment: daysSincePayment,
-        // Include additional fields that might be useful
-        address: homeowner.Address,
-        phoneNumber: homeowner.phoneNumber,
-        HStatus: homeowner.HStatus
+        address: homeowners.Address,
+        phoneNumber: homeowners.phoneNumber,
+        HStatus: homeowners.HStatus
       };
     });
 
