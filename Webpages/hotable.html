@@ -1685,19 +1685,20 @@ document.getElementById('generateAccountForm').addEventListener('submit', async 
                     const createdAccountsList = document.getElementById('createdAccountsList');
                     createdAccountsList.innerHTML = '';
                     
-                    createdAccounts = data.created || [];
+                    // Get successful account creations from the data array
+                    createdAccounts = data.data.filter(result => result.success);
                     
                     if (createdAccounts.length === 0) {
                         createdAccountsList.innerHTML = '<div class="account-item">No accounts were created.</div>';
                     } else {
-                        createdAccounts.forEach(account => {
+                        createdAccounts.forEach(result => {
                             const accountItem = document.createElement('div');
                             accountItem.className = 'account-item';
                             accountItem.innerHTML = `
-                                <div class="account-name">${account.firstName} ${account.lastName}</div>
+                                <div class="account-name">${result.homeowner.firstName} ${result.homeowner.lastName}</div>
                                 <div class="account-credentials">
-                                    Username: ${account.username}<br>
-                                    Password: ${account.password}
+                                    Username: ${result.homeowner.username || 'N/A'}<br>
+                                    Password: ${result.password || 'N/A'}
                                 </div>
                             `;
                             createdAccountsList.appendChild(accountItem);
@@ -1707,8 +1708,8 @@ document.getElementById('generateAccountForm').addEventListener('submit', async 
                     // Show the created accounts section
                     document.getElementById('createdAccounts').style.display = 'block';
                     
-                    // Update status message
-                    statusMessage.textContent = `Created ${createdAccounts.length} accounts successfully.`;
+                    // Update status message with the server's message
+                    statusMessage.textContent = data.message;
                     statusMessage.className = 'status-message success';
                     
                     // Reload homeowners after a short delay
