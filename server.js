@@ -1,4 +1,4 @@
-require("dotenv").config()
+require("dotenv").config() 
 const express = require("express")
 const bodyParser = require("body-parser")
 const multer = require("multer")
@@ -13,6 +13,7 @@ const schedule = require("node-schedule")
 const officegen = require("officegen")
 const mongoose = require("mongoose")
 const { MemoryStore } = require('express-session')
+const ExcelJS = require("exceljs")
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -3923,7 +3924,7 @@ app.get("/api/generate-payment-report", async (req, res) => {
     const homeownersCollection = db.collection("homeowners")
     const paymentsCollection = db.collection("payments")
 
-    // Get date range
+    // Determine date range
     let dateFilter = {}
     const now = new Date()
 
@@ -3931,212 +3932,177 @@ app.get("/api/generate-payment-report", async (req, res) => {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       dateFilter = { createdAt: { $gte: startOfMonth } }
     } else if (range === "last_month") {
-      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
-      dateFilter = { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const end = new Date(now.getFullYear(), now.getMonth(), 0)
+      dateFilter = { createdAt: { $gte: start, $lte: end } }
     } else if (range === "last_quarter") {
-      const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - 3, 1)
-      dateFilter = { createdAt: { $gte: startOfQuarter } }
+      const start = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+      dateFilter = { createdAt: { $gte: start } }
     } else if (range === "last_year") {
-      const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1)
-      const endOfLastYear = new Date(now.getFullYear(), 0, 0)
-      dateFilter = { createdAt: { $gte: startOfLastYear, $lte: endOfLastYear } }
+      const start = new Date(now.getFullYear() - 1, 0, 1)
+      const end = new Date(now.getFullYear(), 0, 0)
+      dateFilter = { createdAt: { $gte: start, $lte: end } }
     } else if (range === "custom" && startDate && endDate) {
-      const startDateObj = new Date(startDate)
-      const endDateObj = new Date(endDate)
-      endDateObj.setHours(23, 59, 59, 999) // Set to end of day
-      dateFilter = { createdAt: { $gte: startDateObj, $lte: endDateObj } }
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      dateFilter = { createdAt: { $gte: start, $lte: end } }
     }
 
-    // Get data based on report type
     let reportData = []
 
-    if (type === "payment_frequency") {
-      // Get all homeowners with their payment status
-      reportData = await homeownersCollection.find({}).toArray()
-
-      // If date filter is applied, get payment history for the period
-      if (Object.keys(dateFilter).length > 0) {
-        const payments = await paymentsCollection.find(dateFilter).toArray()
-
-        // Create a map of homeowner emails to payment counts
-        const paymentCounts = {}
-        payments.forEach((payment) => {
-          if (!paymentCounts[payment.email]) {
-            paymentCounts[payment.email] = 0
-          }
-          paymentCounts[payment.email]++
-        })
-
-        // Add payment frequency to homeowner data
-        reportData = reportData.map((homeowner) => ({
-          ...homeowner,
-          paymentFrequency: paymentCounts[homeowner.email] || 0,
-        }))
-      }
+    if (type === "monthly_summary") {
+      const homeowners = await homeownersCollection.find({}).toArray()
+      reportData = homeowners.map(h => ({
+        firstName: h.firstName,
+        lastName: h.lastName,
+        Address: h.Address,
+        phoneNumber: h.phoneNumber,
+        landline: h.landline,
+        paymentStatus: h.PStatus || "",
+        homeownerStatus: h.HStatus || "",
+        carStickerStatus: h.carSticker || "Undetermined",
+        strikeCount: h.strikeCount || 0,
+        lastPaymentDate: h.lastPaymentDate || "N/A"
+      }))
     } else if (type === "delinquent_owners") {
-      // Get only delinquent homeowners
-      reportData = await homeownersCollection
-        .find({
-          $or: [{ paymentStatus: "Delinquent" }, { homeownerStatus: "Delinquent" }],
-        })
-        .toArray()
+      reportData = await homeownersCollection.find({
+        $or: [
+          { PStatus: "Delinquent" },
+          { PStatus: "Almost due" },
+          { strikeCount: { $gte: 3 } }
+        ]
+      }).toArray()
     } else if (type === "payment_history") {
-      // Get payment history for all homeowners
       const payments = await paymentsCollection.find(dateFilter).toArray()
+      const emails = [...new Set(payments.map(p => p.email))]
+      const homeowners = await homeownersCollection.find({ email: { $in: emails } }).toArray()
+      const emailMap = Object.fromEntries(homeowners.map(h => [h.email, h]))
 
-      // Group payments by homeowner
-      const homeownerEmails = [...new Set(payments.map((payment) => payment.email))]
-
-      // Get homeowner details
-      const homeowners = await homeownersCollection
-        .find({
-          email: { $in: homeownerEmails },
-        })
-        .toArray()
-
-      // Create a map of emails to homeowner details
-      const homeownerMap = {}
-      homeowners.forEach((homeowner) => {
-        homeownerMap[homeowner.email] = homeowner
-      })
-
-      // Create report data with payment history
-      reportData = payments.map((payment) => ({
-        ...payment,
-        firstName: homeownerMap[payment.email]?.firstName || "",
-        lastName: homeownerMap[payment.email]?.lastName || "",
-        Address: homeownerMap[payment.email]?.Address || "",
+      reportData = payments.map(p => ({
+        firstName: emailMap[p.email]?.firstName || "",
+        lastName: emailMap[p.email]?.lastName || "",
+        Address: emailMap[p.email]?.Address || "",
+        amount: p.amount,
+        paymentDate: p.paymentDate,
+        paymentMethod: p.paymentMethod,
+        referenceNumber: p.referenceNumber,
+        status: p.status
       }))
     }
 
     // Create Excel workbook
-    const excel = officegen("xlsx")
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet("Report")
 
-    // Add worksheet
-    const sheet = excel.makeNewSheet()
-    sheet.name =
-      type === "payment_frequency"
-        ? "Payment Frequency"
-        : type === "delinquent_owners"
-          ? "Delinquent Owners"
-          : "Payment History"
+    // Set headers based on report type
+    let columns = []
 
-    // Add headers based on report type
-    let headers = []
-
-    if (type === "payment_frequency") {
-      headers = [
-        "Last Name",
-        "First Name",
-        "Address",
-        "Phone Number",
-        "Landline",
-        "Payment Status",
-        "Homeowner Status",
-        "Car Sticker Status",
-        "Payment Frequency",
+    if (type === "monthly_summary") {
+      columns = [
+        { header: "First Name", key: "firstName" },
+        { header: "Last Name", key: "lastName" },
+        { header: "Address", key: "Address" },
+        { header: "Phone Number", key: "phoneNumber" },
+        { header: "Landline", key: "landline" },
+        { header: "Payment Status", key: "paymentStatus" },
+        { header: "Homeowner Status", key: "homeownerStatus" },
+        { header: "Car Sticker", key: "carStickerStatus" },
+        { header: "Strikes", key: "strikeCount" },
+        { header: "Last Payment Date", key: "lastPaymentDate" }
       ]
     } else if (type === "delinquent_owners") {
-      headers = [
-        "Last Name",
-        "First Name",
-        "Address",
-        "Phone Number",
-        "Landline",
-        "Payment Status",
-        "Homeowner Status",
-        "Car Sticker Status",
-        "Last Payment Date",
+      columns = [
+        { header: "First Name", key: "firstName" },
+        { header: "Last Name", key: "lastName" },
+        { header: "Address", key: "Address" },
+        { header: "Phone Number", key: "phoneNumber" },
+        { header: "Landline", key: "landline" },
+        { header: "Payment Status", key: "PStatus" },
+        { header: "Strikes", key: "strikeCount" },
+        { header: "Last Payment Date", key: "lastPaymentDate" }
       ]
     } else if (type === "payment_history") {
-      headers = [
-        "Last Name",
-        "First Name",
-        "Address",
-        "Amount",
-        "Payment Date",
-        "Payment Method",
-        "Reference Number",
-        "Status",
+      columns = [
+        { header: "First Name", key: "firstName" },
+        { header: "Last Name", key: "lastName" },
+        { header: "Address", key: "Address" },
+        { header: "Amount", key: "amount" },
+        { header: "Payment Date", key: "paymentDate" },
+        { header: "Payment Method", key: "paymentMethod" },
+        { header: "Reference Number", key: "referenceNumber" },
+        { header: "Status", key: "status" }
       ]
     }
 
-    sheet.data[0] = headers
+    sheet.columns = columns
+    reportData.forEach(item => sheet.addRow(item))
 
-    // Add data rows based on report type
-    reportData.forEach((item, index) => {
-      let rowData = []
+    // Set headers and export file
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    res.setHeader("Content-Disposition", `attachment; filename=${type}-report.xlsx`)
+    await workbook.xlsx.write(res)
+    res.end()
 
-      if (type === "payment_frequency") {
-        rowData = [
-          item.lastName || "",
-          item.firstName || "",
-          item.Address || "",
-          item.phoneNumber || "",
-          item.landLine || "",
-          item.paymentStatus || "",
-          item.homeownerStatus || "",
-          item.carStickerStatus || "Undetermined",
-          item.paymentFrequency || 0,
-        ]
-      } else if (type === "delinquent_owners") {
-        rowData = [
-          item.lastName || "",
-          item.firstName || "",
-          item.Address || "",
-          item.phoneNumber || "",
-          item.landLine || "",
-          item.paymentStatus || "",
-          item.homeownerStatus || "",
-          item.carStickerStatus || "Undetermined",
-          item.lastPaymentDate ? new Date(item.lastPaymentDate).toLocaleDateString() : "Never",
-        ]
-      } else if (type === "payment_history") {
-        rowData = [
-          item.lastName || "",
-          item.firstName || "",
-          item.Address || "",
-          item.amount ? `₱${item.amount.toFixed(2)}` : "",
-          item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : "",
-          item.paymentMethod || "",
-          item.referenceNumber || "",
-          item.status || "",
-        ]
-      }
-
-      sheet.data[index + 1] = rowData
-    })
-
-    // Set content type based on format
-    if (format === "excel" || format === "xlsx") {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.xlsx`)
-    } else if (format === "csv") {
-      res.setHeader("Content-Type", "text/csv")
-      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.csv`)
-    } else if (format === "pdf") {
-      res.setHeader("Content-Type", "application/pdf")
-      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.pdf`)
-    } else {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      res.setHeader("Content-Disposition", `attachment; filename=${type}-report.xlsx`)
-    }
-
-    // Generate and send the file
-    excel.generate(res)
-
-    // Log activity
-    await logActivity("reportGenerated", `Generated ${type} report in ${format} format`)
+    await logActivity("reportGenerated", `Generated ${type} report in Excel format`)
   } catch (error) {
-    console.error("Error generating payment report:", error)
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate payment report",
-      error: error.message,
-    })
+    console.error("Error generating report:", error)
+    res.status(500).json({ success: false, message: "Failed to generate report", error: error.message })
   }
 })
+
+app.post("/api/update-strikes-and-penalties", async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+    const homeowners = await db.collection("homeowners").find({}).toArray()
+    const today = new Date()
+
+    for (const homeowner of homeowners) {
+      const lastPaymentDate = new Date(homeowner.lastPaymentDate)
+      const baseAmount = parseFloat(homeowner.baseMDAmount || homeowner.MDAmount || 1500)
+
+      const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24))
+
+      if (daysOverdue > 0) {
+        // 1. Update MDAmount with daily ₱10 penalty
+        const newAmount = baseAmount + (daysOverdue * 10)
+
+        // 2. Calculate full months overdue for strike logic
+        const monthsOverdue = Math.floor(daysOverdue / 30)
+        const newStrikeCount = Math.min(3, (homeowner.strikeCount || 0) + monthsOverdue)
+
+        // 3. Check if now delinquent
+        const isNowDelinquent = newStrikeCount >= 3
+
+        await db.collection("homeowners").updateOne(
+          { _id: homeowner._id },
+          {
+            $set: {
+              MDAmount: newAmount,
+              PStatus: isNowDelinquent ? "Delinquent" : homeowner.PStatus
+            },
+            $inc: {
+              strikeCount: monthsOverdue
+            }
+          }
+        )
+      }
+    }
+
+    res.json({ success: true, message: "Strike counts and MDAmounts updated." })
+  } catch (error) {
+    console.error("Error updating homeowners:", error)
+    res.status(500).json({ success: false, message: "Update failed", error: error.message })
+  }
+})
+
+const cron = require("node-cron")
+
+cron.schedule("0 2 * * *", () => {
+  fetch("http://localhost:3000/api/update-strikes-and-penalties", { method: "POST" })
+})
+
+
 
 async function notifyDelinquentHomeowners() {
   try {
@@ -4458,169 +4424,7 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
   }
 });
 
-// ... existing code ...
 
-app.get("/api/generate-payment-report", async (req, res) => {
-  try {
-    const { type, range, format, startDate, endDate } = req.query
-
-    const db = await connectToDatabase()
-    const homeownersCollection = db.collection("homeowners")
-
-    // Get date range
-    let dateFilter = new Date()
-    if (range === "last-month") {
-      dateFilter.setMonth(dateFilter.getMonth() - 1)
-    } else if (range === "last-quarter") {
-      dateFilter.setMonth(dateFilter.getMonth() - 3)
-    } else if (range === "last-year") {
-      dateFilter.setFullYear(dateFilter.getFullYear() - 1)
-    } else if (range === "custom" && startDate && endDate) {
-      dateFilter = new Date(startDate)
-    }
-
-    // Get homeowners data
-    const homeowners = await homeownersCollection.find({}).toArray()
-
-    // Create Excel workbook
-    const excel = officegen("xlsx")
-
-    // Add worksheet
-    const sheet = excel.makeNewSheet()
-    sheet.name = "Homeowner Payments"
-
-    // Add headers
-    const headers = [
-      "Last Name",
-      "First Name",
-      "Address",
-      "Phone Number",
-      "Landline",
-      "Payment Status",
-      "Homeowner Status",
-    ]
-    sheet.data[0] = headers
-
-    // Add data rows
-    homeowners.forEach((homeowner, index) => {
-      sheet.data[index + 1] = [
-        homeowner.lastName || "",
-        homeowner.firstName || "",
-        homeowner.Address || "",
-        homeowner.phoneNumber || "",
-        homeowner.landLine || "",
-        homeowner.paymentStatus || "",
-        homeowner.homeownerStatus || "",
-      ]
-    })
-
-    // Set content type based on format
-    if (format === "excel" || format === "xlsx") {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
-    } else if (format === "csv") {
-      res.setHeader("Content-Type", "text/csv")
-      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.csv")
-    } else {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
-    }
-
-    // Generate and send the file
-    excel.generate(res)
-  } catch (error) {
-    console.error("Error generating payment report:", error)
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate payment report",
-      error: error.message,
-    })
-  }
-})
-
-app.get("/api/generate-payment-report", async (req, res) => {
-  try {
-    const { type, range, format, startDate, endDate } = req.query
-
-    const db = await connectToDatabase()
-    const homeownersCollection = db.collection("homeowners")
-
-    // Get date range
-    let dateFilter = new Date()
-    if (range === "last-month") {
-      dateFilter.setMonth(dateFilter.getMonth() - 1)
-    } else if (range === "last-quarter") {
-      dateFilter.setMonth(dateFilter.getMonth() - 3)
-    } else if (range === "last-year") {
-      dateFilter.setFullYear(dateFilter.getFullYear() - 1)
-    } else if (range === "custom" && startDate && endDate) {
-      dateFilter = new Date(startDate)
-    }
-
-    // Get homeowners data
-    const homeowners = await homeownersCollection.find({}).toArray()
-
-    // Create Excel workbook
-    const excel = officegen("xlsx")
-
-    // Add worksheet
-    const sheet = excel.makeNewSheet()
-    sheet.name = "Homeowner Payments"
-
-    // Add headers
-    const headers = [
-      "Last Name",
-      "First Name",
-      "Address",
-      "Phone Number",
-      "Landline",
-      "Payment Status",
-      "Homeowner Status",
-      "Car Sticker Status",
-    ]
-    sheet.data[0] = headers
-
-    // Add data rows
-    homeowners.forEach((homeowner, index) => {
-      sheet.data[index + 1] = [
-        homeowner.lastName || "",
-        homeowner.firstName || "",
-        homeowner.Address || "",
-        homeowner.phoneNumber || "",
-        homeowner.landLine || "",
-        homeowner.paymentStatus || "",
-        homeowner.homeownerStatus || "",
-        homeowner.carStickerStatus || "Undetermined",
-      ]
-    })
-
-    // Set content type based on format
-    if (format === "excel" || format === "xlsx") {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
-    } else if (format === "csv") {
-      res.setHeader("Content-Type", "text/csv")
-      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.csv")
-    } else {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      res.setHeader("Content-Disposition", "attachment; filename=homeowner-payments.xlsx")
-    }
-
-    // Generate and send the file
-    excel.generate(res)
-  } catch (error) {
-    console.error("Error generating payment report:", error)
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate payment report",
-      error: error.message,
-    })
-  }
-})
-
-// CONCERN REPLY-----------------------------------------------
-
-// Handle form submission
 
 app.post("/sendReply", upload.single("attachment"), async (req, res) => {
   const { subject, message, concernId } = req.body
@@ -5959,6 +5763,12 @@ app.post('/api/homeowners/:id/reminder', async (req, res) => {
   }
 });
 
+await db.collection("homeowners").updateMany(
+  { baseMDAmount: { $exists: false } },
+  { $set: { baseMDAmount: 1500 } }
+)
+
+
 
 // Serve static files AFTER API routes
 
@@ -6056,46 +5866,6 @@ async function startServer() {
 // ... existing code ...
 
 // Endpoint to check homeowners with Almost Due or Delinquent status
-app.get("/api/check-homeowners-due", requireAuth, async (req, res) => {
-  try {
-    console.log("API Call: /api/check-homeowners-due");
-    console.log("Session:", req.session);
-    console.log("Query:", req.query);
 
-    const client = await connectToDatabase();
-    const db = client.db("ASC");
-    const homeownersCollection = db.collection("homeowners");
-
-    // Construct query for Almost Due or Delinquent status
-    const query = {
-      PStatus: { $in: ["Almost Due", "Delinquent"] }
-    };
-
-    console.log("Final query:", JSON.stringify(query));
-
-    // Fetch homeowners with the specified status
-    const homeowners = await homeownersCollection.find(query).toArray();
-    console.log(`Found ${homeowners.length} homeowners with Almost Due or Delinquent status`);
-
-    // Transform the data to include calculated fields
-    const transformedHomeowners = homeowners.map(homeowner => {
-      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
-      const daysSincePayment = lastPaymentDate ? Math.floor((new Date() - lastPaymentDate) / (1000 * 60 * 60 * 24)) : null;
-      const delinquentSince = homeowner.delinquentSince ? new Date(homeowner.delinquentSince) : null;
-
-      return {
-        ...homeowner,
-        daysSincePayment,
-        delinquentSince: delinquentSince ? delinquentSince.toISOString() : null,
-        lastPaymentDate: lastPaymentDate ? lastPaymentDate.toISOString() : null
-      };
-    });
-
-    res.json({ data: transformedHomeowners });
-  } catch (error) {
-    console.error("Error in /api/check-homeowners-due:", error);
-    res.status(500).json({ error: "Failed to fetch homeowners" });
-  }
-});
 
 // ... existing code ...
