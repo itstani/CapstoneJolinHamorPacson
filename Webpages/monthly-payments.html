@@ -613,7 +613,7 @@
           <tr>
             <th>Homeowner</th>
             <th>Amount</th>
-            <th>Last Payment</th>
+            <th>Address</th>
             <th>Days Overdue</th>
             <th>Status</th>
             <th>Actions</th>
@@ -724,176 +724,228 @@
   </div>
 
   <script>
-    // Add these variables at the top of your script section, after the closing </div> tag
     let currentStatus = 'all';
     let currentPage = 1;
     let searchTerm = '';
     let totalPages = 1;
 
-    // Add the getTableBodyForStatus function
-    function getTableBodyForStatus(status) {
-      switch (status) {
-        case 'pending':
-          return document.getElementById('pendingPaymentsTableBody');
-        case 'due':
-          return document.getElementById('duePaymentsTableBody');
-        case 'approved':
-          return document.getElementById('approvedPaymentsTableBody');
-        case 'rejected':
-          return document.getElementById('rejectedPaymentsTableBody');
-        default:
-          return document.getElementById('paymentsTableBody');
-      }
-    }
-
-    // Updated loadPayments function
-    function loadPayments() {
-      try {
-        // Show loading state
-        const tableBody = getTableBodyForStatus(currentStatus);
-        if (!tableBody) {
-          console.error('Table body not found for status:', currentStatus);
-          return;
-        }
-
-        tableBody.innerHTML = '<tr><td colspan="6" class="loading">Loading payments...</td></tr>';
-
-        // Build the API URL with filters
-        let url;
-        if (currentStatus === 'due') {
-          // Use the new check-homeowners-due endpoint for due payments
-          url = `/api/check-homeowners-due`;
-          console.log('Fetching due payments from:', url);
-        } else {
-          // Use the regular payments endpoint for other statuses
-          url = `/api/monthly-payments?PStatus=${currentStatus}&page=${currentPage}`;
-          if (searchTerm) {
-            url += `&search=${encodeURIComponent(searchTerm)}`;
-          }
-        }
-
-        // Add proper headers for JSON response
-        fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include' // Important: include credentials for session
-        })
-        .then(response => {
-          if (!response.ok) {
-            if (response.status === 401) {
-              // Handle authentication error
-              console.log('Authentication required, redirecting to login...');
-              window.location.href = '/login.html';
-              return;
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (!data) return; // Skip if we redirected to login
-          
-          console.log('Response data:', data);
-          
-          if (data.success) {
-            if (currentStatus === 'due') {
-              // Handle homeowners with due payments
-              const dueHomeowners = data.homeowners || [];
-              console.log('Due homeowners:', dueHomeowners);
-              
-              if (dueHomeowners.length > 0) {
-                // Transform homeowners data to match the expected format
-                const transformedData = dueHomeowners.map(homeowners => ({
-                  firstName: homeowners.firstName,
-                  lastName: homeowners.lastName,
-                  email: homeowners.email,
-                  amount: address.MDAmount || '1500.00',
-                  lastPaymentDate: homeowners.lastPaymentDate,
-                  PStatus: homeowners.PStatus,
-                  _id: homeowners._id,
-                  daysSincePayment: homeowners.daysSincePayment || 0
-                }));
-                
-                renderPayments(transformedData);
-              } else {
-                tableBody.innerHTML = `
-                  <tr>
-                    <td colspan="6" class="empty-state">
-                      <p>No homeowners with due or delinquent payments found.</p>
-                    </td>
-                  </tr>
-                `;
-              }
-            } else {
-              // Handle regular payments
-              if (data.payments && data.payments.length > 0) {
-                renderPayments(data.payments);
-                // Update pagination
-                totalPages = Math.ceil(data.total / data.perPage);
-                updatePagination();
-              } else {
-                tableBody.innerHTML = `
-                  <tr>
-                    <td colspan="6" class="empty-state">
-                      <p>No ${currentStatus === 'all' ? '' : currentStatus} payments found.</p>
-                    </td>
-                  </tr>
-                `;
-              }
-            }
-          } else {
-            throw new Error(data.message || 'Failed to load data');
-          }
-        })
-        .catch(error => {
-          console.error('Error loading data:', error);
-          tableBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="error-state">
-                <p>Error loading payments: ${error.message}</p>
-                <p>Please check the console for more details.</p>
-              </td>
-            </tr>
-          `;
+    document.addEventListener("DOMContentLoaded", function() {
+      // Set up tab click handlers
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          const status = this.dataset.status;
+          switchTab(status);
         });
-      } catch (error) {
-        console.error('Error in loadPayments function:', error);
-        const tableBody = getTableBodyForStatus(currentStatus);
-        if (tableBody) {
-          tableBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="error-state">
-                <p>Error loading payments: ${error.message}</p>
-                <p>Please check the console for more details.</p>
-              </td>
-            </tr>
-          `;
-        }
-      }
-    }
+      });
 
-    // Function to switch tabs
+      // Set up search input handler
+      document.getElementById('searchInput').addEventListener('input', function() {
+        searchTerm = this.value;
+        currentPage = 1;
+        loadPayments();
+      });
+
+      // Load initial payments
+      loadPayments();
+
+      // Check authentication status
+      fetch('/api/check-auth', {
+        credentials: 'include'
+      })
+      .then(response => {
+        if (!response.ok) {
+          window.location.href = '/Webpages/login.html';
+        }
+      })
+      .catch(error => {
+        console.error('Auth check failed:', error);
+        window.location.href = '/Webpages/login.html';
+      });
+    });
+
     function switchTab(status) {
+      // Update active tab
       document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
       });
       document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
 
-      // Hide all tables
-      document.querySelectorAll('.payments-table').forEach(table => {
-        table.style.display = 'none';
-      });
+      // Hide all tables first
+      document.getElementById('allPaymentsTable').style.display = 'none';
+      document.getElementById('pendingPaymentsTable').style.display = 'none';
+      document.getElementById('duePaymentsTable').style.display = 'none';
 
-      // Show the appropriate table
-      const tableId = status === 'due' ? 'duePaymentsTable' : 'allPaymentsTable';
-      document.getElementById(tableId).style.display = 'table';
+      // Show the correct table based on tab
+      if (status === 'due') {
+        document.getElementById('duePaymentsTable').style.display = '';
+      } else if (status === 'pending') {
+        document.getElementById('pendingPaymentsTable').style.display = '';
+      } else {
+        // default to allPaymentsTable for 'all', 'approved', 'rejected'
+        document.getElementById('allPaymentsTable').style.display = '';
+      }
 
+      // Set status and reload content
       currentStatus = status;
       currentPage = 1;
       loadPayments();
     }
+
+
+    async function loadPayments() {
+      try {
+        const paymentsContainer = document.getElementById('paymentsContainer');
+        const tableBody = document.getElementById('paymentsTableBody');
+        
+        // Show loading state
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center;">Loading ${currentStatus === 'due' ? 'delinquent homeowners' : 'payments'}...</td>
+          </tr>
+        `;
+        
+        // First check if we're still authenticated
+        const authCheck = await fetch('/api/check-auth', {
+          credentials: 'include'
+        });
+        
+        if (!authCheck.ok) {
+          console.log('Auth check failed:', authCheck.status);
+          window.location.href = '/Webpages/login.html';
+          return;
+        }
+        
+        const authData = await authCheck.json();
+        if (!authData.authenticated || authData.user.role !== 'admin') {
+          console.log('Session expired or not admin, redirecting to login');
+          window.location.href = '/Webpages/login.html';
+          return;
+        }
+        
+        let response;
+        if (currentStatus === 'due') {
+          const params = new URLSearchParams({
+            page: currentPage,
+            limit: 10
+          });
+          
+          if (searchTerm) {
+            params.append('search', searchTerm);
+          }
+          
+          console.log('Fetching delinquent homeowners with params:', params.toString());
+          
+          // Use the check-homeowners-due endpoint for due payments
+          response = await fetch(`/api/check-homeowners-due?${params.toString()}`, {
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          console.log('Delinquent homeowners response status:', response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+        } else {
+          // Fetch regular payments
+          const params = new URLSearchParams({
+            status: currentStatus,
+            page: currentPage,
+            limit: 10
+          });
+          
+          if (searchTerm) {
+            params.append('search', searchTerm);
+          }
+          
+          response = await fetch(`/api/monthly-payments?${params.toString()}`, {
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
+        }
+        
+        // Get the response text first
+        const responseText = await response.text();
+        console.log("Response text:", responseText);
+
+        // Check if the response is HTML (login page)
+        if (responseText.trim().toLowerCase().startsWith('<!doctype html>')) {
+          console.log("Session expired, redirecting to login page");
+          window.location.href = '/Webpages/login.html';
+          return;
+        }
+
+        // Try to parse the JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("Error parsing JSON:", parseError);
+          throw new Error("Invalid JSON response from server");
+        }
+        
+        if (data.success) {
+          // Update pagination info
+          totalPages = data.totalPages || 1;
+          updatePagination();
+          
+          // Render content based on current status
+          if (currentStatus === 'due') {
+            // Handle delinquent homeowners
+            if (Array.isArray(data.homeowners)) {
+              renderDelinquentHomeowners(data.homeowners);
+            } else {
+              console.error("Expected homeowners array but got:", data.homeowners);
+              tableBody.innerHTML = `
+                <tr>
+                  <td colspan="6" style="text-align: center; color: #721c24;">
+                    Error: Invalid data format received from server
+                  </td>
+                </tr>
+              `;
+            }
+          } else {
+            // Handle regular payments
+            if (Array.isArray(data.payments)) {
+              renderPayments(data.payments);
+            } else {
+              console.error("Expected payments array but got:", data.payments);
+              tableBody.innerHTML = `
+                <tr>
+                  <td colspan="6" style="text-align: center; color: #721c24;">
+                    Error: Invalid data format received from server
+                  </td>
+                </tr>
+              `;
+            }
+          }
+        } else {
+          throw new Error(data.message || 'Failed to load data');
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        const tableBody = document.getElementById('paymentsTableBody');
+        if (tableBody) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; color: #721c24;">
+                ${error.message || 'Error loading data. Please try again.'}
+              </td>
+            </tr>
+          `;
+        }
+      }
+    }
+
+    
 
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function() {
@@ -919,193 +971,200 @@
       loadPayments();
     });
 
-    // Updated renderPayments function with better debugging and error handling
-    function renderPayments(payments) {
-      console.log("renderPayments called with:", payments)
+    function renderDelinquentHomeowners(homeowners) {
+      const tableBody = document.getElementById('duePaymentsTableBody');tableBody.innerHTML = '';
 
-      const currentStatus = window.currentStatus || "all" // Default to 'all' if not defined
-      const getTableBodyForStatus =
-        window.getTableBodyForStatus ||
-        ((status) => {
-          // Replace this with your actual logic to get the table body
-          // based on the status.  For example:
-          // if (status === 'due') return document.getElementById('due-payments-table-body');
-          // else if (status === 'paid') return document.getElementById('paid-payments-table-body');
-          // ... and so on.
-          return document.getElementById("all-payments-table-body") // Default
-        })
-
-      // Get the appropriate table body based on the current status
-      const tableBody = getTableBodyForStatus(currentStatus)
-      if (!tableBody) {
-        console.error("Table body not found for status:", currentStatus)
-        return
-      }
-
-      tableBody.innerHTML = ""
-
-      if (!Array.isArray(payments)) {
-        console.error("Payments data is not an array:", payments)
+      
+      if (!homeowners || homeowners.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="6" class="error-state">
-              <p>Error: Invalid data format received.</p>
-              <p>Expected an array but got: ${typeof payments}</p>
-              <p>Check the console for more details.</p>
-            </td>
+            <td colspan="6" style="text-align: center;">No delinquent homeowners found.</td>
           </tr>
-        `
-        return
+        `;
+        return;
       }
-
-      if (payments.length === 0) {
-        tableBody.innerHTML = `
-          <tr>
-            <td colspan="6" class="empty-state">
-              <p>No ${currentStatus === "all" ? "" : currentStatus} payments found.</p>
-            </td>
-          </tr>
-        `
-        return
-      }
-
-      console.log(`Rendering ${payments.length} payments for ${currentStatus} tab`)
-
-      payments.forEach((payment, index) => {
-        if (!payment) {
-          console.error(`Invalid payment object at index ${index}:`, payment)
-          return
-        }
-
-        const row = document.createElement("tr")
-
-        // Safely extract the name - handle both payment and homeowner objects
-        let name = "N/A"
+      
+      tableBody.innerHTML = '';
+      
+      homeowners.forEach(homeowner => {
         try {
-          if (payment.userName) {
-            name = payment.userName
-          } else if (payment.firstName && payment.lastName) {
-            name = `${payment.firstName} ${payment.lastName}`
-          }
-        } catch (e) {
-          console.error("Error extracting name:", e)
-        }
+          const row = document.createElement('tr');
+          
+          // Calculate days overdue
+          const lastPaymentDate = new Date(homeowner.lastPaymentDate || new Date());
+          const today = new Date();
+          const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+          
+          const severityClass = daysOverdue > 60 ? 'overdue-severe' : 
+                      daysOverdue > 30 ? 'overdue-moderate' : 'overdue-mild';
 
-        // Safely extract amount - check all possible fields
-        const amount = payment.amount || payment.monthlyDue || payment.MDAmount || "1500.00"
-
-        // Safely extract other properties
-        const paymentMethod = payment.paymentMethod || "N/A"
-        const date = payment.timestamp || payment.lastPaymentDate || payment.createdAt || new Date()
-        const status = payment.status || payment.PStatus || payment.paymentStatus || "N/A"
-        const id = payment._id || ""
-
-        // For due payments, calculate days overdue
-        let daysOverdueHtml = ""
-        if (currentStatus === "due") {
-          // Use the calculated daysSincePayment if available, otherwise calculate it
-          let daysSincePayment = payment.daysSincePayment
-
-          if (daysSincePayment === undefined && payment.delinquentSince) {
-            const delinquentDate = new Date(payment.delinquentSince)
-            const today = new Date()
-            daysSincePayment = Math.floor((today - delinquentDate) / (1000 * 60 * 60 * 24))
-          } else if (daysSincePayment === undefined) {
-            daysSincePayment = 0
+          let overdueLabel = '';
+          if (homeowner.PStatus?.toLowerCase() === 'delinquent') {
+            overdueLabel = `${daysOverdue} days overdue`;
+          } else if (homeowner.PStatus?.toLowerCase() === 'almost due') {
+            overdueLabel = `${daysOverdue} days almost due`;
+          } else {
+            overdueLabel = `${daysOverdue} days`;
+            console.warn("Unexpected PStatus:", homeowner.PStatus);
           }
 
-          let overdueClass = "overdue-mild"
-          if (daysSincePayment > 60) {
-            overdueClass = "overdue-severe"
-          } else if (daysSincePayment > 30) {
-            overdueClass = "overdue-moderate"
+          // Format the address
+          let formattedAddress = '';
+          if (homeowner.Address) {
+            if (typeof homeowner.Address === 'object') {
+              // Handle object format
+              const block = homeowner.Address.Block ? 
+                (homeowner.Address.Block.$numberInt || homeowner.Address.Block) : '';
+              const lot = homeowner.Address.Lot ? 
+                (homeowner.Address.Lot.$numberInt || homeowner.Address.Lot) : '';
+              const phase = homeowner.Address.Phase ? 
+                (homeowner.Address.Phase.$numberInt || homeowner.Address.Phase) : '';
+              
+              formattedAddress = `Block ${block} Lot ${lot} Phase ${phase}`;
+            } else {
+              // Handle string format
+              formattedAddress = homeowner.Address;
+            }
           }
-
-          daysOverdueHtml = `
-            <div class="days-overdue ${overdueClass}">
-              ${daysSincePayment} days since last payment
-            </div>
-          `
-        }
-
-        // Create different row HTML based on the current tab
-        if (currentStatus === "due") {
+          
           row.innerHTML = `
             <td>
-              ${name}
-              ${payment.email ? `<div class="small text-muted">${payment.email}</div>` : ""}
+              ${homeowner.firstName || ''} ${homeowner.lastName || ''}
+              <div class="days-overdue ${severityClass}">${overdueLabel}</div>
             </td>
-            <td>₱${amount}</td>
-            <td>${new Date(date).toLocaleDateString()}</td>
-            <td>${daysOverdueHtml}</td>
-            <td><span class="status status-${status.toLowerCase().replace(/\s+/g, "-")}">${status}</span></td>
+            <td>₱${homeowner.MDAmount}</td>
+            <td>${formattedAddress}</td>
             <td>
-              <button class="btn btn-view" onclick="viewPaymentDetails('${id}')">
+              ${new Date(homeowner.lastPaymentDate || new Date()).toLocaleDateString()}<br>
+              <span class="small text-muted">Last Payment</span>
+            </td>
+            <td><span class="status status-rejected">${homeowner.PStatus || " "}</span></td>
+            <td>
+              <button class="btn btn-view" onclick="viewHomeownerDetails('${homeowner._id || ''}')">
                 View Details
               </button>
-              <button class="btn btn-approve" onclick="sendReminder('${id}')">
+              <button class="btn btn-approve" onclick="sendReminder('${homeowner._id || ''}')">
                 Send Reminder
               </button>
             </td>
-          `
-        } else {
-          row.innerHTML = `
-            <td>${name}</td>
-            <td>₱${amount}</td>
-            <td>${paymentMethod}</td>
-            <td>${new Date(date).toLocaleDateString()}</td>
-            <td><span class="status status-${status.toLowerCase().replace(/\s+/g, "-")}">${status}</span></td>
-            <td>
-              <button class="btn btn-view" onclick="viewPaymentDetails('${id}')">
-                View Details
-              </button>
-            </td>
-          `
-        }
-
-        tableBody.appendChild(row)
-      })
-
-      console.log(`Rendered ${tableBody.children.length} payment rows`)
-    }
-
-    // Function to view homeowner details
-    async function viewHomeownerDetails(homeownerId) {
-      try {
-        const response = await fetch(`/api/homeowners/${homeownerId}`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          const homeowner = data.homeowner;
-          
-          // Populate modal with homeowner details
-          document.getElementById('paymentDetails').innerHTML = `
-            <div class="payment-details">
-              <p><strong>Name:</strong> ${homeowner.name}</p>
-              <p><strong>Email:</strong> ${homeowner.email}</p>
-              <p><strong>Monthly Due:</strong> ₱${homeowner.monthlyDue}</p>
-              <p><strong>Last Payment Date:</strong> ${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</p>
-              <p><strong>Payment Status:</strong> ${homeowner.paymentStatus}</p>
-              <p><strong>Contact Number:</strong> ${homeowner.contactNumber || 'N/A'}</p>
-              <p><strong>Address:</strong> ${homeowner.address || 'N/A'}</p>
-            </div>
           `;
           
-          // Show modal
-          document.getElementById('viewModal').style.display = 'block';
-        } else {
-          throw new Error(data.message || 'Failed to load homeowner details');
+          tableBody.appendChild(row);
+        } catch (error) {
+          console.error('Error rendering homeowner:', error, homeowner);
         }
-      } catch (error) {
-        console.error('Error loading homeowner details:', error);
-        alert('Error loading homeowner details. Please try again.');
-      }
+      });
     }
+
+    function renderPayments(payments) {
+      const tableBody = document.getElementById('paymentsTableBody');
+      
+      if (!payments || payments.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center;">No payments found.</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tableBody.innerHTML = '';
+      
+      payments.forEach(payment => {
+        try {
+          const row = document.createElement('tr');
+          
+          // Format date
+          const date = new Date(payment.timestamp || new Date()).toLocaleDateString();
+          const time = new Date(payment.timestamp || new Date()).toLocaleTimeString();
+          
+          // Determine status class
+          let statusClass = 'badge-secondary';
+          if (payment.status === 'approved') {
+            statusClass = 'badge-success';
+          } else if (payment.status === 'rejected') {
+            statusClass = 'badge-danger';
+          } else if (payment.status === 'pending') {
+            statusClass = 'badge-warning';
+          }
+          
+          row.innerHTML = `
+            <td>
+              ${payment.userName || 'N/A'}
+              <div class="small text-muted">${payment.userEmail || 'No email'}</div>
+            </td>
+            <td>₱${payment.amount || '0.00'}</td>
+            <td>${payment.paymentMethod || 'N/A'}</td>
+            <td>${date}<br>
+              <span class="small text-muted">${time}</span>
+            </td>
+            <td><span class="badge ${statusClass}">${payment.status || 'unknown'}</span></td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="viewPayment('${payment._id || ''}')">
+                View
+              </button>
+              ${payment.status === 'pending' ? `
+                <button class="btn btn-sm btn-success ml-1" onclick="approvePayment('${payment._id || ''}')">
+                  Approve
+                </button>
+                <button class="btn btn-sm btn-danger ml-1" onclick="rejectPayment('${payment._id || ''}')">
+                  Reject
+                </button>
+              ` : ''}
+            </td>
+          `;
+          
+          tableBody.appendChild(row);
+        } catch (error) {
+          console.error('Error rendering payment:', error, payment);
+        }
+      });
+    }
+
+ 
+    // Function to view homeowner details
+    async function viewHomeownerDetails(homeownerId) {
+        try {
+          const response = await fetch(`/api/homeowners/${homeownerId}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            const homeowner = data.homeowner;
+            
+            // Safely extract address parts
+            const address = homeowner.Address || {};
+            const block = address.Block?.["$numberInt"] || address.Block || "";
+            const lot = address.Lot?.["$numberInt"] || address.Lot || "";
+            const phase = address.Phase?.["$numberInt"] || address.Phase || "";
+
+            // Populate modal with homeowner details
+            document.getElementById('paymentDetails').innerHTML = `
+              <div class="payment-details">
+                <p><strong>Name:</strong> ${homeowner.firstName} ${homeowner.lastName}</p>
+                <p><strong>Monthly Due:</strong> ₱${homeowner.MDAmount}</p>
+                <p><strong>Last Payment Date:</strong> ${new Date(homeowner.lastPaymentDate).toLocaleDateString()}</p>
+                <p><strong>Payment Status:</strong> ${homeowner.PStatus}</p>
+                <p><strong>Contact Number:</strong> ${homeowner.landline || 'N/A'}</p>
+                <p><strong>Address: </strong> Block <strong>${block}</strong> Lot <strong>${lot}</strong> Phase <strong>${phase}</strong></p>
+              </div>
+            `;
+            
+            // Show modal
+            document.getElementById('viewModal').style.display = 'block';
+          } else {
+            throw new Error(data.message || 'Failed to load homeowner details');
+          }
+        } catch (error) {
+          console.error('Error loading homeowner details:', error);
+          alert('Error loading homeowner details. Please try again.');
+        }
+      }
+
 
     // Function to send reminder
     async function sendReminder(homeownerId) {
@@ -1412,6 +1471,12 @@
             alert("An error occurred during logout. Please try again.");
         }
     }
+
+    document.getElementById('closeViewButton').onclick = function () {
+  document.getElementById('viewModal').style.display = 'none';
+};
+
+
 
   </script>
   

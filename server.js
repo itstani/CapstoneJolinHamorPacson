@@ -3801,10 +3801,10 @@ app.post("/api/create-homeowner-account", async (req, res) => {
   try {
     const { username, email, password } = req.body
 
-    if (!username || !email || !password) {
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: "Username, email, and password are required",
+        message: "Username and password are required",
       })
     }
 
@@ -3813,7 +3813,7 @@ app.post("/api/create-homeowner-account", async (req, res) => {
 
     // Check if user already exists
     const existingUser = await usersCollection.findOne({
-      $or: [{ username }, { email }],
+      $or: [{ username }],
     })
 
     if (existingUser) {
@@ -3829,7 +3829,6 @@ app.post("/api/create-homeowner-account", async (req, res) => {
     // Create new user
     const newUser = {
       username,
-      email,
       password: hashedPassword,
       role: "homeowner",
       createdAt: new Date(),
@@ -3857,7 +3856,6 @@ app.post("/api/create-homeowner", async (req, res) => {
       firstName,
       lastName,
       Address,
-      email,
       phoneNumber,
       landLine,
       paymentStatus,
@@ -3865,7 +3863,7 @@ app.post("/api/create-homeowner", async (req, res) => {
       carStickerStatus,
     } = req.body
 
-    if (!firstName || !lastName || !Address || !email || !phoneNumber) {
+    if (!firstName || !lastName || !Address || !phoneNumber) {
       return res.status(400).json({
         success: false,
         message: "Missing required homeowner details",
@@ -3876,12 +3874,12 @@ app.post("/api/create-homeowner", async (req, res) => {
     const homeownersCollection = db.collection("homeowners")
 
     // Check if homeowner already exists
-    const existingHomeowner = await homeownersCollection.findOne({ email })
+    const existingHomeowner = await homeownersCollection.findOne({ username })
 
     if (existingHomeowner) {
       return res.status(400).json({
         success: false,
-        message: "Homeowner with this email already exists",
+        message: "Homeowner with this username already exists",
       })
     }
 
@@ -3890,7 +3888,6 @@ app.post("/api/create-homeowner", async (req, res) => {
       firstName,
       lastName,
       Address,
-      email,
       phoneNumber,
       landLine: landLine || "",
       paymentStatus: paymentStatus || "Compliant",
@@ -4775,19 +4772,6 @@ app.get("/api/analytics/event-types", async (req, res) => {
   }
 })
 
-async function startServer() {
-  try {
-    await connectToDatabase()
-
-    app.listen(port, () => {
-      console.log(`Server is running on http://localhost:${port}`)
-    })
-  } catch (error) {
-    console.error("Failed to start server:", error)
-
-    process.exit(1)
-  }
-}
 
 // Add this after other middleware and before routes
 
@@ -4837,16 +4821,6 @@ app.post("/send-otp", (req, res) => {
   // transporter.sendMail(mailOptions, (error, info) => { ... }); // Uncomment and implement if you have nodemailer setup
 
   res.json({ success: true, message: "OTP sent successfully", otp }) // Send OTP in response for testing
-})
-
-app.listen(port, (err) => {
-  if (err) {
-    console.error("Failed to start server:", err.message)
-
-    process.exit(1)
-  }
-
-  console.log(`Server is running on http://localhost:${port}`)
 })
 
 app.use((err, req, res, next) => {
@@ -5403,74 +5377,7 @@ app.get("/admin/*", (req, res, next) => {
   }
 })
 
-// Serve static files AFTER API routes
 
-app.use(express.static(path.join(__dirname)))
-
-app.use("/images", express.static(path.join(__dirname, "images")))
-
-app.use("/CSS", express.static(path.join(__dirname, "CSS")))
-
-app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
-
-// This should be the very last route
-
-app.get("*", (req, res) => {
-  // Check if the request wants JSON
-
-  if (req.headers.accept?.includes("application/json")) {
-    return res.status(404).json({ success: false, message: "API endpoint not found" })
-  }
-
-  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
-})
-
-function getDateRange(filter) {
-  const now = new Date()
-
-  switch (filter) {
-    case "week":
-      return new Date(now.setDate(now.getDate() - 7))
-
-    case "1 month":
-      return new Date(now.setMonth(now.getMonth() - 1))
-
-    case "6 months":
-      return new Date(now.setMonth(now.getMonth() - 6))
-
-    case "year":
-      return new Date(now.setFullYear(now.getFullYear() - 1))
-
-    default:
-      return new Date(0) // Beginning of time
-  }
-}
-
-async function connectToDatabase() {
-  try {
-    if (database) {
-      return database;
-    }
-
-    const client = new MongoClient(uri, {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    await client.connect();
-    database = client.db(dbName);
-    console.log("Connected successfully to MongoDB");
-    return database;
-  } catch (error) {
-    console.error("Error connecting to database:", error);
-    throw error;
-  }
-}
 
 app.use((req, res, next) => {
   const oldJson = res.json
@@ -5667,16 +5574,23 @@ app.post('/api/check-dashboard-access', async (req, res) => {
   }
 });
 
-
-
-// Add this route handler for sending payment reminders
-app.post('/api/homeowners/:id/reminder', requireAuth, async (req, res) => {
+app.get('/api/homeowners/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const db = getClient();
     
-    // Find the homeowner
-    const homeowner = await db.collection('homeowners').findOne({ _id: ObjectId(id) });
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Homeowner ID is required'
+      });
+    }
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    const addressCollection = db.collection('address');
+    
+    // Find the homeowner by ID
+    const homeowner = await homeownersCollection.findOne({ _id: new ObjectId(id) });
     
     if (!homeowner) {
       return res.status(404).json({
@@ -5684,29 +5598,102 @@ app.post('/api/homeowners/:id/reminder', requireAuth, async (req, res) => {
         message: 'Homeowner not found'
       });
     }
-
-    // Create a notification for the homeowner
-    await createNotification(
-      homeowner.email,
-      'payment_reminder',
-      `This is a reminder that your monthly payment is due.`,
-      homeowner._id,
-      'Payment Reminder',
-      null,
-      {
-        amount: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
-        dueDate: new Date(),
-        status: homeowner.PStatus
+    
+    // Get the Block, Lot, Phase values from the homeowner's Address
+    let block = null, lot = null, phase = null;
+    
+    if (homeowner.Address) {
+      if (homeowner.Address.Block) {
+        block = homeowner.Address.Block.$numberInt || homeowner.Address.Block;
       }
-    );
-
-    // Log the reminder activity
-    await logActivity('payment_reminder_sent', {
-      homeownerId: homeowner._id,
-      homeownerName: `${homeowner.firstName} ${homeowner.lastName}`,
-      email: homeowner.email
+      if (homeowner.Address.Lot) {
+        lot = homeowner.Address.Lot.$numberInt || homeowner.Address.Lot;
+      }
+      if (homeowner.Address.Phase) {
+        phase = homeowner.Address.Phase.$numberInt || homeowner.Address.Phase;
+      }
+    }
+    
+    // Find matching address record
+    let addressRecord = null;
+    if (block !== null && lot !== null && phase !== null) {
+      addressRecord = await addressCollection.findOne({
+        $or: [
+          {
+            "Block.$numberInt": block.toString(),
+            "Lot.$numberInt": lot.toString(),
+            "Phase.$numberInt": phase.toString()
+          },
+          {
+            Block: parseInt(block),
+            Lot: parseInt(lot),
+            Phase: parseInt(phase)
+          }
+        ]
+      });
+    }
+    
+    // Get MDAmount from address record
+    let mdAmount = "1500.00";
+    if (addressRecord && addressRecord.MDAmount) {
+      if (addressRecord.MDAmount.$numberDouble) {
+        mdAmount = addressRecord.MDAmount.$numberDouble;
+      } else if (typeof addressRecord.MDAmount === 'number') {
+        mdAmount = addressRecord.MDAmount.toFixed(2);
+      }
+    }
+    
+    // Add MDAmount to homeowner data
+    const enhancedHomeowner = {
+      ...homeowner,
+      MDAmount: mdAmount
+    };
+    
+    res.json({
+      success: true,
+      homeowner: enhancedHomeowner
     });
+  } catch (error) {
+    console.error('Error fetching homeowner details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching homeowner details'
+    });
+  }
+});
 
+
+
+app.post('/api/homeowners/:id/reminder', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Homeowner ID is required'
+      });
+    }
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    
+    // Find the homeowner by ID
+    const homeowner = await homeownersCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!homeowner) {
+      return res.status(404).json({
+        success: false,
+        message: 'Homeowner not found'
+      });
+    }
+    
+    // In a real application, you would send an email or notification here
+    console.log(`Sending payment reminder to ${homeowner.firstName} ${homeowner.lastName} (${homeowner.email})`);
+    
+    // Log the activity
+    await logActivity('paymentReminder', `Payment reminder sent to ${homeowner.firstName} ${homeowner.lastName}`);
+    
     res.json({
       success: true,
       message: 'Payment reminder sent successfully'
@@ -5715,7 +5702,7 @@ app.post('/api/homeowners/:id/reminder', requireAuth, async (req, res) => {
     console.error('Error sending payment reminder:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to send payment reminder'
+      message: 'Error sending payment reminder'
     });
   }
 });
@@ -5770,6 +5757,158 @@ app.get('/api/test-database', async (req, res) => {
   }
 });
 
+
+// Add this route handler for checking homeowners with due payments
+app.get('/api/check-homeowners-due', async (req, res) => {
+  try {
+    console.log('=== Check Homeowners Due API Request ===');
+    
+    // Check if user is authenticated
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required"
+      });
+    }
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    const addressCollection = db.collection('address');
+    
+    // Query for homeowners with Almost Due or Delinquent status
+    const query = {
+      $or: [
+        { PStatus: "Almost Due" },
+        { PStatus: "Delinquent" }
+      ]
+    };
+    
+    // Add search functionality if provided
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      query.$and = [
+        {
+          $or: [
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { email: searchRegex }
+          ]
+        }
+      ];
+    }
+    
+    console.log('Query:', JSON.stringify(query));
+    
+    // Get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Get total count for pagination
+    const totalHomeowners = await homeownersCollection.countDocuments(query);
+    console.log(`Found ${totalHomeowners} homeowners with due payments`);
+    
+    // Get homeowners matching the query with pagination
+    const homeowners = await homeownersCollection
+      .find(query)
+      .sort({ lastPaymentDate: 1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    
+    console.log(`Retrieved ${homeowners.length} homeowners for this page`);
+    
+    // Process each homeowner to add address information
+    const enhancedHomeowners = await Promise.all(homeowners.map(async (homeowner) => {
+      // Calculate days since last payment
+      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : new Date();
+      const today = new Date();
+      const daysSincePayment = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+      
+      // Get the Block, Lot, Phase values from the homeowner's Address
+      let block = null, lot = null, phase = null;
+      
+      if (homeowner.Address) {
+        if (homeowner.Address.Block) {
+          block = homeowner.Address.Block.$numberInt || homeowner.Address.Block;
+        }
+        if (homeowner.Address.Lot) {
+          lot = homeowner.Address.Lot.$numberInt || homeowner.Address.Lot;
+        }
+        if (homeowner.Address.Phase) {
+          phase = homeowner.Address.Phase.$numberInt || homeowner.Address.Phase;
+        }
+      }
+      
+      // Find matching address record
+      let addressRecord = null;
+      if (block !== null && lot !== null && phase !== null) {
+        addressRecord = await addressCollection.findOne({
+          "Block.$numberInt": block.toString(),
+          "Lot.$numberInt": lot.toString(),
+          "Phase.$numberInt": phase.toString()
+        });
+        
+        // If not found with $numberInt format, try direct number comparison
+        if (!addressRecord) {
+          addressRecord = await addressCollection.findOne({
+            $or: [
+              {
+                "Block.$numberInt": block.toString(),
+                "Lot.$numberInt": lot.toString(),
+                "Phase.$numberInt": phase.toString()
+              },
+              {
+                Block: parseInt(block),
+                Lot: parseInt(lot),
+                Phase: parseInt(phase)
+              }
+            ]
+          });
+        }
+      }
+      
+      // Get MDAmount from address record
+      let mdAmount = "1500.00";
+      if (addressRecord && addressRecord.MDAmount) {
+        if (addressRecord.MDAmount.$numberDouble) {
+          mdAmount = addressRecord.MDAmount.$numberDouble;
+        } else if (typeof addressRecord.MDAmount === 'number') {
+          mdAmount = addressRecord.MDAmount.toFixed(2);
+        }
+      }
+      
+      return {
+        _id: homeowner._id,
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        email: homeowner.email || "",
+        Address: homeowner.Address,
+        phoneNumber: homeowner.phoneNumber,
+        PStatus: homeowner.PStatus,
+        lastPaymentDate: lastPaymentDate,
+        daysSincePayment: daysSincePayment,
+        delinquentSince: homeowner.delinquentSince || "",
+        MDAmount: mdAmount
+      };
+    }));
+    
+    res.json({
+      success: true,
+      homeowners: enhancedHomeowners,
+      totalPages: Math.ceil(totalHomeowners / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    console.error('Error fetching homeowners with due payments:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+
 // Add the reminder endpoint
 app.post('/api/homeowners/:id/reminder', async (req, res) => {
   try {
@@ -5820,159 +5959,96 @@ app.post('/api/homeowners/:id/reminder', async (req, res) => {
   }
 });
 
-app.get('/api/homeowners', async (req, res) => {
-  console.log('Homeowners API called');
-  try {
-    // Make sure ObjectId is available
-    const { ObjectId } = require('mongodb');
-    
-    const { PStatus } = req.query;
-    let query = {};
 
-    if (PStatus) {
-      // Split the comma-separated PStatus values
-      const statusArray = PStatus.split(',').map(status => status.trim());
-      console.log('Looking for homeowners with PStatus in:', statusArray);
-      
-      // Create a query that matches either status
-      query.PStatus = { $in: statusArray };
-    }
+// Serve static files AFTER API routes
 
-    console.log('Query:', JSON.stringify(query));
-    
-    // Use the same endpoint that hotable.html uses to get homeowners
-    const response = await fetch('/getHomeowners');
-    if (!response.ok) {
-      throw new Error(`Error fetching homeowners: ${response.status}`);
-    }
-    
-    // Get all homeowners
-    let allHomeowners = await response.json();
-    console.log(`Fetched ${allHomeowners.length} homeowners`);
-    
-    // Filter them based on the PStatus query
-    let filteredHomeowners = allHomeowners;
-    if (query.PStatus && query.PStatus.$in) {
-      filteredHomeowners = allHomeowners.filter(homeowner => 
-        query.PStatus.$in.includes(homeowner.PStatus)
-      );
-    }
-    
-    console.log(`Filtered to ${filteredHomeowners.length} homeowners with matching PStatus`);
-    
-    // Transform homeowners data to include calculated fields
-    const now = new Date();
-    const transformedHomeowners = filteredHomeowners.map(homeowner => {
-      // Parse lastPaymentDate
-      let lastPaymentDate = null;
-      try {
-        lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
-      } catch (e) {
-        console.error('Error parsing lastPaymentDate:', e);
-      }
-      
-      // Calculate days since last payment
-      const daysSincePayment = lastPaymentDate ? 
-        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
-        30; // Default to 30 days if no last payment date
-        
-      return {
-        _id: homeowner._id,
-        firstName: homeowner.firstName || 'Unknown',
-        lastName: homeowner.lastName || 'Homeowner',
-        email: homeowner.email || '',
-        phoneNumber: homeowner.phoneNumber || '',
-        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
-        lastPaymentDate: lastPaymentDate,
-        PStatus: homeowner.PStatus || 'N/A',
-        HStatus: homeowner.HStatus || 'N/A',
-        carSticker: homeowner.carSticker || 'undetermined',
-        Address: homeowner.Address || {},
-        daysSincePayment: daysSincePayment
-      };
-    });
-    
-    res.json({
-      success: true,
-      homeowners: transformedHomeowners
-    });
-  } catch (error) {
-    console.error('Error fetching homeowners:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+app.use(express.static(path.join(__dirname)))
+
+app.use("/images", express.static(path.join(__dirname, "images")))
+
+app.use("/CSS", express.static(path.join(__dirname, "CSS")))
+
+app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
+
+// This should be the very last route
+
+app.get("*", (req, res) => {
+  // Check if the request wants JSON
+
+  if (req.headers.accept?.includes("application/json")) {
+    return res.status(404).json({ success: false, message: "API endpoint not found" })
   }
-});
 
-// Add this route handler for checking homeowners with due payments
-app.get('/api/check-homeowners-due', requireAuth, async (req, res) => {
-  try {
-    console.log('=== Check Homeowners Due API Request ===');
-    console.log('Session:', req.session);
-    console.log('User:', req.session?.user);
-    
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection('homeowners');
-    const addressCollection = db.collection('address');
-    
-    // Query for homeowners with Almost Due or Delinquent status
-    const query = {
-      PStatus: ['Almost Due' || 'Delinquent'] 
-    };
-    
-    console.log('Query:', JSON.stringify(query));
-    
-    // Get homeowners matching the query
-    const homeowners = await homeownersCollection.find(query).toArray();
-    const address = await addressCollection.find(query).toArray();
-    console.log(`Found ${homeowners.length} homeowners with due payments`);
+  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
+})
 
-    // Calculate current date once
-    const now = new Date();
+function getDateRange(filter) {
+  const now = new Date()
 
-    // Transform the data to include calculated fields
-    const transformedHomeowners = homeowners.map(homeowners => {
-      // Parse lastPaymentDate
-      const lastPaymentDate = homeowners.lastPaymentDate ? new Date(homeowners.lastPaymentDate) : null;
-      
-      // Calculate days since last payment
-      const daysSincePayment = lastPaymentDate ? 
-        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
-        null;
+  switch (filter) {
+    case "week":
+      return new Date(now.setDate(now.getDate() - 7))
 
-      // Calculate delinquent since date
-      // Assuming a payment becomes delinquent after 30 days
-      const delinquentSince = lastPaymentDate && daysSincePayment > 30 ? 
-        new Date(lastPaymentDate.getTime() + (30 * 24 * 60 * 60 * 1000)) : 
-        null;
+    case "1 month":
+      return new Date(now.setMonth(now.getMonth() - 1))
 
-      return {
-        _id: homeowners._id,
-        firstName: homeowners.firstName,
-        lastName: homeowners.lastName,
-        email: homeowners.email,
-        monthlyDue: address.monthlyDue || homeowners.MDAmount || 1500.00,
-        lastPaymentDate: lastPaymentDate,
-        PStatus: homeowners.PStatus || 'N/A',
-        delinquentSince: delinquentSince,
-        daysSincePayment: daysSincePayment,
-        address: homeowners.Address,
-        phoneNumber: homeowners.phoneNumber,
-        HStatus: homeowners.HStatus
-      };
-    });
+    case "6 months":
+      return new Date(now.setMonth(now.getMonth() - 6))
 
-    console.log('Sending response with', transformedHomeowners.length, 'homeowners');
-    res.json({
-      success: true,
-      homeowners: transformedHomeowners
-    });
-  } catch (error) {
-    console.error('Error fetching homeowners with due payments:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    case "year":
+      return new Date(now.setFullYear(now.getFullYear() - 1))
+
+    default:
+      return new Date(0) // Beginning of time
   }
-});
+}
+
+async function connectToDatabase() {
+  try {
+    if (database) {
+      return database;
+    }
+
+    const client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      },
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
+    await client.connect();
+    database = client.db(dbName);
+    console.log("Connected successfully to MongoDB");
+    return database;
+  } catch (error) {
+    console.error("Error connecting to database:", error);
+    throw error;
+  }
+}
+
+app.listen(port, (err) => {
+  if (err) {
+    console.error("Failed to start server:", err.message)
+
+    process.exit(1)
+  }
+
+  console.log(`Server is running on http://localhost:${port}`)
+})
+
+async function startServer() {
+  try {
+    await connectToDatabase()
+
+    app.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`)
+    })
+  } catch (error) {
+    console.error("Failed to start server:", error)
+
+    process.exit(1)
+  }
+}
