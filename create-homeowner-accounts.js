@@ -23,41 +23,50 @@ async function createHomeownerAccounts(homeowners) {
         continue
       }
 
-      // Extract block and lot numbers from address
-      const blockMatch = homeowner.Address?.match(/Block\s+(\d+)/i)
-      const lotMatch = homeowner.Address?.match(/Lot\s+(\d+)/i)
+      // Extract block, lot, and phase numbers from address
+      let blockNumber, lotNumber, phaseNumber;
+      
+      if (typeof homeowner.Address === 'object') {
+        // New structure
+        blockNumber = homeowner.Address.Block?.$numberInt || homeowner.Address.Block;
+        lotNumber = homeowner.Address.Lot?.$numberInt || homeowner.Address.Lot;
+        phaseNumber = homeowner.Address.Phase?.$numberInt || homeowner.Address.Phase;
+      } else {
+        // Old structure - try to extract from string
+        const blockMatch = homeowner.Address?.match(/Block\s+(\d+)/i);
+        const lotMatch = homeowner.Address?.match(/Lot\s+(\d+)/i);
+        const phaseMatch = homeowner.Address?.match(/Phase\s+(\d+)/i);
+        
+        blockNumber = blockMatch ? blockMatch[1] : null;
+        lotNumber = lotMatch ? lotMatch[1] : null;
+        phaseNumber = phaseMatch ? phaseMatch[1] : null;
+      }
 
-      if (!blockMatch || !lotMatch) {
+      if (!blockNumber || !lotNumber || !phaseNumber) {
         results.push({
           homeowner,
           success: false,
-          message: "Address does not contain valid Block and Lot numbers",
+          message: "Address does not contain valid Block, Lot, and Phase numbers",
           password: null,
         })
         continue
       }
 
-      const blockNumber = blockMatch[1]
-      const lotNumber = lotMatch[1]
-      const currentYear = new Date().getFullYear()
-
-      // Generate username: first initial + last name + random number
+      // Generate username: first initial + last initial + block + lot + phase
       const firstName = homeowner.firstName || ""
       const lastName = homeowner.lastName || ""
+      const firstInitial = firstName.charAt(0).toUpperCase()
+      const lastInitial = lastName.charAt(0).toUpperCase()
+      const username = `${firstInitial}${lastInitial}${blockNumber}${lotNumber}${phaseNumber}`
 
-      const firstInitial = firstName.charAt(0)
-      const baseUsername = (firstInitial + lastName).toLowerCase().replace(/\s+/g, "")
-      const randomNum = Math.floor(100 + Math.random() * 900)
-      const username = baseUsername + randomNum
-
-      // Generate password in the format: ASC + block + lot + year + !
-      const password = `ASC${blockNumber}${lotNumber}${currentYear}!`
+      // Generate password: ASC + block + lot + 2025!
+      const password = `ASC${blockNumber}${lotNumber}2025!`
       const hashedPassword = await bcrypt.hash(password, 10)
 
       // Ensure email has a domain
       let email = homeowner.email
-      if (!email.includes("@")) {
-        email = `${email}@example.com`
+      if (!email || !email.includes("@")) {
+        email = `${username.toLowerCase()}@asc.system`
       }
 
       // Create the account
@@ -158,16 +167,21 @@ module.exports = {
       let newPassword = null
       if (resetPassword) {
         // Extract block and lot numbers from address for password generation
-        const blockMatch = homeowner.Address.match(/Block\s+(\d+)/i)
-        const lotMatch = homeowner.Address.match(/Lot\s+(\d+)/i)
+        let blockNumber, lotNumber;
+        
+        if (typeof homeowner.Address === 'object') {
+          blockNumber = homeowner.Address.Block?.$numberInt || homeowner.Address.Block;
+          lotNumber = homeowner.Address.Lot?.$numberInt || homeowner.Address.Lot;
+        } else {
+          const blockMatch = homeowner.Address.match(/Block\s+(\d+)/i);
+          const lotMatch = homeowner.Address.match(/Lot\s+(\d+)/i);
+          blockNumber = blockMatch ? blockMatch[1] : null;
+          lotNumber = lotMatch ? lotMatch[1] : null;
+        }
 
-        if (blockMatch && lotMatch) {
-          const blockNumber = blockMatch[1]
-          const lotNumber = lotMatch[1]
-          const currentYear = new Date().getFullYear()
-
-          // Generate password in the format: ASC + block + lot + year + !
-          newPassword = `ASC${blockNumber}${lotNumber}${currentYear}!`
+        if (blockNumber && lotNumber) {
+          // Generate password in the format: ASC + block + lot + 2025!
+          newPassword = `ASC${blockNumber}${lotNumber}2025!`
 
           // Hash the new password
           const hashedPassword = await bcrypt.hash(newPassword, 10)
