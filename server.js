@@ -4361,11 +4361,13 @@ app.get("/api/payment-report", async (req, res) => {
 })
 
 
+// ... existing code ...
+
 app.post("/api/homeowners/generate-account", async (req, res) => {
   try {
-    const { firstName, lastName, address, phoneNumber, landLine, paymentStatus, carStickerStatus } = req.body;
+    const { firstName, lastName, Address, phoneNumber, landLine, PStatus, carStickerStatus } = req.body;
 
-    if (!firstName || !lastName || !address || !phoneNumber) {
+    if (!firstName || !lastName || !Address || !phoneNumber) {
       return res.status(400).json({
         success: false,
         error: "Missing required fields",
@@ -4376,73 +4378,84 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
     const homeownersCollection = db.collection("homeowners");
     const accCollection = db.collection("acc");
 
-    // Extract last digits of landline if available
-    const landlineLastDigits = landLine ? landLine.slice(-4) : Math.floor(1000 + Math.random() * 9000).toString();
+    // Extract block, lot, and phase numbers from address
+    let blockNumber, lotNumber, phaseNumber;
     
-    // Generate username in new format: LastInitialFirstInitialASCYearLandlineLastDigits
-    const currentYear = new Date().getFullYear();
-    const username = `${lastName.charAt(0)}${firstName.charAt(0)}ASC${currentYear}${landlineLastDigits}`.toUpperCase();
+    if (typeof Address === 'object') {
+      // New structure
+      blockNumber = Address.Block?.$numberInt || Address.Block;
+      lotNumber = Address.Lot?.$numberInt || Address.Lot;
+      phaseNumber = Address.Phase?.$numberInt || Address.Phase;
+    } else {
+      // Old structure - try to extract from string
+      const blockMatch = Address.match(/Block\s+(\d+)/i);
+      const lotMatch = Address.match(/Lot\s+(\d+)/i);
+      const phaseMatch = Address.match(/Phase\s+(\d+)/i);
+      
+      blockNumber = blockMatch ? blockMatch[1] : null;
+      lotNumber = lotMatch ? lotMatch[1] : null;
+      phaseNumber = phaseMatch ? phaseMatch[1] : null;
+    }
 
-    // Generate email (no longer required for display but kept for system functionality)
-    const systemEmail = `${username.toLowerCase()}@asc.system`;
-
-    // Extract block and lot numbers from address
-    const blockMatch = address.match(/Block\s+(\d+)/i);
-    const lotMatch = address.match(/Lot\s+(\d+)/i);
-
-    if (!blockMatch || !lotMatch) {
+    if (!blockNumber || !lotNumber || !phaseNumber) {
       return res.status(400).json({
         success: false,
-        error: "Address must contain valid Block and Lot numbers",
+        error: "Address must contain valid Block, Lot, and Phase numbers",
       });
     }
 
-    const blockNumber = blockMatch[1];
-    const lotNumber = lotMatch[1];
+    // Generate username: first initial + last initial + block + lot + phase
+    const firstInitial = firstName.charAt(0).toUpperCase();
+    const lastInitial = lastName.charAt(0).toUpperCase();
+    const username = `${firstInitial}${lastInitial}${blockNumber}${lotNumber}${phaseNumber}`;
 
-    // Generate password in the format: ASC + block + lot + year + !
-    const password = `ASC${blockNumber}${lotNumber}${currentYear}!`;
+    // Generate email
+    const email = `${username.toLowerCase()}@asc.system`;
+
+    // Generate password: ASC + block + lot + 2025!
+    const password = `ASC${blockNumber}${lotNumber}2025!`;
 
     // Check if username or email already exists
     const existingUser = await accCollection.findOne({
       $or: [{ username }, { email }],
-    })
+    });
 
     if (existingUser) {
       return res.status(400).json({
         success: false,
         error: "Username or email already exists. Please try again.",
-      })
+      });
     }
 
     // Create account in acc collection
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10);
     await accCollection.insertOne({
       username,
       email,
       password: hashedPassword,
       role: "homeowner",
+      isHomeowner: "true",
       createdAt: new Date(),
-    })
+    });
 
     // Create homeowner record
     const homeowner = {
       firstName,
       lastName,
-      Address: address,
+      Address,
       email,
       phoneNumber,
       landLine: landLine || "",
-      paymentStatus: paymentStatus || "Compliant",
-      homeownerStatus: paymentStatus === "Delinquent" ? "Delinquent" : "Compliant",
-      carStickerStatus: carStickerStatus || "undetermined",
+      PStatus: PStatus || "Compliant",
+      HStatus: PStatus === "Delinquent" ? "Delinquent" : "Compliant",
+      carSticker: carStickerStatus || "undetermined",
       createdAt: new Date(),
-    }
+    };
 
-    await homeownersCollection.insertOne(homeowner)
+    await homeownersCollection.insertOne(homeowner);
 
     // Log activity
-    await logActivity("accountGenerated", `Generated account for homeowner ${firstName} ${lastName}`)
+    await logActivity("accountGenerated", `Generated account for homeowner ${firstName} ${lastName}`);
 
     res.json({
       success: true,
@@ -4451,15 +4464,17 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
         username,
         password,
       },
-    })
+    });
   } catch (error) {
-    console.error("Error generating homeowner account:", error)
+    console.error("Error generating homeowner account:", error);
     res.status(500).json({
       success: false,
       error: "Server error while generating account",
-    })
+    });
   }
-})
+});
+
+// ... existing code ...
 
 app.get("/api/generate-payment-report", async (req, res) => {
   try {
@@ -5668,62 +5683,76 @@ app.post('/api/check-dashboard-access', async (req, res) => {
 // Add this route handler for fetching homeowners with due payments
 app.get('/api/homeowners', requireAuth, async (req, res) => {
   try {
+    console.log('=== Homeowners API Request ===');
+    console.log('Session:', req.session);
+    console.log('User:', req.session?.user);
+    console.log('Query:', req.query);
+    
     const { PStatus } = req.query;
     let query = {};
 
     // If PStatus is provided, split it into an array and use $in operator
     if (PStatus) {
       const statusArray = PStatus.split(',').map(status => status.trim());
+      console.log('Looking for homeowners with PStatus in:', statusArray);
       query.PStatus = { $in: statusArray };
     }
 
-    const db = getClient();
-    const homeowners = await db.collection('homeowners')
-      .find(query)
-      .toArray();
+    console.log('Final query:', JSON.stringify(query));
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    
+    // Get homeowners matching the query
+    const homeowners = await homeownersCollection.find(query).toArray();
+    console.log(`Found ${homeowners.length} homeowners matching query`);
 
     // Calculate current date once
     const now = new Date();
 
+    // Transform the data to include calculated fields
+    const transformedHomeowners = homeowners.map(homeowner => {
+      // Parse lastPaymentDate
+      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+      
+      // Calculate days since last payment
+      const daysSincePayment = lastPaymentDate ? 
+        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
+        null;
+
+      // Calculate delinquent since date
+      // Assuming a payment becomes delinquent after 30 days
+      const delinquentSince = lastPaymentDate && daysSincePayment > 30 ? 
+        new Date(lastPaymentDate.getTime() + (30 * 24 * 60 * 60 * 1000)) : 
+        null;
+
+      return {
+        _id: homeowner._id,
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        email: homeowner.email,
+        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        lastPaymentDate: lastPaymentDate,
+        PStatus: homeowner.PStatus || 'N/A',
+        delinquentSince: delinquentSince,
+        daysSincePayment: daysSincePayment,
+        // Include additional fields that might be useful
+        address: homeowner.Address,
+        phoneNumber: homeowner.phoneNumber,
+        HStatus: homeowner.HStatus
+      };
+    });
+
+    console.log('Sending response with', transformedHomeowners.length, 'homeowners');
     res.json({
       success: true,
-      homeowners: homeowners.map(homeowner => {
-        // Parse lastPaymentDate
-        const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
-        
-        // Calculate days since last payment
-        const daysSincePayment = lastPaymentDate ? 
-          Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
-          null;
-
-        // Calculate delinquent since date
-        // Assuming a payment becomes delinquent after 30 days
-        const delinquentSince = lastPaymentDate && daysSincePayment > 30 ? 
-          new Date(lastPaymentDate.getTime() + (30 * 24 * 60 * 60 * 1000)) : 
-          null;
-
-        return {
-          _id: homeowner._id,
-          firstName: homeowner.firstName,
-          lastName: homeowner.lastName,
-          email: homeowner.email,
-          monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
-          lastPaymentDate: lastPaymentDate,
-          PStatus: homeowner.PStatus || 'N/A',
-          delinquentSince: delinquentSince,
-          daysSincePayment: daysSincePayment,
-          // Include additional fields that might be useful
-          address: homeowner.Address,
-          phoneNumber: homeowner.phoneNumber,
-          HStatus: homeowner.HStatus
-        };
-      })
+      homeowners: transformedHomeowners
     });
   } catch (error) {
     console.error('Error fetching homeowners:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch homeowners'
+      message: error.message
     });
   }
 });
@@ -5957,6 +5986,77 @@ app.get('/api/homeowners', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching homeowners:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Add this route handler for checking homeowners with due payments
+app.get('/api/check-homeowners-due', requireAuth, async (req, res) => {
+  try {
+    console.log('=== Check Homeowners Due API Request ===');
+    console.log('Session:', req.session);
+    console.log('User:', req.session?.user);
+    
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    
+    // Query for homeowners with Almost Due or Delinquent status
+    const query = {
+      PStatus: { $in: ['Almost Due', 'Delinquent'] }
+    };
+    
+    console.log('Query:', JSON.stringify(query));
+    
+    // Get homeowners matching the query
+    const homeowners = await homeownersCollection.find(query).toArray();
+    console.log(`Found ${homeowners.length} homeowners with due payments`);
+
+    // Calculate current date once
+    const now = new Date();
+
+    // Transform the data to include calculated fields
+    const transformedHomeowners = homeowners.map(homeowner => {
+      // Parse lastPaymentDate
+      const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
+      
+      // Calculate days since last payment
+      const daysSincePayment = lastPaymentDate ? 
+        Math.floor((now - lastPaymentDate) / (1000 * 60 * 60 * 24)) : 
+        null;
+
+      // Calculate delinquent since date
+      // Assuming a payment becomes delinquent after 30 days
+      const delinquentSince = lastPaymentDate && daysSincePayment > 30 ? 
+        new Date(lastPaymentDate.getTime() + (30 * 24 * 60 * 60 * 1000)) : 
+        null;
+
+      return {
+        _id: homeowner._id,
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        email: homeowner.email,
+        monthlyDue: homeowner.monthlyDue || homeowner.MDAmount || 1500.00,
+        lastPaymentDate: lastPaymentDate,
+        PStatus: homeowner.PStatus || 'N/A',
+        delinquentSince: delinquentSince,
+        daysSincePayment: daysSincePayment,
+        // Include additional fields that might be useful
+        address: homeowner.Address,
+        phoneNumber: homeowner.phoneNumber,
+        HStatus: homeowner.HStatus
+      };
+    });
+
+    console.log('Sending response with', transformedHomeowners.length, 'homeowners');
+    res.json({
+      success: true,
+      homeowners: transformedHomeowners
+    });
+  } catch (error) {
+    console.error('Error fetching homeowners with due payments:', error);
     res.status(500).json({
       success: false,
       message: error.message
