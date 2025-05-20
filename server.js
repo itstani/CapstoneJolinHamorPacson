@@ -684,6 +684,7 @@ app.post("/api/login", async (req, res) => {
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
     });
 
@@ -709,10 +710,11 @@ app.post("/api/login", async (req, res) => {
     if (user.role !== "admin") {
       const addresses = await addressCollection.find({}).toArray();
 
+      // Try to find homeowner by username or email
       const homeowner = await homeownersCollection.findOne({
         $or: [
-          { email: user.email || null },
-          { username: user.username }
+          { username: user.username },
+          { email: user.email },
         ]
       });
 
@@ -743,7 +745,11 @@ app.post("/api/login", async (req, res) => {
 
       const dueAmount = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
 
-      if (homeowner.PStatus === "Delinquent") {
+      // Check for delinquent or almost due status (case-insensitive)
+      const pStatus = (homeowner.PStatus || homeowner.paymentStatus || "").toLowerCase();
+      const hStatus = (homeowner.HStatus || homeowner.homeownerStatus || "").toLowerCase();
+
+      if (pStatus === "delinquent" || hStatus === "delinquent") {
         return res.json({
           success: false,
           isDelinquent: true,
@@ -751,6 +757,15 @@ app.post("/api/login", async (req, res) => {
           email: user.email || user.username,
           dueAmount: dueAmount,
           message: "Account is delinquent. Please pay your monthly dues.",
+        });
+      } else if (pStatus === "almost due" || hStatus === "almost due") {
+        return res.json({
+          success: true,
+          isAlmostDue: true,
+          username: user.username,
+          email: user.email || user.username,
+          dueAmount: dueAmount,
+          message: "Your dues are almost due. Would you like to pay now?",
         });
       }
     }
@@ -869,12 +884,13 @@ app.get("/api/force-auth", (req, res) => {
 })
 
 app.post("/api/check-delinquent-status", async (req, res) => {
-  const { login, password } = req.body
+  const { login, password } = req.body;
 
   try {
-    const db = await connectToDatabase()
-    const usersCollection = db.collection("acc")
-    const homeownersCollection = db.collection("homeowners")
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("acc");
+    const homeownersCollection = db.collection("homeowners");
+    const addressCollection = db.collection("address");
 
     // Find user by email or username
     const user = await usersCollection.findOne({
@@ -882,50 +898,58 @@ app.post("/api/check-delinquent-status", async (req, res) => {
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
-    })
+    });
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      })
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password)
-
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      })
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    // Check if user is a homeowner
-    if (user.role === "homeowner" || !user.role) {
-      // Check delinquent status
-      const homeowner = await homeownersCollection.findOne({ email: user.email })
-
-      if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
-        // User is delinquent, return special response
-        return res.json({
-          success: false,
-          isDelinquent: true,
-          username: user.username,
-          dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
-          message: "Your account has outstanding dues that need to be paid.",
-        })
-      }
-    }
-
-    // Normal successful login
     req.session.user = {
       username: user.username,
       email: user.email,
       role: user.role || "homeowner",
+    };
+
+    if (user.role === "homeowner" || !user.role) {
+      const homeowner = await homeownersCollection.findOne({ email: user.email });
+      if (homeowner) {
+        let mdAmount = "1500.00"; // Default
+
+        // Get MDAmount from address collection if there's a reference
+        if (homeowner.addressId) {
+          const address = await addressCollection.findOne({ _id: homeowner.addressId });
+          if (address && address.MDAmount) {
+            mdAmount = address.MDAmount;
+          }
+        }
+
+        // Handle Delinquent or Almost Due
+        if (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent") {
+          return res.json({
+            success: false,
+            isDelinquent: true,
+            username: user.username,
+            dueAmount: mdAmount,
+            message: "Your account has outstanding dues that need to be paid.",
+          });
+        } else if (homeowner.PStatus === "Almost due") {
+          return res.json({
+            success: true,
+            isAlmostDue: true,
+            username: user.username,
+            dueAmount: mdAmount,
+            message: "Your dues are almost due. Would you like to pay now?",
+          });
+        }
+      }
     }
 
-    await logActivity("login", `User ${user.username} logged in successfully`)
+    await logActivity("login", `User ${user.username} logged in successfully`);
 
     res.json({
       success: true,
@@ -933,16 +957,13 @@ app.post("/api/check-delinquent-status", async (req, res) => {
       email: user.email,
       role: user.role || "homeowner",
       redirectUrl: user.role === "admin" ? "/AdHome.html" : "/HoHome.html",
-    })
+    });
   } catch (error) {
-    console.error("Login error:", error)
-    res.status(500).json({
-      success: false,
-      message: "An error occurred during login",
-      error: error.message,
-    })
+    console.error("Login error:", error);
+    res.status(500).json({ success: false, message: "An error occurred during login", error: error.message });
   }
-})
+});
+
 
 app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res) => {
   try {
@@ -4210,8 +4231,8 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       });
     }
 
-    // Generate username: lastname + firstname initial
-    const username = `${lastName}${firstName.charAt(0)}`;
+    // Standardized username: lastname + firstname initial + block + lot + phase
+    const username = `${lastName}${firstName.charAt(0)}${blockNumber}${lotNumber}${phaseNumber}`;
     // Generate password: ASC + block + lot + phase + 2025!
     const password = `ASC${blockNumber}${lotNumber}${phaseNumber}2025!`;
 
@@ -5957,8 +5978,9 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
 
       if (!firstName || !lastName || !block || !lot || !phase) continue;
 
-      const username = `${lastName}${firstName.charAt(0)}`;
-      const password = `,ASC${block}${lot}${phase}2025!`;
+      // Standardized username: lastname + firstname initial + block + lot + phase
+      const username = `${lastName}${firstName.charAt(0)}${block}${lot}${phase}`;
+      const password = `ASC${block}${lot}${phase}2025!`;
 
       const existingUser = await accCollection.findOne({ username });
 

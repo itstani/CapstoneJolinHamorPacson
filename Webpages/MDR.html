@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Dues Receipt</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Inter', sans-serif;
+            background: #f8f8f8;
+            margin: 0;
+            padding: 0;
+        }
+        .receipt-container {
+            background: white;
+            max-width: 700px;
+            margin: 40px auto;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 40px 30px 30px 30px;
+            position: relative;
+        }
+        .receipt-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #AF2630;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .receipt-header img {
+            height: 60px;
+        }
+        .receipt-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #AF2630;
+            text-align: right;
+        }
+        .receipt-info {
+            margin-bottom: 20px;
+            font-size: 1.05em;
+        }
+        .receipt-info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .receipt-info-table td {
+            padding: 4px 8px;
+            font-size: 1em;
+        }
+        .receipt-particulars {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            padding: 10px 0 0 0;
+        }
+        .particulars-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .particulars-table th, .particulars-table td {
+            border: 1px solid #ccc;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 1em;
+        }
+        .particulars-table th {
+            background: #f5f5f5;
+            color: #AF2630;
+        }
+        .receipt-footer {
+            margin-top: 30px;
+            font-size: 0.95em;
+            color: #555;
+            text-align: right;
+        }
+        .receipt-actions {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .receipt-actions button {
+            background: #AF2630;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 22px;
+            font-size: 1em;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .receipt-actions button:hover {
+            background: #8f1d25;
+        }
+        @media print {
+            body { background: white; }
+            .receipt-container { box-shadow: none; margin: 0; }
+            .receipt-actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container" id="receipt">
+        <div class="receipt-header">
+            <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" onerror="this.onerror=null; this.src='/images/placeholder.png';">
+            <div class="receipt-title">OFFICIAL RECEIPT</div>
+        </div>
+        <div class="receipt-info">
+            <table class="receipt-info-table">
+                <tr>
+                    <td><strong>Received from:</strong></td>
+                    <td id="ownerName">-</td>
+                    <td><strong>Date:</strong></td>
+                    <td id="receiptDate">-</td>
+                </tr>
+                <tr>
+                    <td><strong>Address:</strong></td>
+                    <td id="ownerAddress">-</td>
+                    <td><strong>Receipt No.:</strong></td>
+                    <td id="receiptNo">-</td>
+                </tr>
+                <tr>
+                    <td><strong>Business Style:</strong></td>
+                    <td>HOA</td>
+                    <td><strong>Customer Code:</strong></td>
+                    <td id="customerCode">-</td>
+                </tr>
+                <tr>
+                    <td><strong>Amount in Words:</strong></td>
+                    <td colspan="3" id="amountWords">-</td>
+                </tr>
+            </table>
+        </div>
+        <div class="receipt-particulars">
+            <table class="particulars-table">
+                <thead>
+                    <tr>
+                        <th>PARTICULARS</th>
+                        <th>PERIOD</th>
+                        <th>AMOUNT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Association Dues</td>
+                        <td id="period">-</td>
+                        <td id="amount">-</td>
+                    </tr>
+                    <tr>
+                        <td>Discount/Interest/Penalty</td>
+                        <td></td>
+                        <td>0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Facilities/Other</td>
+                        <td></td>
+                        <td>0.00</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2" style="text-align:right;">TOTAL AMOUNT DUE</th>
+                        <th id="totalAmount">-</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="receipt-footer">
+            <div>Received by: <span id="receivedBy">Avida Settings HOA</span></div>
+            <div>Thank you for your payment!</div>
+        </div>
+        <div class="receipt-actions">
+            <button onclick="window.print()">Print Receipt</button>
+            <button onclick="downloadPDF()">Download as PDF</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Helper: Convert number to words (simple PHP-style for PHP1,550.00)
+        function numberToWords(num) {
+            const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+            const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+            if ((num = num.toString()).length > 9) return "Overflow";
+            let n = ("000000000" + num).substr(-9).match(/^(\d{3})(\d{3})(\d{3})$/);
+            if (!n) return; let str = '';
+            str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Million ' : '';
+            str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Thousand ' : '';
+            str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) : '';
+            return str.trim();
+        }
+
+        // Fill receipt with data from localStorage or query params
+        function fillReceipt() {
+            // Try to get from localStorage (fallback to query params)
+            const ownerName = localStorage.getItem('username') || getQuery('username') || '-';
+            const ownerAddress = localStorage.getItem('address') || getQuery('address') || '-';
+            const amount = localStorage.getItem('MDAmount') || getQuery('amount') || '1550.00';
+            const period = getQuery('period') || 'August 2024';
+            const receiptNo = Math.floor(80000 + Math.random() * 10000); // Random for demo
+            const customerCode = Math.floor(2000 + Math.random() * 1000);
+            const date = new Date().toLocaleDateString();
+            const amountWords = `One Thousand Five Hundred Fifty Pesos Only`;
+
+            document.getElementById('ownerName').textContent = ownerName;
+            document.getElementById('ownerAddress').textContent = ownerAddress;
+            document.getElementById('amount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
+            document.getElementById('totalAmount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
+            document.getElementById('amountWords').textContent = amountWords;
+            document.getElementById('period').textContent = period;
+            document.getElementById('receiptNo').textContent = receiptNo;
+            document.getElementById('customerCode').textContent = customerCode;
+            document.getElementById('receiptDate').textContent = date;
+        }
+        function getQuery(key) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(key);
+        }
+        fillReceipt();
+
+        // Download as PDF using jsPDF
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+            doc.html(document.getElementById('receipt'), {
+                callback: function (doc) {
+                    doc.save('Avida-Receipt.pdf');
+                },
+                margin: [20, 20, 20, 20],
+                autoPaging: 'text',
+                x: 0,
+                y: 0,
+                width: 560
+            });
+        }
+    </script>
+</body>
+</html> 
