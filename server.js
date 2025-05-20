@@ -4207,8 +4207,8 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       });
     }
 
-    // Generate username: lastname + firstname initial + block + lot + phase + ASC
-    const username = `${lastName}${firstName.charAt(0)}${blockNumber}${lotNumber}${phaseNumber}ASC`;
+    // Standardized username: lastname + firstname initial + block + lot + phase
+    const username = `${lastName}${firstName.charAt(0)}${blockNumber}${lotNumber}${phaseNumber}`;
     // Generate password: ASC + block + lot + phase + 2025!
     const password = `ASC${blockNumber}${lotNumber}${phaseNumber}2025!`;
 
@@ -5955,6 +5955,7 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
 
       if (!firstName || !lastName || !block || !lot || !phase) continue;
 
+      // Standardized username: lastname + firstname initial + block + lot + phase
       const username = `${lastName}${firstName.charAt(0)}${block}${lot}${phase}`;
       const password = `ASC${block}${lot}${phase}2025!`;
 
@@ -5972,7 +5973,11 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
           isHomeowner: "true",
           createdAt: new Date(),
         });
-
+        // Update the homeowner document to include the username
+        await homeownersCollection.updateOne(
+          { _id: homeowner._id },
+          { $set: { username } }
+        );
         createdAccounts.push({
           success: true,
           homeowner: { firstName, lastName, username },
@@ -5988,7 +5993,11 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
             },
           }
         );
-
+        // Ensure the username is set in the homeowner document as well
+        await homeownersCollection.updateOne(
+          { _id: homeowner._id },
+          { $set: { username } }
+        );
         createdAccounts.push({
           success: true,
           homeowner: { firstName, lastName, username },
