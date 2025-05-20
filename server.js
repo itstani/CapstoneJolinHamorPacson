@@ -663,7 +663,7 @@ app.get("/api/generate-report", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
-
+  
   try {
     console.log(`Login attempt for: ${login}`);
 
@@ -4188,7 +4188,7 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
     const homeownersCollection = db.collection("homeowners");
     const accCollection = db.collection("acc");
 
-    // Extract block, lot, and phase numbers from address
+    // Extract block and lot numbers from address
     let blockNumber, lotNumber, phaseNumber;
     if (typeof Address === 'object') {
       blockNumber = Address.Block?.$numberInt || Address.Block;
@@ -4210,8 +4210,8 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       });
     }
 
-    // Generate username: lastname + firstname initial + block + lot + phase + ASC
-    const username = `${lastName}${firstName.charAt(0)}${blockNumber}${lotNumber}${phaseNumber}ASC`;
+    // Generate username: lastname + firstname initial
+    const username = `${lastName}${firstName.charAt(0)}`;
     // Generate password: ASC + block + lot + phase + 2025!
     const password = `ASC${blockNumber}${lotNumber}${phaseNumber}2025!`;
 
@@ -5920,7 +5920,7 @@ app.get("/api/check-homeowners-due", requireAuth, async (req, res) => {
       const lastPaymentDate = homeowner.lastPaymentDate ? new Date(homeowner.lastPaymentDate) : null;
       const daysSincePayment = lastPaymentDate ? Math.floor((new Date() - lastPaymentDate) / (1000 * 60 * 60 * 24)) : null;
       const delinquentSince = homeowner.delinquentSince ? new Date(homeowner.delinquentSince) : null;
-
+        
       return {
         ...homeowner,
         daysSincePayment,
@@ -5957,10 +5957,8 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
 
       if (!firstName || !lastName || !block || !lot || !phase) continue;
 
-      // Username: lastname + firstname initial + block + lot + phase + ASC
-      const username = `${lastName}${firstName.charAt(0)}${block}${lot}${phase}ASC`;
-      // Password: ASC + block + lot + phase + 2025!
-      const password = `ASC${block}${lot}${phase}2025!`;
+      const username = `${lastName}${firstName.charAt(0)}`;
+      const password = `,ASC${block}${lot}${phase}2025!`;
 
       const existingUser = await accCollection.findOne({ username });
 
@@ -6008,7 +6006,7 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
         });
       }
     }
-
+    
     res.json({
       success: true,
       message: `${createdAccounts.length} accounts created.`,
