@@ -762,7 +762,7 @@
           <span class="close-modal" onclick="closeDuesCheck()">&times;</span>
           <h2>Check Monthly Dues</h2>
           <p>Please enter your login credentials to check your dues status</p>
-          <input type="email" id="duesEmail" placeholder="Enter your email" required>
+          <input type="text" id="username" placeholder="Enter your username" required>
           <input type="password" id="duesPassword" placeholder="Enter your password" required>
           <button onclick="checkDuesStatus()">Check Status</button>
           <div id="duesErrorMessage" class="error-message"></div>
@@ -1193,17 +1193,17 @@
     function closeDuesCheck() {
         document.getElementById('duesCheckModal').style.display = 'none';
         document.getElementById('duesErrorMessage').style.display = 'none';
-        document.getElementById('duesEmail').value = '';
+        document.getElementById('duesUsername').value = '';
         document.getElementById('duesPassword').value = '';
     }
 
     async function checkDuesStatus() {
-        const email = document.getElementById('duesEmail').value;
+        const username = document.getElementById('duesUsername').value;
         const password = document.getElementById('duesPassword').value;
         const errorMessage = document.getElementById('duesErrorMessage');
         
-        if (!email || !password) {
-            errorMessage.textContent = 'Please enter both email and password';
+        if (!username || !password) {
+            errorMessage.textContent = 'Please enter both username and password';
             errorMessage.style.display = 'block';
             return;
         }
@@ -1216,7 +1216,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    login: email,
+                    login: username,
                     password: password
                 }),
                 credentials: 'include'
@@ -1226,13 +1226,13 @@
             
             if (data.success) {
                 // Check if user has unpaid dues
-                const duesResponse = await fetch('/api/check-dues-status', {
+                const duesResponse = await fetch('/api/check-delinquent-status', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        email: email
+                        username: username
                     })
                 });
                 
@@ -1241,8 +1241,7 @@
                 if (duesData.hasUnpaidDues) {
                     // Store user info and redirect to payment page
                     localStorage.setItem('username', data.username);
-                    localStorage.setItem('email', email);
-                    localStorage.setItem('dueAmount', duesData.dueAmount || "5000.00");
+                    localStorage.setItem('MDAmount', duesData.MDAmount || "1500.00");
                     window.location.href = '/Webpages/MDPayment.html';
                 } else {
                     errorMessage.textContent = 'You have no unpaid dues for this month';
@@ -1251,8 +1250,7 @@
             } else if (data.isDelinquent) {
                 // User is delinquent, redirect to payment page
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('email', data.email);
-                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                localStorage.setItem('MDAmount', data.MDAmount || "`1500.00");
                 window.location.href = '/Webpages/MDPayment.html';
             } else {
                 errorMessage.textContent = 'Invalid credentials';
@@ -1442,24 +1440,21 @@
     // Update handlePayNow function
     function handlePayNow() {
         console.log('Pay Now button clicked'); // Debug log
-        
-        // Get the stored data
-        const email = localStorage.getItem('email');
+
         const username = localStorage.getItem('username');
-        const dueAmount = localStorage.getItem('dueAmount');
-        
+        const MDAmount = localStorage.getItem('MDAmount');
+
         // Log localStorage contents before redirect
         console.log('localStorage before redirect:', {
             username,
-            email,
-            dueAmount
+            MDAmount
         });
         
         // Close the delinquent modal
         document.getElementById('delinquentModal').style.display = 'none';
         
         // Ensure data is stored before redirecting
-        if (!email || !username || !dueAmount) {
+        if (!username || !MDAmount) {
             console.error('Missing required data for payment page');
             showError('Error: Missing payment information. Please try logging in again.');
             return;
