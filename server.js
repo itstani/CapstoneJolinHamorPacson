@@ -4190,18 +4190,14 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
 
     // Extract block, lot, and phase numbers from address
     let blockNumber, lotNumber, phaseNumber;
-    
     if (typeof Address === 'object') {
-      // New structure
       blockNumber = Address.Block?.$numberInt || Address.Block;
       lotNumber = Address.Lot?.$numberInt || Address.Lot;
       phaseNumber = Address.Phase?.$numberInt || Address.Phase;
     } else {
-      // Old structure - try to extract from string
       const blockMatch = Address.match(/Block\s+(\d+)/i);
       const lotMatch = Address.match(/Lot\s+(\d+)/i);
       const phaseMatch = Address.match(/Phase\s+(\d+)/i);
-      
       blockNumber = blockMatch ? blockMatch[1] : null;
       lotNumber = lotMatch ? lotMatch[1] : null;
       phaseNumber = phaseMatch ? phaseMatch[1] : null;
@@ -4214,21 +4210,18 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       });
     }
 
-    // Generate username: first initial + last initial + block + lot + phase
-    const firstInitial = firstName.charAt(0).toUpperCase();
-    const lastInitial = lastName.charAt(0).toUpperCase();
-    const username = `${lastName}${firstName.charAt(0)}`;  // e.g. JolinE
-    const password = `,ASC${blockNumber}${lotNumber}${phaseNumber}2025!`;
+    // Generate username: lastname + firstname initial + block + lot + phase + ASC
+    const username = `${lastName}${firstName.charAt(0)}${blockNumber}${lotNumber}${phaseNumber}ASC`;
+    // Generate password: ASC + block + lot + phase + 2025!
+    const password = `ASC${blockNumber}${lotNumber}${phaseNumber}2025!`;
 
-    // Check if username or email already exists
-    const existingUser = await accCollection.findOne({
-      $or: [{ username }, { email }],
-    });
-
-    if (existingUser) {
+    // Ensure username is unique in both acc and homeowners collections
+    const existingUser = await accCollection.findOne({ username });
+    const existingHomeowner = await homeownersCollection.findOne({ username });
+    if (existingUser || existingHomeowner) {
       return res.status(400).json({
         success: false,
-        error: "Username or email already exists. Please try again.",
+        error: "Username already exists. Please try again.",
       });
     }
 
@@ -4242,10 +4235,11 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       createdAt: new Date(),
     });
 
-    // Create homeowner record
+    // Create homeowner record with username
     const homeowner = {
       firstName,
       lastName,
+      username,
       Address,
       phoneNumber,
       landLine: landLine || "",
@@ -4254,7 +4248,6 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       carSticker: carStickerStatus || "undetermined",
       createdAt: new Date(),
     };
-
     await homeownersCollection.insertOne(homeowner);
 
     // Log activity
@@ -5964,8 +5957,10 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
 
       if (!firstName || !lastName || !block || !lot || !phase) continue;
 
-      const username = `${lastName}${firstName.charAt(0)}`;
-      const password = `,ASC${block}${lot}${phase}2025!`;
+      // Username: lastname + firstname initial + block + lot + phase + ASC
+      const username = `${lastName}${firstName.charAt(0)}${block}${lot}${phase}ASC`;
+      // Password: ASC + block + lot + phase + 2025!
+      const password = `ASC${block}${lot}${phase}2025!`;
 
       const existingUser = await accCollection.findOne({ username });
 
@@ -5981,7 +5976,11 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
           isHomeowner: "true",
           createdAt: new Date(),
         });
-
+        // Update the homeowner document to include the username
+        await homeownersCollection.updateOne(
+          { _id: homeowner._id },
+          { $set: { username } }
+        );
         createdAccounts.push({
           success: true,
           homeowner: { firstName, lastName, username },
@@ -5997,7 +5996,11 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
             },
           }
         );
-
+        // Ensure the username is set in the homeowner document as well
+        await homeownersCollection.updateOne(
+          { _id: homeowner._id },
+          { $set: { username } }
+        );
         createdAccounts.push({
           success: true,
           homeowner: { firstName, lastName, username },
