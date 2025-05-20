@@ -663,7 +663,7 @@ app.get("/api/generate-report", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
-
+  
   try {
     console.log(`Login attempt for: ${login}`);
 
@@ -683,6 +683,7 @@ app.post("/api/login", async (req, res) => {
     const user = await usersCollection.findOne({
       $or: [
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
+        { email: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
     });
 
@@ -708,9 +709,11 @@ app.post("/api/login", async (req, res) => {
     if (user.role !== "admin") {
       const addresses = await addressCollection.find({}).toArray();
 
+      // Try to find homeowner by username or email
       const homeowner = await homeownersCollection.findOne({
         $or: [
-          { username: user.username }
+          { username: user.username },
+          { email: user.email },
         ]
       });
 
@@ -741,7 +744,11 @@ app.post("/api/login", async (req, res) => {
 
       const dueAmount = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
 
-      if (homeowner.PStatus === "Delinquent") {
+      // Check for delinquent or almost due status (case-insensitive)
+      const pStatus = (homeowner.PStatus || homeowner.paymentStatus || "").toLowerCase();
+      const hStatus = (homeowner.HStatus || homeowner.homeownerStatus || "").toLowerCase();
+
+      if (pStatus === "delinquent" || hStatus === "delinquent") {
         return res.json({
           success: false,
           isDelinquent: true,
@@ -749,6 +756,15 @@ app.post("/api/login", async (req, res) => {
           email: user.email || user.username,
           dueAmount: dueAmount,
           message: "Account is delinquent. Please pay your monthly dues.",
+        });
+      } else if (pStatus === "almost due" || hStatus === "almost due") {
+        return res.json({
+          success: true,
+          isAlmostDue: true,
+          username: user.username,
+          email: user.email || user.username,
+          dueAmount: dueAmount,
+          message: "Your dues are almost due. Would you like to pay now?",
         });
       }
     }
