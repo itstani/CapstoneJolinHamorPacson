@@ -6082,6 +6082,7 @@ app.get('/api/get-monthly-due', async (req, res) => {
       daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
       penalty = daysOverdue * 10;
     }
+    
 
     res.json({
       success: true,
