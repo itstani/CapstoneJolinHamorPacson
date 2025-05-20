@@ -35,6 +35,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
+
+app.use((req, res, next) => {
+  console.log("Request for:", req.path);
+  next();
+});
+
 // Configure session with proper settings for persistence
 app.use(session({
   secret: process.env.SESSION_SECRET || "N3$Pxm/mXm1eYY",
@@ -5819,25 +5825,7 @@ app.post('/api/homeowners/:id/reminder', async (req, res) => {
 
 // Serve static files AFTER API routes
 
-app.use(express.static(path.join(__dirname)))
 
-app.use("/images", express.static(path.join(__dirname, "images")))
-
-app.use("/CSS", express.static(path.join(__dirname, "CSS")))
-
-app.use("/Webpages", express.static(path.join(__dirname, "Webpages")))
-
-// This should be the very last route
-
-app.get("*", (req, res) => {
-  // Check if the request wants JSON
-
-  if (req.headers.accept?.includes("application/json")) {
-    return res.status(404).json({ success: false, message: "API endpoint not found" })
-  }
-
-  res.sendFile(path.join(__dirname, "Webpages", "login.html"))
-})
 
 function getDateRange(filter) {
   const now = new Date()
@@ -6027,4 +6015,83 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
     console.error("Error creating accounts:", err);
     res.status(500).json({ success: false, error: "Server error" });
   }
+});
+
+// ... existing code ...
+
+// Endpoint to get monthly due and penalty for a homeowner
+app.get('/api/get-monthly-due', async (req, res) => {
+  try {
+    const { email, username } = req.query;
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    const addressCollection = db.collection('address');
+
+    // Find homeowner
+    const homeowner = await homeownersCollection.findOne({
+      $or: [
+        { email: email || null },
+        { username: username }
+      ]
+    });
+    if (!homeowner) return res.status(404).json({ success: false, message: "Homeowner not found" });
+
+    // Find address
+    const addresses = await addressCollection.find({}).toArray();
+    const matchAddress = addresses.find(addr => {
+      const hBlock = String(homeowner.Address?.Block?.$numberInt || homeowner.Address?.Block || "");
+      const hLot = String(homeowner.Address?.Lot?.$numberInt || homeowner.Address?.Lot || "");
+      const hPhase = String(homeowner.Address?.Phase?.$numberInt || homeowner.Address?.Phase || "");
+      const aBlock = String(addr.Block?.$numberInt || addr.Block || "");
+      const aLot = String(addr.Lot?.$numberInt || addr.Lot || "");
+      const aPhase = String(addr.Phase?.$numberInt || addr.Phase || "");
+      return hBlock === aBlock && hLot === aLot && hPhase === aPhase;
+    });
+
+    const baseDue = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
+
+    // Calculate penalty
+    let penalty = 0;
+    let daysOverdue = 0;
+    if (homeowner.PStatus === "Delinquent" && homeowner.lastPaymentDate) {
+      const lastPayment = new Date(homeowner.lastPaymentDate);
+      const today = new Date();
+      daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
+      penalty = daysOverdue * 10;
+    }
+
+    res.json({
+      success: true,
+      baseDue,
+      penalty,
+      totalDue: baseDue + penalty,
+      daysOverdue,
+      address: matchAddress,
+      homeowner: {
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        email: homeowner.email,
+        username: homeowner.username
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ... existing code ...
+
+app.use("/images", express.static(path.join(__dirname, "images")))
+
+app.use("/CSS", express.static(path.join(__dirname, "CSS")))
+
+app.use(express.static(path.join(__dirname)));
+app.use("/Webpages", express.static(path.join(__dirname, "Webpages")));
+
+// Catch-all route LAST
+app.get("*", (req, res) => {
+  if (req.headers.accept?.includes("application/json")) {
+    return res.status(404).json({ success: false, message: "API endpoint not found" });
+  }
+  res.sendFile(path.join(__dirname, "Webpages", "login.html"));
 });

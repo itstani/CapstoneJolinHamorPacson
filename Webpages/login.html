@@ -736,7 +736,7 @@
           <p>Outstanding Amount:</p>
           <div class="amount" id="delinquentAmount">₱0.00</div>
           <p>Please settle your dues to regain access to all features.</p>
-          <button id="payNowBtn" class="pay-now-btn">Pay Now</button>
+          <button id="payNowBtn" class="pay-now-btn" onclick="handlePayNow()">Pay Now</button>
       </div>
   </div>
 
@@ -788,6 +788,8 @@
   </div>
 
   <script>
+    const maxLoginAttempts = 5;
+
     // Constants for login attempts and lockout
     const MAX_LOGIN_ATTEMPTS = 5;
     const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -914,14 +916,17 @@
                 window.location.href = redirectUrl;
                 return false; // Prevent form submission
             } else if (data.isDelinquent) {
-                // Handle delinquent account
-                localStorage.setItem('username', data.username);
+                // Store user data in localStorage
+                localStorage.setItem('username', data.username || email);
                 localStorage.setItem('email', email);
-                localStorage.setItem('dueAmount', data.dueAmount);
-                
+                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+
+                // Show the delinquent modal and set the amount
                 document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
                 document.getElementById('delinquentModal').style.display = 'block';
-                return false; // Prevent form submission
+
+                // Do NOT redirect here! Only redirect in handlePayNow()
+                return false;
             } else {
                 showError(data.message || 'Login failed. Please check your credentials.');
             }
@@ -1433,6 +1438,49 @@
             document.getElementById('dashboardPassword').focus();
         }
     }
+
+    // Update handlePayNow function
+    function handlePayNow() {
+        console.log('Pay Now button clicked'); // Debug log
+        
+        // Get the stored data
+        const email = localStorage.getItem('email');
+        const username = localStorage.getItem('username');
+        const dueAmount = localStorage.getItem('dueAmount');
+        
+        // Log localStorage contents before redirect
+        console.log('localStorage before redirect:', {
+            username,
+            email,
+            dueAmount
+        });
+        
+        // Close the delinquent modal
+        document.getElementById('delinquentModal').style.display = 'none';
+        
+        // Ensure data is stored before redirecting
+        if (!email || !username || !dueAmount) {
+            console.error('Missing required data for payment page');
+            showError('Error: Missing payment information. Please try logging in again.');
+            return;
+        }
+        
+        // Redirect to payment page after a short delay
+        setTimeout(() => {
+            console.log('Redirecting to MDPayment.html'); // Debug log
+            window.location.href = 'MDPayment.html';
+        }, 100);
+    }
+
+    // Add event listener for closing the delinquent modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeDelinquentModal = document.getElementById('closeDelinquentModal');
+        if (closeDelinquentModal) {
+            closeDelinquentModal.addEventListener('click', function() {
+                document.getElementById('delinquentModal').style.display = 'none';
+            });
+        }
+    });
   </script>
 </body>
 </html>

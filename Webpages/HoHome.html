@@ -946,16 +946,49 @@ function updateNotificationList() {
     // Add click event to show event details or admin response
     notificationItem.addEventListener('click', (e) => {
       if (e.target !== checkbox) {
-        if (isAdminResponse) {
-          showAdminResponsePopup(notification);
-        } else {
-          showEventDetails(notification);
+        switch (notification.type) {
+          case 'monthly_due':
+          case 'payment_required':
+            showMonthlyPaymentModal(notification);
+            break;
+          case 'event_payment':
+            showEventPaymentModal(notification);
+            break;
+          case 'event_payment_finished':
+            showEventDetailsModal(notification);
+            break;
+          case 'admin_reply':
+          case 'concern_reply':
+            showAdminResponsePopup(notification);
+            break;
+          default:
+            // fallback: show details or error
+            showEventDetailsModal(notification);
         }
       }
     });
 
     notificationList.appendChild(notificationItem);
   });
+}
+
+// Implement separate modal functions for each notification type
+function showMonthlyPaymentModal(notification) {
+  // Show a modal prompting for monthly dues payment
+  alert('Monthly Payment Due! Please pay your monthly dues.');
+  // You can replace this with your custom modal logic
+}
+
+function showEventPaymentModal(notification) {
+  // Show a modal prompting for event payment
+  alert('Event Payment Required! Please pay for your event.');
+  // You can replace this with your custom modal logic
+}
+
+function showEventDetailsModal(notification) {
+  // Show a modal with event details (for finished events)
+  alert('Event Payment Finished! Here are the event details.');
+  // You can replace this with your custom modal logic
 }
 
 // Add a function to show admin responses in a popup

@@ -376,26 +376,27 @@
     </div>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log("MDPayment page loaded"); // Debug log
             
-            // Get user data from localStorage
-            const userEmail = localStorage.getItem('email') || '';
-            const userName = localStorage.getItem('username') || '';
-            const dueAmount = localStorage.getItem('dueAmount') || '500.00';
+            const userEmail = localStorage.getItem('email');
+            const userName = localStorage.getItem('username');
+            if (!userEmail && !userName) return;
 
-            //due amount should be 10 pesos per sqm per homeowner
-            
-            console.log("Retrieved from localStorage:", { userEmail, userName, dueAmount }); // Debug log
+            const res = await fetch(`/api/get-monthly-due?email=${encodeURIComponent(userEmail || "")}&username=${encodeURIComponent(userName || "")}`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
+                document.getElementById('totalAmount').textContent = data.totalDue.toFixed(2);
+                // Optionally show penalty, days overdue, etc.
+            }
             
             // Populate form fields
             document.getElementById('userEmail').textContent = userEmail;
             document.getElementById('userName').textContent = userName;
-            document.getElementById('dueAmount').textContent = dueAmount;
-            document.getElementById('totalAmount').textContent = dueAmount;
             
             // Set hidden input values
-            document.getElementById('finalAmountInput').value = dueAmount;
+            document.getElementById('finalAmountInput').value = data.baseDue.toFixed(2);
             document.getElementById('userEmailInput').value = userEmail;
             document.getElementById('userNameInput').value = userName;
             
@@ -454,7 +455,7 @@
                     fileFormData.append('receipt', receiptUpload.files[0]);
                     fileFormData.append('userEmail', userEmail);
                     fileFormData.append('userName', userName);
-                    fileFormData.append('finalAmount', dueAmount);
+                    fileFormData.append('finalAmount', data.baseDue.toFixed(2));
                     fileFormData.append('paymentMethod', document.querySelector('input[name="paymentMethod"]:checked').value);
                     
                     console.log("Submitting payment to /api/monthly-dues-payment"); // Debug log
@@ -484,25 +485,6 @@
                 }
             });
             
-            // If no user data is found, show error
-            if (!userEmail || !userName) {
-                console.error("Missing user information in localStorage"); // Debug log
-                
-                const container = document.querySelector('.payment-container');
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.innerHTML = `
-                    <h3>Error: Missing User Information</h3>
-                    <p>We couldn't find your account details.</p>
-                    <p>Please go back and try again.</p>
-                    <button onclick="window.location.href='login.html'" class="proceed-button" style="margin-top: 10px;">
-                        Back to Login
-                    </button>
-                `;
-                container.innerHTML = '';
-                container.appendChild(errorDiv);
-            }
-
             // Check if redirected as a delinquent user
             (function() {
                 var delinquentUsername = localStorage.getItem('username');
