@@ -4249,125 +4249,188 @@ app.get("/api/generate-payment-report", async (req, res) => {
     const addressCollection = db.collection("address");
     const paymentsCollection = db.collection("payments");
 
-    // Determine date range filter
-    let dateFilter = null;
+    // Setup date filter
+    let fromDate = null;
+    let toDate = new Date();
+
     if (range === "last-month") {
-      dateFilter = new Date();
-      dateFilter.setMonth(dateFilter.getMonth() - 1);
+      fromDate = new Date();
+      fromDate.setMonth(fromDate.getMonth() - 1);
     } else if (range === "last-quarter") {
-      dateFilter = new Date();
-      dateFilter.setMonth(dateFilter.getMonth() - 3);
+      fromDate = new Date();
+      fromDate.setMonth(fromDate.getMonth() - 3);
     } else if (range === "last-year") {
-      dateFilter = new Date();
-      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+      fromDate = new Date();
+      fromDate.setFullYear(fromDate.getFullYear() - 1);
     } else if (range === "custom" && startDate && endDate) {
-      dateFilter = new Date(startDate); // Could refine this to a `$gte` + `$lte` filter
+      fromDate = new Date(startDate);
+      toDate = new Date(endDate);
     }
 
-    // Get homeowners
     const homeowners = await homeownersCollection.find({}).toArray();
     const addresses = await addressCollection.find({}).toArray();
     const payments = await paymentsCollection.find({}).toArray();
 
-    // Create Excel workbook
+    const addressMap = Object.fromEntries(
+      addresses.map(a => [a.homeownerId?.toString(), a])
+    );
+
     const excel = officegen("xlsx");
     const sheet = excel.makeNewSheet();
-    sheet.name = "Homeowner Payments";
+    sheet.name = "Report"; 
 
-    // Add headers
-    sheet.data[0] = [
-      "Last Name",
-      "First Name",
-      "Address",
-      "Phone Number",
-      "Landline",
-      "Last Paid",
-      "Payment Status",
-      "Homeowner Status",
-      "Car Sticker Status",
-      "Address",
-      "Payment Method",
-      "Payment Amount",
-      "MDAmount"
-    ];
-
-    // Helper: Format Address object into a string
     const formatAddress = (addr) => {
       if (!addr) return "";
-      if (typeof addr === "string") return addr;
-
       const block = addr.Block?.$numberInt || addr.Block || "";
       const lot = addr.Lot?.$numberInt || addr.Lot || "";
       const phase = addr.Phase?.$numberInt || addr.Phase || "";
-
-      return `Block ${block} Lot ${lot} Phase ${phase}`;
+      return `Block ${block} Lot ${lot} Phase ${phase}`.trim();
     };
+    const findMatchingAddress = (homeownerAddress) => {
+      if (!homeownerAddress) return null;
+    
+      const block1 = homeownerAddress.Block?.$numberInt || homeownerAddress.Block || "";
+      const lot1 = homeownerAddress.Lot?.$numberInt || homeownerAddress.Lot || "";
+      const phase1 = homeownerAddress.Phase?.$numberInt || homeownerAddress.Phase || "";
+    
+      return addresses.find(addr => {
+        const block2 = addr.Block?.$numberInt || addr.Block || "";
+        const lot2 = addr.Lot?.$numberInt || addr.Lot || "";
+        const phase2 = addr.Phase?.$numberInt || addr.Phase || "";
+    
+        const match = block1 == block2 && lot1 == lot2 && phase1 == phase2;
+        if (match) {
+          console.log(`✅ Match found: Block ${block2}, Lot ${lot2}, Phase ${phase2}, Amount: ${addr.MDAmount}`);
+        }
+        return match;
+      });
+    };
+    
 
-    let rowIndex = 1;
+    let headers = [];
+    let rows = [];
 
-    homeowners.forEach((homeowner) => {
-      const paymentStatus = homeowner.PStatus || homeowner.paymentStatus || "";
-      const lastPaid = homeowner.lastPaymentDate
-        ? new Date(homeowner.lastPaymentDate).toLocaleDateString()
-        : "";
+    if (type === "delinquent_owners") {
+      headers = [
+        "Last Name", "First Name", "Address", "Phone Number", "Landline",
+        "Amount Due", "Last Paid", "Payment Status", "Homeowner Status", "Car Sticker Status"
+      ];
+    
+      homeowners.forEach(h => {
+        const status = h.PStatus?.toLowerCase();
+        if (status !== "delinquent") return;
+    
+        const matchedAddr = findMatchingAddress(h.Address);
 
-      // If type is 'delinquent_owners', skip non-delinquents
-      if (type === "delinquent_owners" && paymentStatus.toLowerCase() !== "delinquent") {
-        return;
-      }
-
-      sheet.data[rowIndex++] = [
-        homeowner.lastName || "",
-        homeowner.firstName || "",
-        formatAddress(homeowner.Address),
-        homeowner.phoneNumber || "",
-        homeowner.landLine || "",
-        lastPaid,
-        paymentStatus,
-        homeowner.homeownerStatus || "",
-        homeowner.carStickerStatus || "Undetermined",
-
+        rows.push([
+          h.lastName || "",
+          h.firstName || "",
+          formatAddress(h.Address),
+          h.phoneNumber || "",
+          h.landline || "",
+          matchedAddr?.MDAmount?.$numberDouble || matchedAddr?.MDAmount || 0,
+          h.lastPaymentDate ? new Date(h.lastPaymentDate).toLocaleDateString() : "",
+          h.PStatus || "",
+          h.HStatus || "",
+          h.carSticker || "Undetermined"
+        ]);
+        
+      });
+    }
+    else if (type === "payment_history") {
+      headers = [
+        "Homeowner", "Email", "Amount", "Payment Method", "Date", "Status"
       ];
 
-      if (type === "payment_history" && paymentStatus.toLowerCase() !== "payment_history") {
-        return;
-      }
+      payments.forEach(p => {
+        const paymentDate = new Date(p.timestamp);
+        if (fromDate && (paymentDate < fromDate || paymentDate > toDate)) return;
 
-      sheet.data[rowIndex++] = [
-        homeowner.lastName || "",
-        formatAddress(homeowner.Address),
-        homeowner.phoneNumber || "",
-        homeowner.landLine || "",
-        lastPaid,
-        paymentStatus,
+        rows.push([
+          String(p.userName || ""),
+          String(p.userEmail || ""),
+          p.amount || 0,
+          String(p.paymentMethod || ""),
+          paymentDate.toLocaleDateString(),
+          String(p.status || "")
+        ]);
+      });
+
+    } else if (type === "homeowner_details") {
+      headers = [
+        "Last Name", "First Name", "Email", "Phone", "Landline", "Address",
+        "Homeowner Status", "Car Sticker Status", "Monthly Due"
       ];
+
+      homeowners.forEach(h => {
+        const addr = formatAddress(h.Address || addressMap[h._id?.toString()]);
+        rows.push([
+          String(h.lastName || ""),
+          String(h.firstName || ""),
+          String(h.email || ""),
+          String(h.phoneNumber || ""),
+          String(h.landLine || ""),
+          addr,
+          String(h.homeownerStatus || ""),
+          String(h.carStickerStatus || "Undetermined"),
+          h.MDAmount || 0
+        ]);
+      });
+
+    } else if (type === "monthly_summary") {
+      headers = [
+        "Month", "Total Payments", "Total Amount Collected"
+      ];
+
+      const summaryMap = {};
+
+      payments.forEach(p => {
+        const paymentDate = new Date(p.timestamp);
+        if (fromDate && (paymentDate < fromDate || paymentDate > toDate)) return;
+
+        const key = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, "0")}`;
+        if (!summaryMap[key]) {
+          summaryMap[key] = { count: 0, total: 0 };
+        }
+        summaryMap[key].count++;
+        summaryMap[key].total += p.amount || 0;
+      });
+
+      rows = Object.entries(summaryMap).map(([month, data]) => [
+        month,
+        data.count,
+        data.total
+      ]);
+    }
+
+    // Final check: align rows to headers
+    const expectedCols = headers.length;
+    rows = rows.filter(r => Array.isArray(r) && r.length === expectedCols);
+
+    sheet.data[0] = headers;
+    rows.forEach((row, idx) => {
+      sheet.data[idx + 1] = row;
     });
 
-
-
-    // Set content type for download
-    const filename = `homeowner-payments-${Date.now()}.${format === "csv" ? "csv" : "xlsx"}`;
+    const filename = `report-${type}-${Date.now()}.${format === "csv" ? "csv" : "xlsx"}`;
     if (format === "csv") {
       res.setHeader("Content-Type", "text/csv");
     } else {
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
 
-    // Generate file and send
     excel.generate(res);
   } catch (error) {
-    console.error("Error generating payment report:", error);
+    console.error("Error generating report:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to generate payment report",
-      error: error.message,
+      message: "Failed to generate report",
+      error: error.message
     });
   }
 });
+
 
 
 // CONCERN REPLY-----------------------------------------------
