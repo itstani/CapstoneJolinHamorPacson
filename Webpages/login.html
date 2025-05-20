@@ -1243,7 +1243,7 @@
                     localStorage.setItem('username', data.username);
                     localStorage.setItem('email', email);
                     localStorage.setItem('dueAmount', duesData.dueAmount || "5000.00");
-                    window.location.href = 'MDPayment.html';
+                    window.location.href = '/Webpages/MDPayment.html';
                 } else {
                     errorMessage.textContent = 'You have no unpaid dues for this month';
                     errorMessage.style.display = 'block';
@@ -1253,7 +1253,7 @@
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('email', data.email);
                 localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
-                window.location.href = 'MDPayment.html';
+                window.location.href = '/Webpages/MDPayment.html';
             } else {
                 errorMessage.textContent = 'Invalid credentials';
                 errorMessage.style.display = 'block';
@@ -1468,7 +1468,7 @@
         // Redirect to payment page after a short delay
         setTimeout(() => {
             console.log('Redirecting to MDPayment.html'); // Debug log
-            window.location.href = 'MDPayment.html';
+            window.location.href = '/Webpages/MDPayment.html';
         }, 100);
     }
 

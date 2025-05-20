@@ -354,7 +354,6 @@
                 <p id="selectedFileName" style="text-align: center; margin-top: 10px; color: #666;"></p>
             </div>
             
-            <!-- Hidden inputs for form submission -->
             <input type="hidden" id="userEmailInput" name="userEmail">
             <input type="hidden" id="userNameInput" name="userName">
             <input type="hidden" id="finalAmountInput" name="finalAmount">
@@ -379,21 +378,18 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log("MDPayment page loaded"); // Debug log
             
-            const userEmail = localStorage.getItem('email');
             const userName = localStorage.getItem('username');
             if (!userEmail && !userName) return;
 
-            const res = await fetch(`/api/get-monthly-due?email=${encodeURIComponent(userEmail || "")}&username=${encodeURIComponent(userName || "")}`);
+            const res = await fetch(`/api/get-monthly-due?&username=${encodeURIComponent(username || "")}`);
             const data = await res.json();
             if (data.success) {
                 document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
                 document.getElementById('totalAmount').textContent = data.totalDue.toFixed(2);
                 // Optionally show penalty, days overdue, etc.
             }
-            
-            // Populate form fields
-            document.getElementById('userEmail').textContent = userEmail;
-            document.getElementById('userName').textContent = userName;
+
+            document.getElementById('username').textContent = username;
             
             // Set hidden input values
             document.getElementById('finalAmountInput').value = data.baseDue.toFixed(2);
@@ -488,8 +484,7 @@
             // Check if redirected as a delinquent user
             (function() {
                 var delinquentUsername = localStorage.getItem('username');
-                var delinquentEmail = localStorage.getItem('email');
-                var delinquentDueAmount = localStorage.getItem('dueAmount');
+                var delinquentDueAmount = localStorage.getItem('MDAmount');
 
                 if (delinquentUsername && delinquentEmail && delinquentDueAmount) {
                     // Try to open a modal if it exists

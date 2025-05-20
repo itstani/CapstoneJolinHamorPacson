@@ -1176,11 +1176,11 @@
                 const data = await response.json();
                 
                 if (data.success && data.accounts) {
-                    const emailToAccount = {};
+                    const usernameToAccount = {};
                     data.accounts.forEach(account => {
-                        if (account.email) {
-                            const email = account.email.toLowerCase().trim();
-                            emailToAccount[email] = account;
+                        if (account.username) {
+                            const username = account.username.toLowerCase().trim();
+                            usernameToAccount[username] = account;
                         }
                     });
                     
