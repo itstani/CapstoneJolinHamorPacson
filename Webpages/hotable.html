@@ -1627,7 +1627,6 @@ document.getElementById('generateAccountForm').addEventListener('submit', async 
                         
                         accountItem.innerHTML = `
                             <div class="account-name">${homeowner.firstName} ${homeowner.lastName}</div>
-                            <div class="account-email">${homeowner.email || 'No email'}</div>
                             <div class="account-address">Address: ${formattedAddress}</div>
                         `;
                         accountsList.appendChild(accountItem);

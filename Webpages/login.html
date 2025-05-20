@@ -883,7 +883,6 @@
                 
                 // Store user info
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('email', data.email);
                 
                 // Show success message
                 showError('Login successful! Redirecting...', true);
@@ -918,7 +917,7 @@
                 // Handle delinquent account
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('email', email);
-                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                localStorage.setItem('dueAmount', data.dueAmount);
                 
                 document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
                 document.getElementById('delinquentModal').style.display = 'block';

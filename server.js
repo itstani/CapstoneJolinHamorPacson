@@ -657,21 +657,23 @@ app.get("/api/generate-report", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
-  
+
   try {
     console.log(`Login attempt for: ${login}`);
+
     const db = await connectToDatabase();
     const usersCollection = db.collection("acc");
     const homeownersCollection = db.collection("homeowners");
+    const addressCollection = db.collection("address");
 
     if (!login || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: "Username/email and password are required",
       });
     }
 
-    // Find the user
+    // Find user by email or username
     const user = await usersCollection.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${login}$`, "i") } },
@@ -689,7 +691,6 @@ app.post("/api/login", async (req, res) => {
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
-
     if (!isValidPassword) {
       console.log(`Invalid password for user: ${login}`);
       return res.status(401).json({
@@ -698,42 +699,72 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Check if user is a homeowner
+    // Only check homeowner delinquency if not admin
     if (user.role !== "admin") {
-      // Check if homeowner is delinquent
-      const homeowner = await homeownersCollection.findOne({ email: user.email });
+      const addresses = await addressCollection.find({}).toArray();
 
-      if (homeowner && (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent")) {
-        // User is delinquent, return special response
-        console.log(`User ${user.email} is delinquent, returning delinquent status`);
+      const homeowner = await homeownersCollection.findOne({
+        $or: [
+          { email: user.email || null },
+          { username: user.username }
+        ]
+      });
+
+      if (!homeowner) {
+        console.log("No matching homeowner found.");
+        return res.status(404).json({
+          success: false,
+          message: "Homeowner record not found"
+        });
+      }
+
+      // Match address
+      const matchAddress = addresses.find(addr => {
+        const hBlock = String(homeowner.Address?.Block?.$numberInt || homeowner.Address?.Block || "");
+        const hLot = String(homeowner.Address?.Lot?.$numberInt || homeowner.Address?.Lot || "");
+        const hPhase = String(homeowner.Address?.Phase?.$numberInt || homeowner.Address?.Phase || "");
+
+        const aBlock = String(addr.Block?.$numberInt || addr.Block || "");
+        const aLot = String(addr.Lot?.$numberInt || addr.Lot || "");
+        const aPhase = String(addr.Phase?.$numberInt || addr.Phase || "");
+
+        const match = hBlock === aBlock && hLot === aLot && hPhase === aPhase;
+        if (match) {
+          console.log(`✅ Match found: Block ${aBlock}, Lot ${aLot}, Phase ${aPhase}, Amount: ${addr.MDAmount}`);
+        }
+        return match;
+      });
+
+      const dueAmount = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
+
+      if (homeowner.PStatus === "Delinquent") {
         return res.json({
           success: false,
           isDelinquent: true,
           username: user.username,
-          email: user.email,
-          dueAmount: homeowner.dueAmount || "5000.00", // Default amount if not specified
+          email: user.email || user.username,
+          dueAmount: dueAmount,
           message: "Account is delinquent. Please pay your monthly dues.",
         });
       }
     }
 
-    // User is not delinquent, proceed with normal login
-    req.session.regenerate(async function(err) {
+    // ✅ Login success — create session
+    req.session.regenerate(async function (err) {
       if (err) {
         console.error("Error regenerating session:", err);
         return res.status(500).json({
           success: false,
-          message: "Error creating session"
+          message: "Error creating session",
         });
       }
 
       req.session.user = {
         username: user.username,
-        email: user.email,
+        email: user.email || null,
         role: user.role || "homeowner",
       };
 
-      // Save session before sending response
       req.session.save(async (err) => {
         if (err) {
           console.error("Error saving session:", err);
@@ -743,24 +774,18 @@ app.post("/api/login", async (req, res) => {
           });
         }
 
-        // Log successful login
         await logActivity("login", `User ${user.username} logged in successfully`);
-
-        console.log("Login successful - Session details:", {
-          sessionID: req.sessionID,
-          user: req.session.user,
-          cookie: req.session.cookie
-        });
 
         res.json({
           success: true,
           username: user.username,
-          email: user.email,
+          email: user.email || null,
           role: user.role || "homeowner",
           redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
         });
       });
     });
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
@@ -770,6 +795,7 @@ app.post("/api/login", async (req, res) => {
     });
   }
 });
+
 
 app.get("/api/check-auth", (req, res) => {
   console.log("Auth check - Session:", {
@@ -3800,7 +3826,7 @@ app.post("/updateUserDetails", async (req, res) => {
 })
 app.post("/api/create-homeowner-account", async (req, res) => {
   try {
-    const { username, email, password } = req.body
+    const { username,password } = req.body
 
     if (!username || !password) {
       return res.status(400).json({
@@ -3856,6 +3882,7 @@ app.post("/api/create-homeowner", async (req, res) => {
     const {
       firstName,
       lastName,
+      username,
       Address,
       phoneNumber,
       landLine,
@@ -3864,7 +3891,7 @@ app.post("/api/create-homeowner", async (req, res) => {
       carStickerStatus,
     } = req.body
 
-    if (!firstName || !lastName || !Address || !phoneNumber) {
+    if (!firstName || !lastName || !Address || !phoneNumber || !username) {
       return res.status(400).json({
         success: false,
         message: "Missing required homeowner details",
@@ -3888,6 +3915,7 @@ app.post("/api/create-homeowner", async (req, res) => {
     const newHomeowner = {
       firstName,
       lastName,
+      username,
       Address,
       phoneNumber,
       landLine: landLine || "",
@@ -4127,6 +4155,17 @@ app.get("/api/payment-report", async (req, res) => {
 
 
 // ... existing code ...
+app.get("/api/get-all-accounts", async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const accCollection = db.collection("acc");
+    const accounts = await accCollection.find({}).toArray();
+    res.json({ success: true, accounts });
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
 
 app.post("/api/homeowners/generate-account", async (req, res) => {
   try {
@@ -4172,13 +4211,8 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
     // Generate username: first initial + last initial + block + lot + phase
     const firstInitial = firstName.charAt(0).toUpperCase();
     const lastInitial = lastName.charAt(0).toUpperCase();
-    const username = `${firstInitial}${lastInitial}${blockNumber}${lotNumber}${phaseNumber}`;
-
-    // Generate email
-    const email = `${username.toLowerCase()}@asc.system`;
-
-    // Generate password: ASC + block + lot + 2025!
-    const password = `ASC${blockNumber}${lotNumber}2025!`;
+    const username = `${lastName}${firstName.charAt(0)}`;  // e.g. JolinE
+    const password = `,ASC${blockNumber}${lotNumber}${phaseNumber}2025!`;
 
     // Check if username or email already exists
     const existingUser = await accCollection.findOne({
@@ -4196,7 +4230,6 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     await accCollection.insertOne({
       username,
-      email,
       password: hashedPassword,
       role: "homeowner",
       isHomeowner: "true",
@@ -4208,7 +4241,6 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
       firstName,
       lastName,
       Address,
-      email,
       phoneNumber,
       landLine: landLine || "",
       PStatus: PStatus || "Compliant",
@@ -4271,9 +4303,15 @@ app.get("/api/generate-payment-report", async (req, res) => {
     const addresses = await addressCollection.find({}).toArray();
     const payments = await paymentsCollection.find({}).toArray();
 
+    // Build lookup maps
     const addressMap = Object.fromEntries(
       addresses.map(a => [a.homeownerId?.toString(), a])
     );
+
+    const homeownerMapByUsername = Object.fromEntries(
+      homeowners.map(h => [h.username, h])
+    );
+
 
     const excel = officegen("xlsx");
     const sheet = excel.makeNewSheet();
@@ -4341,13 +4379,16 @@ app.get("/api/generate-payment-report", async (req, res) => {
       headers = [
         "Homeowner", "Email", "Amount", "Payment Method", "Date", "Status"
       ];
-
+    
       payments.forEach(p => {
         const paymentDate = new Date(p.timestamp);
         if (fromDate && (paymentDate < fromDate || paymentDate > toDate)) return;
-
+    
+        const homeowner = homeownerMapByUsername[p.username];
+        const fullName = homeowner ? `${homeowner.firstName || ""} ${homeowner.lastName || ""}`.trim() : "Unknown";
+    
         rows.push([
-          String(p.userName || ""),
+          fullName,
           String(p.userEmail || ""),
           p.amount || 0,
           String(p.paymentMethod || ""),
@@ -4355,28 +4396,31 @@ app.get("/api/generate-payment-report", async (req, res) => {
           String(p.status || "")
         ]);
       });
-
-    } else if (type === "homeowner_details") {
+    }
+    else if (type === "homeowner_details") {
       headers = [
-        "Last Name", "First Name", "Email", "Phone", "Landline", "Address",
+        "Last Name", "First Name", "Username", "Phone", "Landline", "Address",
         "Homeowner Status", "Car Sticker Status", "Monthly Due"
       ];
-
+    
       homeowners.forEach(h => {
+        const matchedAddr = findMatchingAddress(h.Address || addressMap[h._id?.toString()]);
+        const mdAmount = matchedAddr?.MDAmount?.$numberDouble || matchedAddr?.MDAmount || 0;
+    
         const addr = formatAddress(h.Address || addressMap[h._id?.toString()]);
+    
         rows.push([
           String(h.lastName || ""),
           String(h.firstName || ""),
-          String(h.email || ""),
+          String(h.username || ""),
           String(h.phoneNumber || ""),
-          String(h.landLine || ""),
+          String(h.landline || ""),
           addr,
-          String(h.homeownerStatus || ""),
-          String(h.carStickerStatus || "Undetermined"),
-          h.MDAmount || 0
+          String(h.HStatus || ""),
+          String(h.carSticker || "Undetermined"),
+          mdAmount
         ]);
       });
-
     } else if (type === "monthly_summary") {
       headers = [
         "Month", "Total Payments", "Total Amount Collected"
@@ -4698,8 +4742,6 @@ app.use((req, res, next) => {
 
 const { handleCreateAccounts, handleGetHomeownerCredentials } = require("./create-homeowner-accounts")
 
-// Add these routes to your server.js (where your other routes are defined)
-// Route to create accounts for all homeowners
 app.post("/api/admin/create-homeowner-accounts", async (req, res) => {
   // Check if user is admin
   if (!req.session.user || req.session.user.role !== "admin") {
@@ -5914,3 +5956,75 @@ app.get("/api/check-homeowners-due", requireAuth, async (req, res) => {
 });
 
 // ... existing code ...
+app.post("/api/admin/create-homeowner-account", async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection("homeowners");
+    const accCollection = db.collection("acc");
+
+    const generateNewPasswords = req.body.generateNewPasswords;
+    const homeowners = await homeownersCollection.find({}).toArray();
+
+    const createdAccounts = [];
+
+    for (const homeowner of homeowners) {
+      const { firstName, lastName, Address } = homeowner;
+
+      const block = Address?.Block?.$numberInt || Address?.Block;
+      const lot = Address?.Lot?.$numberInt || Address?.Lot;
+      const phase = Address?.Phase?.$numberInt || Address?.Phase;
+
+      if (!firstName || !lastName || !block || !lot || !phase) continue;
+
+      const username = `${lastName}${firstName.charAt(0)}`;
+      const password = `,ASC${block}${lot}${phase}2025!`;
+
+      const existingUser = await accCollection.findOne({ username });
+
+      if (existingUser && !generateNewPasswords) continue;
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      if (!existingUser) {
+        await accCollection.insertOne({
+          username,
+          password: hashedPassword,
+          role: "homeowner",
+          isHomeowner: "true",
+          createdAt: new Date(),
+        });
+
+        createdAccounts.push({
+          success: true,
+          homeowner: { firstName, lastName, username },
+          password,
+        });
+      } else if (generateNewPasswords) {
+        await accCollection.updateOne(
+          { username },
+          {
+            $set: {
+              password: hashedPassword,
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        createdAccounts.push({
+          success: true,
+          homeowner: { firstName, lastName, username },
+          password,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `${createdAccounts.length} accounts created.`,
+      data: createdAccounts,
+    });
+  } catch (err) {
+    console.error("Error creating accounts:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
