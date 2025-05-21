@@ -885,6 +885,7 @@
                 
                 // Store user info
                 localStorage.setItem('username', data.username);
+                localStorage.setItem('MDAmount', data.dueAmount || data.MDAmount || "1500.00");
                 
                 // Show success message
                 showError('Login successful! Redirecting...', true);
@@ -918,11 +919,10 @@
             } else if (data.isDelinquent) {
                 // Store user data in localStorage
                 localStorage.setItem('username', data.username || email);
-                localStorage.setItem('email', email);
-                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                localStorage.setItem('MDAmount', data.dueAmount || data.MDAmount || "1500.00");
 
                 // Show the delinquent modal and set the amount
-                document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "5000.00"}`;
+                document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "1500.00"}`;
                 document.getElementById('delinquentModal').style.display = 'block';
 
                 // Do NOT redirect here! Only redirect in handlePayNow()
@@ -1193,12 +1193,12 @@
     function closeDuesCheck() {
         document.getElementById('duesCheckModal').style.display = 'none';
         document.getElementById('duesErrorMessage').style.display = 'none';
-        document.getElementById('duesUsername').value = '';
+        document.getElementById('username').value = '';
         document.getElementById('duesPassword').value = '';
     }
 
     async function checkDuesStatus() {
-        const username = document.getElementById('duesUsername').value;
+        const username = document.getElementById('username').value;
         const password = document.getElementById('duesPassword').value;
         const errorMessage = document.getElementById('duesErrorMessage');
         
@@ -1232,7 +1232,8 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        username: username
+                        login: username,
+                        password: password
                     })
                 });
                 
@@ -1250,7 +1251,7 @@
             } else if (data.isDelinquent) {
                 // User is delinquent, redirect to payment page
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('MDAmount', data.MDAmount || "`1500.00");
+                localStorage.setItem('MDAmount', data.MDAmount || "1500.00");
                 window.location.href = '/Webpages/MDPayment.html';
             } else {
                 errorMessage.textContent = 'Invalid credentials';

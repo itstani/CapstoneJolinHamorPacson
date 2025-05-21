@@ -301,16 +301,24 @@
         
         <div class="payment-details">
             <div class="payment-row">
-                <div class="payment-label">Account Email:</div>
-                <div class="payment-value" id="userEmail">loading...</div>
-            </div>
-            <div class="payment-row">
                 <div class="payment-label">Account Name:</div>
                 <div class="payment-value" id="userName">loading...</div>
             </div>
             <div class="payment-row">
+                <div class="payment-label">Homeowner Name:</div>
+                <div class="payment-value" id="homeownerName">loading...</div>
+            </div>
+            <div class="payment-row">
+                <div class="payment-label">Address:</div>
+                <div class="payment-value" id="address">loading...</div>
+            </div>
+            <div class="payment-row">
                 <div class="payment-label">Due Amount:</div>
                 <div class="payment-value">₱<span id="dueAmount">0.00</span></div>
+            </div>
+            <div class="payment-row" id="extraFeesRow" style="display:none;">
+                <div class="payment-label">Extra Fees:</div>
+                <div class="payment-value">₱<span id="extraFees">0.00</span></div>
             </div>
             <div class="payment-row total-row">
                 <div class="payment-label">Total Amount Due:</div>
@@ -318,31 +326,16 @@
             </div>
         </div>
         
-        <form id="duesPaymentForm" enctype="multipart/form-data">
-            <div class="payment-methods">
-                <h3>Select Payment Method</h3>
-                <div class="method-options">
-                    <div class="method-option">
-                        <label>
-                            <input type="radio" name="paymentMethod" value="gcash">
-                            GCash
-                        </label>
-                    </div>
-                    <div class="method-option">
-                        <label>
-                            <input type="radio" name="paymentMethod" value="bank">
-                            Bank Transfer
-                        </label>
-                    </div>
-                    <div class="method-option">
-                        <label>
-                            <input type="radio" name="paymentMethod" value="cash">
-                            Cash
-                        </label>
-                    </div>
-                </div>
+        <!-- Payment instruction and QR code -->
+        <div class="payment-methods">
+            <h3>How to Pay</h3>
+            <p style="font-size: 1.1em; color: #333; margin-bottom: 15px;">Please scan the QR code below to pay your dues.</p>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <img src="/images/maya-qr.png" alt="Scan QR to Pay" style="max-width: 220px; width: 100%; height: auto; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
             </div>
-            
+        </div>
+        
+        <form id="duesPaymentForm" enctype="multipart/form-data">
             <div class="upload-section">
                 <h3>Upload Payment Receipt</h3>
                 <label for="receiptUpload" class="upload-box">
@@ -353,11 +346,8 @@
                 <input type="file" id="receiptUpload" name="receipt" class="custom-file-input" accept="image/jpeg,image/png,application/pdf">
                 <p id="selectedFileName" style="text-align: center; margin-top: 10px; color: #666;"></p>
             </div>
-            
-            <input type="hidden" id="userEmailInput" name="userEmail">
             <input type="hidden" id="userNameInput" name="userName">
             <input type="hidden" id="finalAmountInput" name="finalAmount">
-            
             <button type="submit" id="proceedButton" class="proceed-button" disabled>Submit Payment</button>
         </form>
         
@@ -379,21 +369,42 @@
             console.log("MDPayment page loaded"); // Debug log
             
             const userName = localStorage.getItem('username');
-            if (!userEmail && !userName) return;
+            if (!userName) return;
 
-            const res = await fetch(`/api/get-monthly-due?&username=${encodeURIComponent(username || "")}`);
+            const res = await fetch(`/api/get-monthly-due?&username=${encodeURIComponent(userName || "")}`);
             const data = await res.json();
             if (data.success) {
                 document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
                 document.getElementById('totalAmount').textContent = data.totalDue.toFixed(2);
-                // Optionally show penalty, days overdue, etc.
+                // Homeowner name and address
+                const h = data.homeowner || {};
+                document.getElementById('homeownerName').textContent = `${h.firstName || ''} ${h.lastName || ''}`.trim();
+                // Format address
+                let addr = '';
+                if (h.Address) {
+                    const b = h.Address.Block?.$numberInt || h.Address.Block || '';
+                    const l = h.Address.Lot?.$numberInt || h.Address.Lot || '';
+                    const p = h.Address.Phase?.$numberInt || h.Address.Phase || '';
+                    addr = `Block ${b}, Lot ${l}, Phase ${p}`;
+                }
+                document.getElementById('address').textContent = addr;
+                // Extra fees
+                const base = parseFloat(data.baseDue);
+                const total = parseFloat(data.totalDue);
+                if (total > base) {
+                    document.getElementById('extraFees').textContent = (total - base).toFixed(2);
+                    document.getElementById('extraFeesRow').style.display = '';
+                } else {
+                    document.getElementById('extraFeesRow').style.display = 'none';
+                }
             }
 
-            document.getElementById('username').textContent = username;
+            document.getElementById('userName').textContent = userName;
+
             
             // Set hidden input values
             document.getElementById('finalAmountInput').value = data.baseDue.toFixed(2);
-            document.getElementById('userEmailInput').value = userEmail;
+
             document.getElementById('userNameInput').value = userName;
             
             // Handle file upload display
@@ -433,8 +444,7 @@
             
             function checkFormValidity() {
                 const fileSelected = receiptUpload.files.length > 0;
-                const methodSelected = document.querySelector('input[name="paymentMethod"]:checked') !== null;
-                proceedButton.disabled = !(fileSelected && methodSelected);
+                proceedButton.disabled = !fileSelected;
             }
             
             // Handle form submission
@@ -449,9 +459,9 @@
                     // Create a new FormData object for the file upload
                     const fileFormData = new FormData();
                     fileFormData.append('receipt', receiptUpload.files[0]);
-                    fileFormData.append('userName', username);
+                    fileFormData.append('userName', userName);
                     fileFormData.append('finalAmount', data.baseDue.toFixed(2));
-                    fileFormData.append('paymentMethod', document.querySelector('input[name="paymentMethod"]:checked').value);
+                    fileFormData.append('paymentMethod', 'QR');
                     
                     console.log("Submitting payment to /api/monthly-dues-payment"); // Debug log
                     
@@ -485,18 +495,16 @@
                 var delinquentUsername = localStorage.getItem('username');
                 var delinquentDueAmount = localStorage.getItem('MDAmount');
 
-                if (delinquentUsername && delinquentEmail && delinquentDueAmount) {
+                if (delinquentUsername && delinquentDueAmount) {
                     // Try to open a modal if it exists
                     if (typeof openPaymentModal === 'function') {
-                        openPaymentModal(delinquentUsername, delinquentEmail, delinquentDueAmount);
+                        openPaymentModal(delinquentUsername, delinquentDueAmount);
                     } else {
                         // Try to fill in payment form fields if they exist
                         if (document.getElementById('paymentUsername')) {
                             document.getElementById('paymentUsername').value = delinquentUsername;
                         }
-                        if (document.getElementById('paymentEmail')) {
-                            document.getElementById('paymentEmail').value = delinquentEmail;
-                        }
+                    
                         if (document.getElementById('paymentDueAmount')) {
                             document.getElementById('paymentDueAmount').value = delinquentDueAmount;
                         }

@@ -1621,18 +1621,6 @@ async function fetchNotifications() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const notifBtn = document.getElementById('notificationBtn');
-  if (notifBtn) {
-    notifBtn.addEventListener('click', () => {
-      console.log("Notification button clicked");
-      fetchNotifications(); // ✅ Calls your main function
-    });
-  }
-});
-
-
-// Wait for DOM to be fully loaded before running any code
 document.addEventListener('DOMContentLoaded', function() {
   console.log("DOM fully loaded, initializing notification system");
 
@@ -1647,6 +1635,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const notificationCount = document.getElementById('notificationCount');
     const notificationList = document.getElementById('notificationList');
     const eventDetailsModal = document.getElementById('eventDetailsModal');
+    const logoutButton = document.getElementById('logoutButton');
     
     console.log("Notification elements:", {
       notificationIcon: !!notificationIcon,
@@ -1657,17 +1646,18 @@ document.addEventListener('DOMContentLoaded', function() {
       clearAllBtn: !!clearAllBtn,
       notificationCount: !!notificationCount,
       notificationList: !!notificationList,
-      eventDetailsModal: !!eventDetailsModal
+      eventDetailsModal: !!eventDetailsModal,
+      logoutButton: !!logoutButton
     });
     
     // Set up event listeners
     if (notificationIcon) {
       notificationIcon.addEventListener('click', () => {
         console.log("Notification icon clicked");
+        fetchNotifications(); // Always fetch latest notifications
         if (notificationModal) {
           notificationModal.style.display = 'block';
           updateNotificationList();
-          // Mark all notifications as read when opening the panel
           markAllNotificationsAsRead();
         }
       });
@@ -1697,6 +1687,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (clearAllBtn) {
       clearAllBtn.addEventListener('click', clearAllNotifications);
+    }
+
+    // Initialize logout button
+    if (logoutButton) {
+      logoutButton.addEventListener('click', async () => {
+        try {
+          console.log("Logout button clicked");
+          const response = await fetch("/api/logout", { 
+            method: "POST",
+            credentials: "include",
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+
+          console.log("Logout response:", response.status);
+          
+          if (response.ok) {
+            // Clear all local storage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Clear any cookies
+            document.cookie.split(";").forEach(function(c) { 
+              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            console.log("Logout successful, redirecting to login page");
+            window.location.href = "/login.html";
+          } else {
+            console.error("Logout failed with status:", response.status);
+            showCustomAlert("Logout failed. Please try again.");
+          }
+        } catch (error) {
+          console.error("Error during logout:", error);
+          showCustomAlert("An error occurred during logout. Please try again.");
+        }
+      });
     }
     
     // Close modals when clicking outside
@@ -1734,111 +1763,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
-    // Initialize logout button
-    const logoutButton = document.getElementById('logoutButton');
-    if (logoutButton) {
-      logoutButton.addEventListener('click', async () => {
-        try {
-          const response = await fetch("/logout", { method: "POST" });
-            if (response.ok) {
-              localStorage.clear(); // Clear user data
-              window.location.href = "login.html"; // Redirect to the login page
-            } else {
-              showCustomAlert("Logout failed. Please try again.");
-            }
-          } catch (error) {
-            console.error("Error during logout:", error);
-            showCustomAlert("An error occurred during logout. Please try again.");
-        }
-      });
-    }
-    
-    // Handle form submission for admin concerns
-    if (document.getElementById('adminForm')) {
-      document.getElementById('adminForm').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        
-        const subject = document.getElementById('subject').value;
-        const message = document.getElementById('message').value;
-        const fileInput = document.getElementById('fileInput');
-        const selectedFile = fileInput?.files?.[0];
-        let fileData = null;
-
-        if (selectedFile) {
-          const reader = new FileReader();
-
-          reader.onloadend = async function () {
-            // Prepare the file data as base64 for sending
-            fileData = reader.result.split(',')[1]; // Get base64 part after the comma
-
-            const concernData = {
-              username: localStorage.getItem('username'),
-              email: localStorage.getItem('email'),
-              subject: subject,
-              message: message,
-              createdAt: new Date().toISOString().replace('Z', '+00:00'),
-              file: fileData,
-            };
-
-            try {
-              const response = await fetch('/addconcern', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(concernData),
-              });
-
-              const result = await response.json();
-
-              if (result.success) {
-                alert("Your concern has been submitted successfully!");
-                document.getElementById('adminForm').reset();
-                document.getElementById('adminPopup').style.display = "none";
-              } else {
-                alert("Failed to submit the concern. Please try again.");
-              }
-            } catch (error) {
-              console.error('Error submitting concern:', error);
-              alert("There was an error submitting your concern. Please try again.");
-            }
-          };
-
-          reader.readAsDataURL(selectedFile); // Read file as Data URL
-        } else {
-          const concernData = {
-            username: localStorage.getItem('username'),
-            email: localStorage.getItem('email'),
-            subject: subject,
-            message: message,
-            createdAt: new Date().toISOString().replace('Z', '+00:00'),
-          };
-
-          try {
-            const response = await fetch('/addconcern', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(concernData),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              alert("Your concern has been submitted successfully!");
-              document.getElementById('adminForm').reset();
-              document.getElementById('adminPopup').style.display = "none";
-            } else {
-              alert("Failed to submit the concern. Please try again.");
-            }
-          } catch (error) {
-            console.error('Error submitting concern:', error);
-            alert("There was an error submitting your concern. Please try again.");
-          }
-        }
-      });
-    }
     // Fetch notifications initially
     console.log("Initializing first notification fetch");
     fetchNotifications();
@@ -1895,27 +1819,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.location.replace("/login.html");
   }
 });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const logoutBtn = document.getElementById('logoutBtn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-          try {
-            const res = await fetch('/logout', { method: 'POST', credentials: 'include' });
-            if (res.ok) {
-              window.location.href = '/login.html';
-            } else {
-              alert('Logout failed.');
-            }
-          } catch (err) {
-            console.error('Logout error:', err);
-          }
-        });
-      }
-    });
-
-      
-
 
 console.log("Script loaded successfully");
   </script>

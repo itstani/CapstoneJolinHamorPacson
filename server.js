@@ -928,8 +928,9 @@ app.post("/api/check-delinquent-status", async (req, res) => {
           }
         }
 
-        // Handle Delinquent or Almost Due
-        if (homeowner.PStatus === "Delinquent" || homeowner.PStatus === "Almost Due") {
+        // Handle Delinquent or Almost Due (case-insensitive)
+        const pStatus = (homeowner.PStatus || "").toLowerCase();
+        if (pStatus === "delinquent") {
           return res.json({
             success: false,
             isDelinquent: true,
@@ -937,7 +938,7 @@ app.post("/api/check-delinquent-status", async (req, res) => {
             dueAmount: mdAmount,
             message: "Your account has outstanding dues that need to be paid.",
           });
-        } else if (homeowner.PStatus === "Almost due") {
+        } else if (pStatus === "almost due") {
           return res.json({
             success: true,
             isAlmostDue: true,
@@ -1427,6 +1428,7 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
     const db = await connectToDatabase()
     const paymentsCollection = db.collection("monthlyPayments")
     const homeownersCollection = db.collection("homeowners")
+    const addressCollection = db.collection("address")
 
     // Find the payment
     const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
@@ -1450,24 +1452,27 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
       },
     )
 
-    // Update homeowner status
+    // Update homeowner status using username or fallback to email
+    const updateQuery = payment.username ? { username: payment.username } : { email: payment.userEmail }
     await homeownersCollection.updateOne(
-      { email: payment.userEmail },
+      updateQuery,
       {
         $set: {
+          PStatus: "Compliant",
           paymentStatus: "Compliant",
-          homeownerStatus: "Compliant",
-          dueAmount: "0.00",
+          PtStatus: "Compliant",
+          HStatus: "Compliant",
         },
       },
     )
 
     // Log the approval
-    await logActivity("paymentApproval", `Monthly dues payment for ${payment.userEmail} approved`)
+    await logActivity("paymentApproval", `Monthly dues payment for ${payment.username || payment.userEmail} approved`)
 
-    // Create notification for the user
+    // Create notification for the user using username or email
+    const notificationRecipient = payment.username || payment.userEmail
     await createNotification(
-      payment.userEmail,
+      notificationRecipient,
       "payment_approved",
       "Your monthly dues payment has been approved. Your account is now active.",
       payment._id,
@@ -6082,7 +6087,7 @@ app.get('/api/get-monthly-due', async (req, res) => {
       daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
       penalty = daysOverdue * 10;
     }
-    
+
 
     res.json({
       success: true,
