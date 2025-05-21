@@ -1510,6 +1510,16 @@ function proceedToPayment(notification) {
   }
 }
 
+const response = await fetch('/api/check-auth', {
+  method: 'GET',
+  credentials: 'include',
+  headers: {
+    'Accept': 'application/json',
+    'Cache-Control': 'no-cache'
+  }
+});
+
+
 // Function to clear all notifications
 async function clearAllNotifications() {
   console.log("Clearing all notifications");
@@ -1591,12 +1601,12 @@ async function fetchNotifications() {
     console.log("Attempting to fetch notifications...");
     const response = await fetch('/api/notifications', {
       method: 'GET',
-      credentials: 'include', // Important: This ensures cookies are sent with the request
+      credentials: 'include', // ✅ ensure session cookie is sent
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Accept': 'application/json'
       }
     });
+
 
     console.log("Fetch response received:", response);
     
@@ -1763,16 +1773,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (logoutButton) {
       logoutButton.addEventListener('click', async () => {
         try {
-          const response = await fetch('/logout', { method: 'POST' });
-          if (response.ok) {
-            localStorage.clear(); // Clear user data
-            window.location.href = 'login.html'; // Redirect to the login page
-          } else {
-            showErrorMessage('Logout failed. Please try again.');
-          }
-        } catch (error) {
-          console.error('Error during logout:', error);
-          showErrorMessage('An error occurred during logout. Please try again.');
+          const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
+            } else {
+              showCustomAlert("Logout failed. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert("An error occurred during logout. Please try again.");
         }
       });
     }
@@ -1891,27 +1901,51 @@ function handleImageError(img) {
     }
 
 // Add a global error handler to catch any uncaught errors
-window.addEventListener('error', function(event) {
-  console.error('Global error caught:', event.error);
-  showErrorMessage(`An error occurred: ${event.error?.message || 'Unknown error'}`);
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    console.log("HoHome.html loaded, checking authentication...");
+
+    const response = await fetch("/api/auth-status", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    });
+
+    if (!response.ok) throw new Error(`Auth failed with status ${response.status}`);
+
+    const data = await response.json();
+
+    if (!data.authenticated) {
+      console.warn("Not authenticated, redirecting to login.");
+      window.location.replace("/login.html");
+    } else {
+      console.log("Authentication verified, user can access this page");
+    }
+  } catch (err) {
+    console.error("Error during auth check:", err);
+    window.location.replace("/login.html");
+  }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Use the authUtils from auth-debug.js
-    if (window.authUtils) {
-        window.authUtils.debugLog("HoHome.html loaded, checking authentication...");
-        window.authUtils.checkAuthStatus().then(status => {
-            if (!status.authenticated) {
-                window.authUtils.debugLog("Not authenticated, redirecting to login page");
-                window.location.replace("/login.html");
+document.getElementById("logoutButton").addEventListener("click", async () => {
+          try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
             } else {
-                window.authUtils.debugLog("Authentication verified, user can access this page");
+              showCustomAlert("Logout failed. Please try again.");
             }
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert("An error occurred during logout. Please try again.");
+          }
         });
-    } else {
-        console.error("authUtils not available. Make sure auth-debug.js is loaded correctly.");
-    }
-});
+      
+
 
 console.log("Script loaded successfully");
   </script>

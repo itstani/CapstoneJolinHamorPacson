@@ -47,7 +47,7 @@ app.use(session({
   resave: true,
   saveUninitialized: false,
   store: new MemoryStore({
-    checkPeriod: 86400000 // prune expired entries every 24h
+    checkPeriod: 86400000 
   }),
   cookie: {
     secure: process.env.NODE_ENV === "production",
@@ -139,7 +139,7 @@ app.use((req, res, next) => {
   // Add a header to help debug authentication issues
   if (req.session && req.session.user) {
     res.setHeader("X-Auth-Status", "authenticated")
-    res.setHeader("X-Auth-User", req.session.user.email || "unknown")
+    res.setHeader("X-Auth-User", req.session.user.username || "unknown")
     res.setHeader("X-Auth-Role", req.session.user.role || "unknown")
   } else {
     res.setHeader("X-Auth-Status", "unauthenticated")
@@ -308,21 +308,16 @@ function formatTime(timeString) {
 
 // API endpoint to check authentication status
 app.get("/api/auth-status", (req, res) => {
-  if (!req.session || !req.session.user) {
+  if (req.session && req.session.user) {
     return res.json({
-      authenticated: false,
-      user: null
+      authenticated: true,
+      user: req.session.user,
     });
+  } else {
+    return res.json({ authenticated: false });
   }
+});
 
-  res.json({
-    authenticated: true,
-    user: {
-      email: req.session.user.email,
-      role: req.session.user.role
-    }
-  });
-})
 app.get(
   ["/monthly-payments.html", "/Webpages/monthly-payments.html", "/Webpages/Monthly-payments.html"],
   (req, res) => {
@@ -682,9 +677,8 @@ app.post("/api/login", async (req, res) => {
     // Find user by email or username
     const user = await usersCollection.findOne({
       $or: [
-        { email: { $regex: new RegExp(`^${login}$`, "i") } },
+
         { username: { $regex: new RegExp(`^${login}$`, "i") } },
-        { email: { $regex: new RegExp(`^${login}$`, "i") } },
       ],
     });
 
@@ -746,8 +740,8 @@ app.post("/api/login", async (req, res) => {
       const dueAmount = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
 
       // Check for delinquent or almost due status (case-insensitive)
-      const pStatus = (homeowner.PStatus || homeowner.paymentStatus || "").toLowerCase();
-      const hStatus = (homeowner.HStatus || homeowner.homeownerStatus || "").toLowerCase();
+      const pStatus = (homeowner.PStatus || "").toLowerCase();
+      const hStatus = (homeowner.HStatus  || "").toLowerCase();
 
       if (pStatus === "delinquent" || hStatus === "delinquent") {
         return res.json({
@@ -770,6 +764,7 @@ app.post("/api/login", async (req, res) => {
       }
     }
 
+
     // ✅ Login success — create session
     req.session.regenerate(async function (err) {
       if (err) {
@@ -780,11 +775,13 @@ app.post("/api/login", async (req, res) => {
         });
       }
 
-      req.session.user = {
+        req.session.user = {
         username: user.username,
         email: user.email || null,
-        role: user.role || "homeowner",
+        role: user.role || "homeowner"
       };
+
+      console.log("✅ Session set during login:", req.session);
 
       req.session.save(async (err) => {
         if (err) {
@@ -816,6 +813,9 @@ app.post("/api/login", async (req, res) => {
     });
   }
 });
+
+
+
 
 
 app.get("/api/check-auth", (req, res) => {
@@ -929,7 +929,7 @@ app.post("/api/check-delinquent-status", async (req, res) => {
         }
 
         // Handle Delinquent or Almost Due
-        if (homeowner.paymentStatus === "Delinquent" || homeowner.homeownerStatus === "Delinquent") {
+        if (homeowner.PStatus === "Delinquent" || homeowner.PStatus === "Almost Due") {
           return res.json({
             success: false,
             isDelinquent: true,
