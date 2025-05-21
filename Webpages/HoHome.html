@@ -1596,75 +1596,41 @@ async function clearSelectedNotifications() {
 
 // Function to fetch notifications from the server
 async function fetchNotifications() {
-  console.log("Fetching notifications");
   try {
-    console.log("Attempting to fetch notifications...");
-    const response = await fetch('/api/notifications', {
-      method: 'GET',
-      credentials: 'include', // ✅ ensure session cookie is sent
+    const response = await fetch("/api/notifications", {
+      method: "GET",
+      credentials: "include",
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
     });
 
-
-    console.log("Fetch response received:", response);
-    
     if (!response.ok) {
-      // If we get a 401, try to redirect to login
-      if (response.status === 401) {
-        console.log("User not authenticated, redirecting to login page");
-        window.location.href = '/Webpages/login.html';
-        return;
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const responseText = await response.text();
-    console.log("Response text:", responseText);
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Error parsing JSON:", parseError);
-      throw new Error("Invalid JSON response");
-    }
-    
-    if (data.success) {
-      notifications = data.notifications || [];
-      const notificationCountElement = document.getElementById('notificationCount');
-      if (notificationCountElement) {
-        notificationCountElement.textContent = data.unreadCount || '0';
-      }
-      updateNotificationList();
-      updateClearButtons();
-      retryCount = 0; // Reset retry count on successful fetch
-    } else {
-      throw new Error(data.error || 'Failed to fetch notifications');
-    }
+    const data = await response.json();
+    console.log("Fetched notifications:", data);
+    notifications = data.notifications || [];
+    updateNotificationList();
+    updateClearButtons();
   } catch (error) {
-    console.error('Detailed error in fetchNotifications:', error);
-    
-    if (error instanceof TypeError && error.message.includes('NetworkError')) {
-      if (retryCount < MAX_RETRIES) {
-        retryCount++;
-        console.log(`Retrying fetch (${retryCount}/${MAX_RETRIES})...`);
-        setTimeout(fetchNotifications, RETRY_DELAY);
-      } else {
-        showErrorMessage('Network error occurred. Please check your internet connection and try again.');
-        notifications = [];
-        updateNotificationList();
-        updateClearButtons();
-      }
-    } else {
-      showErrorMessage('Failed to fetch notifications. Please try again later.');
-      notifications = [];
-      updateNotificationList();
-      updateClearButtons();
-    }
+    console.error("Detailed error in fetchNotifications:", error);
+    showErrorMessage("Failed to load notifications. Please try again.");
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const notifBtn = document.getElementById('notificationBtn');
+  if (notifBtn) {
+    notifBtn.addEventListener('click', () => {
+      console.log("Notification button clicked");
+      fetchNotifications(); // ✅ Calls your main function
+    });
+  }
+});
+
 
 // Wait for DOM to be fully loaded before running any code
 document.addEventListener('DOMContentLoaded', function() {
@@ -1930,20 +1896,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-document.getElementById("logoutButton").addEventListener("click", async () => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
           try {
-            const response = await fetch("/logout", { method: "POST" });
-            if (response.ok) {
-              localStorage.clear(); // Clear user data
-              window.location.href = "login.html"; // Redirect to the login page
+            const res = await fetch('/logout', { method: 'POST', credentials: 'include' });
+            if (res.ok) {
+              window.location.href = '/login.html';
             } else {
-              showCustomAlert("Logout failed. Please try again.");
+              alert('Logout failed.');
             }
-          } catch (error) {
-            console.error("Error during logout:", error);
-            showCustomAlert("An error occurred during logout. Please try again.");
+          } catch (err) {
+            console.error('Logout error:', err);
           }
         });
+      }
+    });
+
       
 
 
