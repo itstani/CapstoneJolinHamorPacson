@@ -445,6 +445,68 @@
             margin: 0;
             color: #AF2630;
         }
+
+        /* Add these styles to your existing CSS */
+        .conflict-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1200;
+        }
+
+        .conflict-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .conflict-header {
+            background-color: #dc3545;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 20px;
+        }
+
+        .conflict-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .conflict-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #dc3545;
+            background-color: #fff5f5;
+        }
+
+        .conflict-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .validation-error {
+            color: #dc3545;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .validation-warning {
+            color: #ffc107;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -497,6 +559,7 @@
                 <span class="close-btn" onclick="closeModal()">&times;</span>
             </header>
             <div id="modalContent"></div>
+            <div id="modalAmenityDetails"></div>
         </div>
     </div>
     <div id="customAlert" class="custom-alert">
@@ -513,6 +576,17 @@
         <h2 class="eventlistheader">Pending Events</h2>
         <!-- Pending events will be dynamically inserted here -->
     </div>
+
+    <div id="conflictModal" class="conflict-modal">
+        <div class="conflict-content">
+            <div class="conflict-header">
+                <h2>Schedule Conflict Detected</h2>
+            </div>
+            <div id="conflictDetails"></div>
+            <button class="modal-button" onclick="closeConflictModal()">Close</button>
+        </div>
+    </div>
+
     <script src="/client-auth.js"></script>
     <script>
        // Your existing variables
@@ -751,23 +825,125 @@
         `;
     }
 
+    // Add these new validation functions
+    function validateEventDetails(event) {
+        const errors = [];
+        const warnings = [];
+
+        // Validate time slots
+        const startTime = new Date(`2000-01-01 ${event.startTime}`);
+        const endTime = new Date(`2000-01-01 ${event.endTime}`);
+        const duration = (endTime - startTime) / (1000 * 60 * 60); // Duration in hours
+
+        // Check if end time is after start time
+        if (endTime <= startTime) {
+            errors.push("End time must be after start time");
+        }
+
+        // Validate based on amenities
+        const amenities = Array.isArray(event.amenities) ? event.amenities : [event.amenity];
+        
+        amenities.forEach(amenity => {
+            switch(amenity) {
+                case 'Pool':
+                    if (event.poolType === 'morning' && startTime.getHours() < 6) {
+                        errors.push("Pool morning sessions start at 6 AM");
+                    }
+                    if (event.poolType === 'evening' && startTime.getHours() < 17) {
+                        errors.push("Pool evening sessions start at 5 PM");
+                    }
+                    if (event.poolType === 'evening' && endTime.getHours() > 23) {
+                        errors.push("Pool evening sessions end at 11 PM");
+                    }
+                    if (event.guests && event.guests.number > 30) {
+                        errors.push("Pool reservations are limited to 30 guests");
+                    }
+                    break;
+
+                case 'Court':
+                    if (startTime.getHours() < 18 || startTime.getHours() >= 22) {
+                        errors.push("Court is only available from 6 PM to 10 PM");
+                    }
+                    if (duration > 4) {
+                        errors.push("Court reservations are limited to 4 hours");
+                    }
+                    break;
+
+                case 'Clubhouse':
+                    if (startTime.getHours() < 6 || endTime.getHours() > 22) {
+                        errors.push("Clubhouse is only available from 6 AM to 10 PM");
+                    }
+                    if (event.guests && event.guests.number > 60) {
+                        errors.push("Clubhouse reservations are limited to 60 guests");
+                    }
+                    if (duration > 8) {
+                        warnings.push("Clubhouse reservations longer than 8 hours may require special approval");
+                    }
+                    break;
+            }
+        });
+
+        // Check for overlapping time slots
+        if (duration < 1) {
+            errors.push("Minimum reservation duration is 1 hour");
+        }
+
+        return { errors, warnings };
+    }
+
+    // Update the displayPendingEventDetails function to include validation
     async function displayPendingEventDetails(index) {
         const event = currentEvents[index];
+        
+        // Run validation
+        const { errors, warnings } = validateEventDetails(event);
+        
+        // Create validation messages HTML
+        const validationHTML = `
+            ${errors.length > 0 ? `
+                <div class="validation-error">
+                    <strong>Validation Errors:</strong>
+                    <ul>${errors.map(error => `<li>${error}</li>`).join('')}</ul>
+                </div>
+            ` : ''}
+            ${warnings.length > 0 ? `
+                <div class="validation-warning">
+                    <strong>Warnings:</strong>
+                    <ul>${warnings.map(warning => `<li>${warning}</li>`).join('')}</ul>
+                </div>
+            ` : ''}
+        `;
+
         modalContent.innerHTML = `
             <div class="modal-flex">
                 <div class="event-details">
                     <h2>${event.eventName}</h2>
                     <p><strong>Date:</strong> ${event.eventDate}</p>
                     <p><strong>Time:</strong> ${event.startTime} - ${event.endTime}</p>
-                    <p><strong>Amenity:</strong> ${event.amenity}</p>
+                    <p><strong>Amenities:</strong> ${Array.isArray(event.amenities) ? event.amenities.join(', ') : event.amenity}</p>
                     <p><strong>Host:</strong> ${event.HomeownerName || 'N/A'}</p>
                     <p><strong>Email:</strong> ${event.userEmail || 'N/A'}</p>
-                    <p><strong>Guests:</strong> ${event.guests ? (typeof event.guests === 'object' ? event.guests.number : event.guests) : 'N/A'}</p>
+                    ${event.guests ? `
+                        <p><strong>Guests:</strong> ${typeof event.guests === 'object' ? event.guests.number : event.guests}</p>
+                        ${event.guests.names ? `<p><strong>Guest List:</strong> ${event.guests.names.join(', ')}</p>` : ''}
+                    ` : ''}
+                    <p><strong>Payment Details:</strong></p>
+                    <div class="payment-details">
+                        ${Object.entries(event.paymentDetails || {}).map(([amenity, details]) => `
+                            <p>${amenity}: ₱${details.total}</p>
+                        `).join('')}
+                        <p><strong>Total Payment:</strong> ₱${event.totalPayment}</p>
+                    </div>
+                    ${validationHTML}
                 </div>
             </div>
             <div class="modal-actions">
-                <button class="approve-btn" onclick="approveEvent('${event.eventName}')">Approve</button>
-                <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">Deny</button>
+                <button class="approve-btn" onclick="approveEvent('${event.eventName}')" ${errors.length > 0 ? 'disabled' : ''}>
+                    Approve
+                </button>
+                <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">
+                    Deny
+                </button>
             </div>
             <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
         `;
@@ -788,14 +964,47 @@
 
     async function approveEvent(eventName) {
         try {
-            // Show loading indicator
-            showCustomAlert("Processing approval...");
+            showCustomAlert("Checking for schedule conflicts...");
         
-            // Find the event object in currentEvents
             const event = currentEvents.find(e => e.eventName === eventName);
             if (!event) {
                 throw new Error('Event not found in currentEvents');
             }
+
+            // Run validation
+            const { errors, warnings } = validateEventDetails(event);
+            if (errors.length > 0) {
+                closeCustomAlert();
+                showCustomAlert(`Cannot approve event: ${errors.join('\n')}`);
+                return;
+            }
+
+            // Check for schedule conflicts
+            const conflictCheck = await fetch('/api/check-schedule-conflicts', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    eventDate: event.eventDate,
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                    amenities: event.amenities || [event.amenity]
+                })
+            });
+
+            const conflictResult = await conflictCheck.json();
+            
+            if (conflictResult.hasConflicts) {
+                closeCustomAlert();
+                showConflictModal(conflictResult.conflicts);
+                return;
+            }
+
+            // If no conflicts, proceed with approval
+            showCustomAlert("Processing approval...");
 
             // Send all event details to the backend
             const response = await fetch(`/api/approve-event`, {
@@ -810,10 +1019,12 @@
                     eventDate: event.eventDate,
                     startTime: event.startTime,
                     endTime: event.endTime,
-                    amenity: event.amenity,
+                    amenities: event.amenities || [event.amenity],
                     userEmail: event.userEmail,
                     HomeownerName: event.HomeownerName,
-                    guests: event.guests
+                    guests: event.guests,
+                    paymentDetails: event.paymentDetails,
+                    totalPayment: event.totalPayment
                 })
             });
         
@@ -952,6 +1163,36 @@
             console.error("Error during logout:", error);
             alert("An error occurred during logout. Please try again.");
         }
+    }
+
+    // Update the conflict display function
+    function showConflictModal(conflicts) {
+        const conflictModal = document.getElementById('conflictModal');
+        const conflictDetails = document.getElementById('conflictDetails');
+        
+        const conflictsHTML = conflicts.map(conflict => `
+            <div class="conflict-item">
+                <h3>${conflict.eventName}</h3>
+                <p><strong>Amenity:</strong> ${conflict.amenity}</p>
+                <p><strong>Time:</strong> ${conflict.startTime} - ${conflict.endTime}</p>
+                <p><strong>Host:</strong> ${conflict.HomeownerName}</p>
+            </div>
+        `).join('');
+
+        conflictDetails.innerHTML = `
+            <p>The following events conflict with the requested time slot:</p>
+            <div class="conflict-list">
+                ${conflictsHTML}
+            </div>
+            <p class="validation-error">Please choose a different time slot or contact the hosts of conflicting events.</p>
+        `;
+
+        conflictModal.style.display = 'block';
+    }
+
+    function closeConflictModal() {
+        const conflictModal = document.getElementById('conflictModal');
+        conflictModal.style.display = 'none';
     }
     </script>
 </body>

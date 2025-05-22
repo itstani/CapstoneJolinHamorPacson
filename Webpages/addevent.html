@@ -306,33 +306,99 @@
 
     /* Amenity Selection */
     .amenities {
-    margin: 25px 0;
-    display: flex;
-    gap: 10px; /* Reduced gap between amenity options */
-    align-items: center;
-}
+        margin: 25px 0;
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .amenity-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        padding: 18px 16px 10px 16px;
+        transition: box-shadow 0.2s, transform 0.2s, border 0.2s;
+        min-width: 220px;
+        max-width: 260px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        position: relative;
+    }
+    .amenity-card.selected {
+        border: 2px solid #AF2630;
+        box-shadow: 0 6px 18px rgba(175,38,48,0.18);
+        transform: translateY(-4px) scale(1.03);
+    }
+    .amenity-card input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+    .amenity-card .custom-checkbox {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 22px;
+        height: 22px;
+        background: #fff;
+        border: 2px solid #AF2630;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+    .amenity-card.selected .custom-checkbox {
+        background: #AF2630;
+    }
+    .amenity-card .custom-checkbox svg {
+        display: none;
+    }
+    .amenity-card.selected .custom-checkbox svg {
+        display: block;
+        color: #fff;
+    }
 
-.amenities input[type="radio"] {
-    display: none; /* Hide radio buttons */
-}
+    .amenities div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        padding: 18px 16px 10px 16px;
+        transition: box-shadow 0.2s, transform 0.2s;
+        min-width: 220px;
+        max-width: 260px;
+    }
 
-.amenities div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
+    .amenities div:hover {
+        box-shadow: 0 6px 18px rgba(175,38,48,0.18);
+        transform: translateY(-4px) scale(1.03);
+    }
 
-.amenities label img {
-    width: 100px;
-    height: 100px;
-    border-radius: 10px;
-    transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
-}
+    .amenities label img {
+        width: 110px;
+        height: 110px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
     .amenities input[type="radio"]:checked + label img {
        transform: scale(1.1); /* Enlarge the button when selected */
        border: 3px solid white; /* Add border on hover */
        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
-      }
+    }
     .amenities label:hover img {
         transform: scale(1.1); /* Enlarge the button */
         border: 3px solid #f86a73; /* Add border on hover */
@@ -424,45 +490,45 @@
     z-index: 1000;
     justify-content: center;
     align-items: center;
-}
+    }
 
-.modal {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+    .modal {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-.modal-title {
-    color: #AF2630;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-}
+    .modal-title {
+        color: #AF2630;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
 
-.modal-message {
-    color: #333;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
+    .modal-message {
+        color: #333;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
 
-.modal-button {
-    background-color: #AF2630;
-    color: white;
-    border: none;
-    padding: 0.75rem 2rem;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
+    .modal-button {
+        background-color: #AF2630;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
 
-.modal-button:hover {
-    background-color: #8f1f27;
-}
+    .modal-button:hover {
+        background-color: #8f1f27;
+    }
     
 
     /* Responsive Design */
@@ -502,6 +568,58 @@
 
         .homeowner label {
             text-align: center;
+        }
+    }
+
+    /* Add these styles */
+    .amenity-details {
+        margin-top: 8px;
+        padding: 12px 10px 8px 10px;
+        background: rgba(255,255,255,0.22);
+        border-radius: 10px;
+        width: 100%;
+        color: #222;
+        font-size: 15px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .amenity-details strong {
+        color: #AF2630;
+    }
+
+    .amenity-info {
+        color: #222;
+        font-size: 14px;
+        margin: 4px 0 0 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .amenity-info svg {
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+    }
+
+    .checkbox-container label {
+        color: #AF2630;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+        margin-right: 8px;
+    }
+
+    @media (max-width: 900px) {
+        .amenities {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .amenities div {
+            max-width: 100%;
+            min-width: 0;
         }
     }
   </style>
@@ -586,52 +704,225 @@
       <label>Choose an amenity</label>
   
       <div class="amenities">
-        
-        <div>
-          
-            <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
-            <label for="amenityPool">
+        <div class="amenity-card" id="cardPool">
+            <input type="checkbox" id="amenityPool" name="amenities" value="Pool">
+            <span class="custom-checkbox">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10.5L9 14.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <label for="amenityPool" style="cursor:pointer;">
                 <img src="../images/pool.png" alt="Pool">
             </label>
         </div>
-        <div>
-            <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse">
-            <label for="amenityClubhouse">
+        <div class="amenity-card" id="cardClubhouse">
+            <input type="checkbox" id="amenityClubhouse" name="amenities" value="Clubhouse">
+            <span class="custom-checkbox">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10.5L9 14.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <label for="amenityClubhouse" style="cursor:pointer;">
                 <img src="../images/clubhouse.png" alt="Clubhouse">
             </label>
         </div>
-        <div>
-            <input type="radio" id="amenityCourt" name="amenity" value="Court">
-            <label for="amenityCourt">
+        <div class="amenity-card" id="cardCourt">
+            <input type="checkbox" id="amenityCourt" name="amenities" value="Court">
+            <span class="custom-checkbox">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10.5L9 14.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <label for="amenityCourt" style="cursor:pointer;">
                 <img src="../images/court.png" alt="Court">
             </label>
         </div>
       </div>
 
-       <!-- New Event Type Dropdown -->
-       <div id="eventTypeContainerCB">
-        <label for="eventType">Event Type:</label>
-        <select id="eventType" name="eventType">
-          <option value="Select">Select</option>
-          <option value="birthday">Birthday</option>
-          <option value="zumba">Zumba</option>
-          <option value="meeting">Meeting</option>
-        </select>
-      </div>
+      <div id="timeWarning" style="display:none;color:#dc3545;font-weight:600;text-align:center;margin-bottom:10px;"></div>
 
-      <div id="eventTypeContainerP">
-        <label for="poolReservation">Pool Reservation Options:</label>
-        <select id="poolReservation" name="poolReservation" onchange="updatePoolPayment()">
-          <option value="no">Shared Pool Use</option>
-          <option value="yes">Exclusive Pool Reservation</option>
-        </select>
-        <div id="poolPaymentInfo" style="margin-top: 15px; color: white;">
-          <p>Base Payment (₱100 per guest): <span id="basePayment">₱100</span></p>
-          <p id="reservationFee" style="display: none;">Reservation Fee: ₱1000</p>
-          <p>Total Payment: <span id="totalPayment">₱100</span></p>
-        </div>
-      </div>
-      
+      <script>
+        // Amenity card click logic
+        document.querySelectorAll('.amenity-card').forEach(card => {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            const details = card.querySelector('.amenity-details');
+            card.addEventListener('click', function(e) {
+                // Only toggle if not clicking the checkbox directly
+                if (e.target.tagName !== 'INPUT') {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            });
+            checkbox.addEventListener('change', function() {
+                card.classList.toggle('selected', checkbox.checked);
+                if (details) details.style.display = checkbox.checked ? 'block' : 'none';
+            });
+        });
+
+        // Update the amenity selection handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]');
+            
+            amenityCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const detailsId = this.id.replace('amenity', '') + 'Details';
+                    const detailsElement = document.getElementById(detailsId);
+                    
+                    if (detailsElement) {
+                        detailsElement.style.display = this.checked ? 'block' : 'none';
+                    }
+
+                    // Update time constraints based on selection
+                    updateTimeConstraints();
+                });
+            });
+
+            // Add handler for pool night checkbox
+            const poolNightCheckbox = document.getElementById('poolNight');
+            if (poolNightCheckbox) {
+                poolNightCheckbox.addEventListener('change', function() {
+                    updateTimeConstraints();
+                });
+            }
+        });
+
+        // Update time constraints function
+        function updateTimeConstraints() {
+            const selectedAmenities = Array.from(document.querySelectorAll('input[name="amenities"]:checked'))
+                .map(cb => cb.value);
+            
+            const isPoolNight = document.getElementById('poolNight')?.checked;
+            
+            // Reset time inputs
+            eventStartHour.value = '';
+            eventStartMinute.value = '';
+            eventEndHour.value = '';
+            eventEndMinute.value = '';
+
+            if (selectedAmenities.includes('Pool')) {
+                if (isPoolNight) {
+                    // Evening pool hours (5PM - 11PM)
+                    eventStartHour.min = '5';
+                    eventStartHour.max = '10';
+                    eventEndHour.min = '6';
+                    eventEndHour.max = '11';
+                } else {
+                    // Morning pool hours (6AM - 5PM)
+                    eventStartHour.min = '6';
+                    eventStartHour.max = '4';
+                    eventEndHour.min = '7';
+                    eventEndHour.max = '5';
+                }
+            } else if (selectedAmenities.includes('Court')) {
+                // Court hours (6PM - 10PM)
+                eventStartHour.min = '6';
+                eventStartHour.max = '9';
+                eventEndHour.min = '7';
+                eventEndHour.max = '10';
+            } else if (selectedAmenities.includes('Clubhouse')) {
+                // Clubhouse hours (6AM - 10PM)
+                eventStartHour.min = '6';
+                eventStartHour.max = '9';
+                eventEndHour.min = '7';
+                eventEndHour.max = '10';
+            }
+        }
+
+        // Update form submission to include pool night status
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('eventForm');
+            if (form) {
+                form.addEventListener('submit', async function(event) {
+                    event.preventDefault();
+
+                    const guestNames = [];
+                    const guestInputs = document.querySelectorAll('.guest-name');
+                    guestInputs.forEach(input => {
+                        if (input.value.trim() !== '') {
+                            guestNames.push(input.value.trim());
+                        }
+                    });
+
+                    const formData = {
+                        HomeownerName: document.getElementById('HomeownerName')?.value || '',
+                        eventName: document.getElementById('eventName')?.value || '',
+                        eventDate: document.getElementById('date')?.value || '',
+                        startTime: `${eventStartHour?.value || '8'}:${eventStartMinute?.value || '00'} ${eventStartAmPm?.value || 'AM'}`,
+                        endTime: `${eventEndHour?.value || '9'}:${eventEndMinute?.value || '00'} ${eventEndAmPm?.value || 'AM'}`,
+                        amenities: Array.from(document.querySelectorAll('input[name="amenities"]:checked')).map(cb => cb.value),
+                        guests: {
+                            number: parseInt(document.getElementById('guestNumber').value) || 1,
+                            names: guestNames
+                        },
+                        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || '',
+                        poolNight: document.getElementById('poolNight')?.checked || false
+                    };
+
+                    try {
+                        const response = await fetch('/addevent', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(formData)
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            showSuccessModal();
+                        } else {
+                            alert(result.message || 'Failed to create event');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred while creating the event');
+                    }
+                });
+            }
+        });
+
+        // Add live time validation
+        function showTimeWarning(message) {
+            const warn = document.getElementById('timeWarning');
+            warn.textContent = message;
+            warn.style.display = message ? 'block' : 'none';
+        }
+        function validateTimeInputs() {
+            const selectedAmenities = Array.from(document.querySelectorAll('input[name="amenities"]:checked')).map(cb => cb.value);
+            const isPoolNight = document.getElementById('poolNight')?.checked;
+            const startHour = parseInt(eventStartHour.value) || 0;
+            const endHour = parseInt(eventEndHour.value) || 0;
+            let valid = true;
+            let message = '';
+            if (selectedAmenities.includes('Pool')) {
+                if (isPoolNight) {
+                    if (startHour < 17 || endHour > 23) {
+                        valid = false;
+                        message = 'Pool evening session: 5PM-11PM only.';
+                    }
+                } else {
+                    if (startHour < 6 || endHour > 17) {
+                        valid = false;
+                        message = 'Pool morning session: 6AM-5PM only.';
+                    }
+                }
+            } else if (selectedAmenities.includes('Court')) {
+                if (startHour < 18 || endHour > 22) {
+                    valid = false;
+                    message = 'Court: 6PM-10PM only.';
+                }
+            } else if (selectedAmenities.includes('Clubhouse')) {
+                if (startHour < 6 || endHour > 22) {
+                    valid = false;
+                    message = 'Clubhouse: 6AM-10PM only.';
+                }
+            }
+            showTimeWarning(message);
+            return valid;
+        }
+        [eventStartHour, eventEndHour].forEach(input => {
+            input.addEventListener('input', validateTimeInputs);
+        });
+        document.getElementById('poolNight').addEventListener('change', validateTimeInputs);
+        document.querySelectorAll('input[name="amenities"]').forEach(cb => {
+            cb.addEventListener('change', validateTimeInputs);
+        });
+      </script>
+
     <!-- guests --------------------------------------------------------->
     <div class="guests-container">
         <label for="guests">Number of guests:</label>
@@ -682,6 +973,7 @@
   
     <!-- Preview Image -->
     <img id="amenityPreview" src="/images/poolimg.PNG" alt="Amenity Preview" class="amenity-preview">
+    <div id="amenityDetailsContainer"></div>
   </div>
 
   <div id="successModal" class="modal-overlay" style="display: none;">
@@ -826,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add event listeners for amenity selection
-    const amenityInputs = document.querySelectorAll('input[name="amenity"]');
+    const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]');
     const previewImage = document.getElementById('amenityPreview');
     
     // Function to update preview image
@@ -844,14 +1136,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add change event listeners to radio buttons
-    amenityInputs.forEach(input => {
+    amenityCheckboxes.forEach(input => {
         input.addEventListener('change', function() {
             updatePreviewImage(this.value);
         });
     });
 
     // Set initial preview image
-    const defaultAmenity = document.querySelector('input[name="amenity"]:checked');
+    const defaultAmenity = document.querySelector('input[name="amenities"]:checked');
     if (defaultAmenity) {
         updatePreviewImage(defaultAmenity.value);
     }
@@ -866,71 +1158,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = value;
             updatePoolPayment();
         });
-    }
-
-    // Form submission handling
-    const form = document.getElementById('eventForm');
-    if (form) {
-        form.addEventListener('submit', async function(event) {
-    event.preventDefault();
-
-     // Collect guest names from the popup input fields
-     const guestNames = [];
-    const guestInputs = document.querySelectorAll('.guest-name');
-    guestInputs.forEach(input => {
-        if (input.value.trim() !== '') {
-            guestNames.push(input.value.trim());
-        }
-    });
-
-    const guestNumber = parseInt(document.getElementById('guestNumber').value) || 1;
-    const isReserved = document.getElementById('poolReservation').value === 'yes';
-    const basePayment = guestNumber * 100;
-    const reservationFee = isReserved ? 1000 : 0;
-    const totalPayment = basePayment + reservationFee;
-
-    const formData = {
-                HomeownerName: document.getElementById('HomeownerName')?.value || '',
-                eventName: document.getElementById('eventName')?.value || '',
-                eventDate: document.getElementById('date')?.value || '',
-                startTime: `${eventStartHour?.value || '8'}:${eventStartMinute?.value || '00'} ${eventStartAmPm?.value || 'AM'}`,
-                endTime: `${eventEndHour?.value || '9'}:${eventEndMinute?.value || '00'} ${eventEndAmPm?.value || 'AM'}`,
-                amenity: document.querySelector('input[name="amenity"]:checked')?.value || '',
-        eventType: document.getElementById('eventType')?.value || '',
-                poolReservation: {
-                    isReserved: isReserved,
-                    basePayment: basePayment,
-                    reservationFee: reservationFee,
-                    totalPayment: totalPayment
-                },
-        guests: {
-                    number: guestNumber,
-                    names: guestNames
-                },
-        homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
-    };
-
-    try {
-        const response = await fetch('/addevent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showSuccessModal();
-        } else {
-            alert(result.message || 'Failed to create event. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred. Please try again.');
-    }
-});
     }
 
     // Load user email if available
@@ -1028,7 +1255,7 @@ if (form) {
       eventDate: document.getElementById('date')?.value || '',
       startTime: `${eventStartHour?.value || '8'}:${eventStartMinute?.value || '00'} ${eventStartAmPm?.value || 'AM'}`,
       endTime: `${eventEndHour?.value || '9'}:${eventEndMinute?.value || '00'} ${eventEndAmPm?.value || 'AM'}`,
-      amenity: document.querySelector('input[name="amenity"]:checked')?.value || '',
+      amenity: document.querySelector('input[name="amenities"]:checked')?.value || '',
       eventType: document.getElementById('eventType')?.value || '',
       poolReservation: {
         isReserved: isReserved,
@@ -1040,7 +1267,8 @@ if (form) {
         number: guestNumber,
         names: guestNames
       },
-      homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || ''
+      homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || '',
+      poolNight: document.getElementById('poolNight')?.checked || false
     };
 
     try {
@@ -1065,6 +1293,231 @@ if (form) {
     }
   });
 }
+
+// Add this to your existing JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]');
+    const poolOptions = document.getElementById('poolOptions');
+    const courtOptions = document.getElementById('courtOptions');
+    const clubhouseOptions = document.getElementById('clubhouseOptions');
+    const guestNumber = document.getElementById('guestNumber');
+    const guestListButton = document.querySelector('.guests-button');
+
+    // Function to update time constraints based on selected amenities
+    function updateTimeConstraints() {
+        const selectedAmenities = Array.from(amenityCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
+        // Reset time inputs
+        eventStartHour.value = '';
+        eventStartMinute.value = '';
+        eventEndHour.value = '';
+        eventEndMinute.value = '';
+
+        // Apply constraints based on selected amenities
+        if (selectedAmenities.includes('Court')) {
+            // Court is evening only (6PM-10PM)
+            eventStartHour.min = '6';
+            eventStartHour.max = '9';
+            eventEndHour.min = '7';
+            eventEndHour.max = '10';
+        } else if (selectedAmenities.includes('Pool')) {
+            const poolType = document.getElementById('poolType').value;
+            if (poolType === 'morning') {
+                eventStartHour.min = '6';
+                eventStartHour.max = '4';
+                eventEndHour.min = '7';
+                eventEndHour.max = '5';
+            } else {
+                eventStartHour.min = '5';
+                eventStartHour.max = '10';
+                eventEndHour.min = '6';
+                eventEndHour.max = '11';
+            }
+        } else if (selectedAmenities.includes('Clubhouse')) {
+            eventStartHour.min = '6';
+            eventStartHour.max = '9';
+            eventEndHour.min = '7';
+            eventEndHour.max = '10';
+        }
+    }
+
+    // Function to update payment calculations
+    function updatePayments() {
+        const selectedAmenities = Array.from(amenityCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
+        let totalPayment = 0;
+        const paymentDetails = {};
+
+        selectedAmenities.forEach(amenity => {
+            switch(amenity) {
+                case 'Pool':
+                    const poolType = document.getElementById('poolType').value;
+                    const guestCount = parseInt(guestNumber.value) || 0;
+                    const basePayment = guestCount * 100;
+                    const eveningFee = poolType === 'evening' ? 1000 : 0;
+                    totalPayment += basePayment + eveningFee;
+                    paymentDetails.pool = {
+                        basePayment,
+                        eveningFee,
+                        total: basePayment + eveningFee
+                    };
+                    break;
+
+                case 'Court':
+                    const courtHours = calculateHours();
+                    const courtTotal = courtHours * 300;
+                    totalPayment += courtTotal;
+                    paymentDetails.court = {
+                        hours: courtHours,
+                        total: courtTotal
+                    };
+                    break;
+
+                case 'Clubhouse':
+                    const clubhouseHours = calculateHours();
+                    const clubhouseTotal = clubhouseHours * 1000;
+                    totalPayment += clubhouseTotal;
+                    paymentDetails.clubhouse = {
+                        hours: clubhouseHours,
+                        total: clubhouseTotal
+                    };
+                    break;
+            }
+        });
+
+        return { totalPayment, paymentDetails };
+    }
+
+    // Function to calculate hours between start and end time
+    function calculateHours() {
+        const startHour = parseInt(eventStartHour.value) || 0;
+        const endHour = parseInt(eventEndHour.value) || 0;
+        let hours = endHour - startHour;
+        if (hours < 0) hours += 12; // Handle AM/PM transition
+        return Math.max(1, hours); // Minimum 1 hour
+    }
+
+    // Add event listeners for amenity selection
+    amenityCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const amenity = this.value;
+            switch(amenity) {
+                case 'Pool':
+                    poolOptions.style.display = this.checked ? 'block' : 'none';
+                    break;
+                case 'Court':
+                    courtOptions.style.display = this.checked ? 'block' : 'none';
+                    guestListButton.style.display = this.checked ? 'none' : 'block';
+                    break;
+                case 'Clubhouse':
+                    clubhouseOptions.style.display = this.checked ? 'block' : 'none';
+                    break;
+            }
+            updateTimeConstraints();
+            updatePayments();
+        });
+    });
+
+    // Update form submission to handle multiple amenities
+    const form = document.getElementById('eventForm');
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const selectedAmenities = Array.from(amenityCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
+        if (selectedAmenities.length === 0) {
+            alert('Please select at least one amenity');
+            return;
+        }
+
+        const { totalPayment, paymentDetails } = updatePayments();
+        const formData = {
+            amenities: selectedAmenities,
+            paymentDetails,
+            totalPayment,
+            // ... rest of your existing form data ...
+        };
+
+        try {
+            const response = await fetch('/addevent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showSuccessModal();
+            } else {
+                alert(result.message || 'Failed to create event');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while creating the event');
+        }
+    });
+});
+
+// Amenity preview and details logic
+const amenityPreview = document.getElementById('amenityPreview');
+const amenityDetailsContainer = document.getElementById('amenityDetailsContainer');
+const amenityDetails = {
+  Pool: `
+    <div class="amenity-details">
+      <div class="checkbox-container">
+        <input type="checkbox" id="poolNight" name="poolNight">
+        <label for="poolNight">Evening Session (5PM - 11PM)</label>
+      </div>
+      <div class="amenity-info">Morning: <strong>6AM - 5PM</strong></div>
+      <div class="amenity-info">Evening: <strong>5PM - 11PM</strong> <span style="color:#AF2630;">(+₱1000 fee)</span></div>
+      <div class="amenity-info">₱100 per guest</div>
+      <div class="amenity-info">Max 30 guests</div>
+      <div class="amenity-info">Shared use, no reservation needed for morning</div>
+    </div>
+  `,
+  Clubhouse: `
+    <div class="amenity-details">
+      <div class="amenity-info">Available: <strong>6AM - 10PM</strong></div>
+      <div class="amenity-info">₱1000 per hour</div>
+      <div class="amenity-info">Max 60 guests</div>
+      <div class="amenity-info">Normal reservation only</div>
+    </div>
+  `,
+  Court: `
+    <div class="amenity-details">
+      <div class="amenity-info">Available: <strong>6PM - 10PM</strong></div>
+      <div class="amenity-info">₱300 per hour (lighting fee)</div>
+      <div class="amenity-info">No guest limit</div>
+      <div class="amenity-info">Lighting fee applies after 6PM</div>
+    </div>
+  `
+};
+const amenityImages = {
+  Pool: '/images/poolimg.PNG',
+  Clubhouse: '/images/clubhouseimg.jpg',
+  Court: '/images/Courtimg.jpg'
+};
+function updateAmenityPreviewAndDetails() {
+  const checked = Array.from(document.querySelectorAll('input[name="amenities"]:checked'));
+  let show = checked.length ? checked[checked.length-1].value : null;
+  if (!show) show = 'Pool'; // default
+  amenityPreview.src = amenityImages[show];
+  amenityPreview.alt = show + ' Preview';
+  amenityDetailsContainer.innerHTML = amenityDetails[show];
+}
+document.querySelectorAll('input[name="amenities"]').forEach(cb => {
+  cb.addEventListener('change', updateAmenityPreviewAndDetails);
+});
+// Initial load
+updateAmenityPreviewAndDetails();
 </script>
 <div id="customAlert" class="custom-alert">
   <div class="custom-alert-content">

@@ -1810,22 +1810,60 @@ app.post("/addevent", async (req, res) => {
     return res.status(401).json({
       success: false,
       message: "User not authenticated",
-    })
+    });
   }
 
-  const { HomeownerName, eventName, eventDate, startTime, endTime, amenity, eventType, guests, homeownerStatus } =
-    req.body
+  const { HomeownerName, eventName, eventDate, startTime, endTime, amenity, eventType, guests, homeownerStatus } = req.body;
 
   // Format the times
-  const formattedStartTime = formatTime(startTime)
-  const formattedEndTime = formatTime(endTime)
+  const formattedStartTime = formatTime(startTime);
+  const formattedEndTime = formatTime(endTime);
 
-  const userEmail = req.session.user.email
+  // Backend time validation
+  function parseHourMin(timeStr) {
+    if (!timeStr) return { hour: null, min: null, ampm: null };
+    const [time, ampm] = timeStr.split(" ");
+    const [hour, min] = time.split(":").map(Number);
+    return { hour, min, ampm };
+  }
+  const s = parseHourMin(formattedStartTime);
+  const e = parseHourMin(formattedEndTime);
+  let valid = true, message = "";
+  if (amenity === "Pool") {
+    if (req.body.poolNight) {
+      // Evening: 5PM-11PM
+      if (!(s.ampm === "PM" && s.hour >= 5 && e.ampm === "PM" && e.hour <= 11)) {
+        valid = false;
+        message = "Pool evening session must be between 5PM and 11PM.";
+      }
+    } else {
+      // Morning: 6AM-5PM
+      if (!(s.ampm === "AM" && s.hour >= 6 && e.ampm === "PM" && e.hour <= 5)) {
+        valid = false;
+        message = "Pool morning session must be between 6AM and 5PM.";
+      }
+    }
+  } else if (amenity === "Court") {
+    // 6PM-10PM
+    if (!(s.ampm === "PM" && s.hour >= 6 && e.ampm === "PM" && e.hour <= 10)) {
+      valid = false;
+      message = "Court is only available from 6PM to 10PM.";
+    }
+  } else if (amenity === "Clubhouse") {
+    // 6AM-10PM
+    if (!((s.ampm === "AM" && s.hour >= 6) || (s.ampm === "PM" && s.hour <= 10)) || !((e.ampm === "AM" && e.hour >= 6) || (e.ampm === "PM" && e.hour <= 10))) {
+      valid = false;
+      message = "Clubhouse is only available from 6AM to 10PM.";
+    }
+  }
+  if (!valid) {
+    return res.status(400).json({ success: false, message });
+  }
 
+  const userEmail = req.session.user.email;
   try {
-    const db = await connectToDatabase()
-    const eventsCollection = db.collection("events")
-
+    const db = await connectToDatabase();
+    const eventsCollection = db.collection("events");
     const newEvent = {
       HomeownerName,
       userEmail,
@@ -1841,22 +1879,20 @@ app.post("/addevent", async (req, res) => {
       },
       homeownerStatus,
       createdAt: new Date(),
-    }
-
-    await eventsCollection.insertOne(newEvent)
-
+    };
+    await eventsCollection.insertOne(newEvent);
     res.status(201).json({
       success: true,
       message: "Event created successfully.",
-    })
+    });
   } catch (error) {
-    console.error("Error creating event:", error)
+    console.error("Error creating event:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred while creating the event.",
-    })
+    });
   }
-})
+});
 
 app.post("/delEvent", async (req, res) => {
   const { username } = req.body
