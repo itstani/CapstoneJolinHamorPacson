@@ -220,37 +220,39 @@
       /* Notification Icon Styles */
       .notification-icon {
 position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #af2630;
-border-radius: 50%;
-width: 40px;
-height: 40px;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-transition: transform 0.2s;
-        z-index: 1002;
-        border: 2px solid white;
-      }
+top: 7px;
+right: 16px;
 
-      .notification-icon:hover {
-        transform: scale(1.1);
+background: rgb(195, 67, 67);
+
+border-radius: 50%;
+
+width: 40px;
+
+height: 40px;
+
+display: flex;
+
+align-items: center;
+
+justify-content: center;
+
+cursor: pointer;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+transition: transform 0.2s;
+z-index: 1002; /* Ensure it's above the header */
 }
 
       .notification-icon img {
         width: 24px;
         height: 24px;
-        filter: brightness(0) invert(1); /* Make the bell icon white */
       }
 
       .notification-count {
         position: absolute;
         top: -5px;
         right: -5px;
-        background-color: #ff4444;
+        background-color: #af2630;
         color: white;
         border-radius: 50%;
         width: 20px;
@@ -260,7 +262,6 @@ transition: transform 0.2s;
         align-items: center;
         font-size: 12px;
         font-weight: bold;
-        border: 2px solid white;
       }
       
       /* Notification Modal Styles */
@@ -273,10 +274,10 @@ transition: transform 0.2s;
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        z-index: 1001;
+        z-index: 1000;
         overflow: hidden;
         max-height: 80vh;
-        border: 1px solid #ddd;
+        flex-direction: column;
       }
 
       .notification-header {
@@ -286,13 +287,11 @@ transition: transform 0.2s;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        position: relative;
       }
 
       .notification-header h2 {
         margin: 0;
         font-size: 18px;
-        font-weight: bold;
       }
 
       .close-modal {
@@ -302,18 +301,22 @@ transition: transform 0.2s;
         position: absolute;
         top: 10px;
         right: 15px;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        transition: background-color 0.2s;
       }
+      .logoutbutton{
 
-      .close-modal:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
+        margin-top: auto;
+
+        margin-bottom: 30px; /* Adjust this as needed */
+
+        width: 100%;
+
+        text-align: center;
+
+        }
+
+
+
+
 
       .notification-list {
         overflow-y: auto;
@@ -321,51 +324,11 @@ transition: transform 0.2s;
         padding: 0;
       }
 
-      .notification-item {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-      }
-      
-      .notification-item:hover {
-        background-color: #f5f5f5;
-      }
-      
-      .notification-checkbox {
-        margin-top: 3px;
-      }
-      
-      .notification-content {
-        flex: 1;
-      }
-      
-      .notification-subject {
-        font-weight: bold;
-        margin-bottom: 5px;
-        color: #333;
-      }
-      
-      .notification-message {
-        color: #666;
-        margin-bottom: 5px;
-        font-size: 14px;
-      }
-      
-      .notification-timestamp {
-        font-size: 12px;
-        color: #888;
-      }
-      
       .notification-actions {
         display: flex;
         justify-content: space-between;
         padding: 15px;
         border-top: 1px solid #eee;
-        background-color: #f9f9f9;
       }
 
       .clear-btn {
@@ -376,11 +339,6 @@ transition: transform 0.2s;
         border-radius: 5px;
         cursor: pointer;
         font-size: 14px;
-        transition: background-color 0.2s;
-      }
-
-      .clear-btn:hover {
-        background-color: #8f1d25;
       }
 
       .clear-btn:disabled {
@@ -392,20 +350,143 @@ transition: transform 0.2s;
         padding: 20px;
         text-align: center;
         color: #888;
-        font-style: italic;
+      }
+        
+      /* Notification Item Styles */
+      .notification-item {
+        position: relative;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: flex-start;
+      }
+      
+      .notification-item:hover {
+        background-color: #f9f9f9;
+      }
+      
+      .notification-checkbox {
+        margin-right: 10px;
+        margin-top: 3px;
+      }
+      
+      .notification-content {
+        flex: 1;
+      }
+      
+      .notification-subject {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .notification-message {
+        color: #555;
+        margin-bottom: 5px;
+      }
+      
+      .notification-timestamp {
+        font-size: 0.8em;
+        color: #888;
+      }
+      
+      .payment-required {
+        color: #af2630;
+        font-weight: bold;
+        margin-top: 5px;
+      }
+      
+      /* Event Details Modal Styles */
+      .event-details-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1003;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .event-details-content {
+        background-color: white;
+        padding: 30px 20px 20px;
+        border-radius: 10px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      
+      .close-event-details {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 24px;
+        cursor: pointer;
+        color: #888;
+        background: none;
+        border: none;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+      }
+      
+      .close-event-details:hover {
+        background-color: #f5f5f5;
+      }
+      
+      .event-detail-row {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      
+      .event-detail-label {
+        font-weight: bold;
+        width: 120px;
+        flex-shrink: 0;
+        color: #333;
+      }
+      
+      .event-detail-value {
+        flex-grow: 1;
+        color: #666;
+      }
+      
+      .event-actions {
+        margin-top: 20px;
+        text-align: right;
+      }
+      
+      .payment-button {
+        background-color: #af2630;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
       }
 
-      /* Add debug styles to make sure elements are visible */
-      #notificationIcon {
-        border: 2px solid red !important; /* Debug border */
+      #eventDetailsTitle {
+        margin: 0 0 20px;
+        color: #333;
+        font-size: 1.5em;
+        padding-right: 30px;
       }
 
-      #notificationModal {
-        border: 2px solid blue !important; /* Debug border */
-      }
-
-      /* Mobile responsiveness */
-      @media screen and (max-width: 768px) {
+      /* Mobile CSS*/
+      @media (max-width: 768px) {
         .notification-modal {
           width: 95vw;
           max-height: 80vh;
@@ -430,8 +511,164 @@ transition: transform 0.2s;
           padding: 8px 12px;
           font-size: 0.85rem;
         }
+        
+        .event-details-content {
+          width: 95%;
+          max-width: none;
+          margin: 10px;
+        }
       }
 
+      /* Tablet improvements */
+      @media screen and (min-width: 769px) and (max-width: 1024px) {
+        .reserve button img {
+          width: 250px;
+          height: 250px;
+        }
+
+        .Welcome {
+          margin-left: 90px;
+        }
+
+        .form-image-container {
+          margin-left: 90px;
+        }
+      }
+
+      /* Touch device improvements */
+      @media (hover: none) {
+        .reserve button:hover {
+          transform: none;
+        }
+
+        .reserve button:active {
+          background-color: rgba(62, 4, 8, 0.1);
+        }
+      }
+      .top-bar {
+        z-index: 1001; /* Lower z-index than notification icon */
+      }
+      /* Animation */
+      @keyframes slideIn {
+        from {
+          transform: translate(-50%, -60%);
+          opacity: 0;
+        }
+        to {
+          transform: translate(-50%, -50%);
+          opacity: 1;
+        }
+      }
+      
+      @media screen and (max-width: 768px) {
+        /* Sidebar becomes bottom navigation */
+        .side-bar {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 70px;
+          padding: 0;
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+          background-color: #D9D9D9;
+          z-index: 1000;
+        }
+
+        .Home, .Calendar, .Profile {
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .Home img, .Calendar img, .Profile img {
+          width: 30px;
+          height: 30px;
+        }
+
+        .Home p, .Calendar p, .Profile p {
+          margin-top: 4px;
+          font-size: 12px;
+        }
+
+        /* Welcome section adjustments */
+        
+
+        /* Reserve section adjustments */
+        .reserve {
+          padding: 20px;
+          margin-bottom: 80px;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .reservetext1 {
+          font-size: 24px;
+          margin-bottom: 20px;
+        }
+
+        .reserve-item {
+          width: 100%;
+          max-width: 300px;
+        }
+
+        .reserve button img {
+          width: 200px;
+          height: 200px;
+        }
+
+        /* Popup improvements */
+        .popup-content {
+          width: 95%;
+          max-width: 400px;
+          margin: 10px;
+          height: auto;
+          max-height: 90vh;
+        }
+
+        .popup-content-inner {
+          margin-top: 50px;
+          padding: 10px;
+        }
+
+        /* Form inputs */
+        .popup-content input[type="text"],
+        .popup-content textarea {
+          font-size: 16px;
+          padding: 12px;
+        }
+
+        /* Notification adjustments */
+        .notification-icon {
+          top: 10px;
+          right: 10px;
+        }
+
+        /* Button improvements */
+        .button {
+          position: fixed;
+          bottom: 70px;
+          left: 0;
+          width: 100%;
+          background-color: #D9D9D9;
+          padding: 10px;
+          margin: 0;
+          text-align: center;
+          z-index: 999;
+        }
+
+        /* Improve touch targets */
+        button,
+        input[type="button"],
+        input[type="submit"] {
+          min-height: 44px;
+          min-width: 44px;
+          padding: 12px;
+        }
+      }
       .avidalogo {
   max-width: 300px;
   width: 100%;
@@ -514,11 +751,6 @@ transition: transform 0.2s;
         <img src="/images/bell.png" alt="Notifications" onerror="handleImageError(this)" />
         <span class="notification-count" id="notificationCount">0</span>
       </div>
-    
-    <!-- Add this test button -->
-    <button id="testNotification" style="position: fixed; top: 70px; right: 20px; z-index: 1003; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        Test Notification
-    </button>
     
     <div class="top-bar"></div>
     
@@ -724,32 +956,31 @@ async function fetchNotifications() {
   }
 }
 
-// Add this initialization function
-async function initializeApp() {
+// Update the initialization code
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log("DOM Content Loaded - Starting initialization");
+  
   try {
-    console.log("Starting app initialization...");
-    
-    // Debug: Log all elements
-    console.log("Checking elements:", {
-      notificationIcon: document.getElementById('notificationIcon'),
-      notificationModal: document.getElementById('notificationModal'),
-      notificationList: document.getElementById('notificationList'),
-      closeModal: document.getElementById('closeModal'),
-      logoutButton: document.getElementById('logoutButton')
-    });
+    // Check if elements exist
+    const elements = checkElements();
+    if (!elements.notificationIcon || !elements.notificationModal || !elements.notificationList) {
+      console.error("Required elements not found");
+      return;
+    }
 
     // Check authentication
-    const authResponse = await fetch('/api/check-auth', {
-      method: 'GET',
-      credentials: 'include',
+    console.log("Checking authentication...");
+    const authResponse = await fetch("/api/auth-status", {
+      method: "GET",
+      credentials: "include",
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
+        "Accept": "application/json",
+        "Cache-Control": "no-cache"
       }
     });
 
-    console.log("Auth response:", authResponse.status);
-
+    console.log("Auth response status:", authResponse.status);
+    
     if (!authResponse.ok) {
       console.log("Auth check failed, redirecting to login");
       window.location.href = "/login.html";
@@ -758,93 +989,63 @@ async function initializeApp() {
 
     const authData = await authResponse.json();
     console.log("Auth data:", authData);
-
+    
     if (!authData.authenticated) {
       console.log("Not authenticated, redirecting to login");
       window.location.href = "/login.html";
       return;
     }
 
-    console.log("Authentication successful");
-    
-    // Initialize notification elements
-    const notificationIcon = document.getElementById('notificationIcon');
-  const notificationModal = document.getElementById('notificationModal');
-    const closeModal = document.getElementById('closeModal');
-    const logoutButton = document.getElementById('logoutButton');
-
-    if (!notificationIcon || !notificationModal || !closeModal || !logoutButton) {
-      console.error("Required elements not found:", {
-        notificationIcon: !!notificationIcon,
-        notificationModal: !!notificationModal,
-        closeModal: !!closeModal,
-        logoutButton: !!logoutButton
-      });
-      return;
-    }
+    console.log("Authentication successful, setting up event listeners");
 
     // Set up notification icon click handler
-    notificationIcon.addEventListener('click', async (e) => {
-      console.log("Notification icon clicked", e);
-      e.preventDefault();
-      e.stopPropagation();
-      notificationModal.style.display = 'block';
+    elements.notificationIcon.addEventListener('click', async () => {
+      console.log("Notification icon clicked");
+      elements.notificationModal.style.display = 'block';
       await fetchNotifications();
     });
 
     // Set up close modal handler
-    closeModal.addEventListener('click', (e) => {
-      console.log("Close modal clicked", e);
-      e.preventDefault();
-      e.stopPropagation();
-      notificationModal.style.display = 'none';
-    });
+    const closeModal = document.getElementById('closeModal');
+    if (closeModal) {
+      closeModal.addEventListener('click', () => {
+        console.log("Close modal clicked");
+        elements.notificationModal.style.display = 'none';
+      });
+    }
 
     // Set up logout button handler
-    logoutButton.addEventListener('click', async (e) => {
-      console.log("Logout button clicked", e);
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        const response = await fetch("/api/logout", {
-          method: "POST",
-          credentials: "include",
+    if (elements.logoutButton) {
+      console.log("Setting up logout button handler");
+      elements.logoutButton.addEventListener('click', async () => {
+        console.log("Logout button clicked");
+        try {
+          const response = await fetch("/api/logout", {
+            method: "POST",
+            credentials: "include",
       headers: {
         'Content-Type': 'application/json'
-      }
-    });
-    
-        console.log("Logout response status:", response.status);
-        
-        if (response.ok) {
-          console.log("Logout successful, clearing data");
-          localStorage.clear();
-          sessionStorage.clear();
-          window.location.href = "/login.html";
-        } else {
-          console.error("Logout failed");
-          alert("Logout failed. Please try again.");
+            }
+          });
+
+          console.log("Logout response status:", response.status);
+          
+          if (response.ok) {
+            console.log("Logout successful, clearing data");
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = "/login.html";
+    } else {
+            console.error("Logout failed");
+            alert("Logout failed. Please try again.");
     }
   } catch (error) {
-        console.error("Error during logout:", error);
-        alert("An error occurred during logout. Please try again.");
-      }
-    });
-
-    // Add test button handler
-    const testButton = document.getElementById('testNotification');
-    if (testButton) {
-        testButton.addEventListener('click', async () => {
-            console.log("Test button clicked");
-  const notificationModal = document.getElementById('notificationModal');
-  if (notificationModal) {
-                console.log("Showing modal");
-                notificationModal.style.display = 'block';
-                await fetchNotifications();
-            } else {
-                console.error("Modal not found");
-            }
-        });
+          console.error("Error during logout:", error);
+          alert("An error occurred during logout. Please try again.");
+        }
+      });
+    } else {
+      console.error("Logout button not found");
     }
 
     // Initial fetch of notifications
@@ -855,12 +1056,6 @@ async function initializeApp() {
     console.error("Error during initialization:", error);
     window.location.href = "/login.html";
   }
-}
-
-// Call the initialization function when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("DOM Content Loaded - Starting initialization");
-  initializeApp();
 });
 
 // Add this to help debug notification clicks

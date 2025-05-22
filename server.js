@@ -502,7 +502,7 @@ app.post("/upload-receipt", upload.single("receipt"), async (req, res) => {
 
     // Construct the MongoDB document
     const paymentData = {
-      userEmail: req.body.userEmail, // Include userEmail in the payment data
+      username: req.body.username, // Include username in the payment data
       eventName: req.body.eventName,
       eventDate: req.body.eventDate,
       amount: req.body.finalAmount,
@@ -583,7 +583,7 @@ app.get("/api/generate-report", async (req, res) => {
       try {
         // Find homeowner information
         const homeowner = await homeownersCollection.findOne({
-          email: event.userEmail,
+          username: event.username,
         })
 
         // Find payment information
@@ -985,7 +985,7 @@ app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res)
 
     // Construct the MongoDB document
     const paymentData = {
-      userEmail: req.body.userEmail,
+      username: req.body.username,
       userName: req.body.userName,
       amount: req.body.finalAmount,
       paymentMethod: req.body.paymentMethod,
@@ -1002,10 +1002,10 @@ app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res)
     // Update homeowner status if payment is submitted
     const homeownersCollection = db.collection("homeowners")
     await homeownersCollection.updateOne(
-      { email: paymentData.userEmail },
+      { email: paymentData.username },
       {
         $set: {
-          PStatus: "pending",
+          paymentStatus: "pending",
           lastPaymentId: result.insertedId,
           lastPaymentDate: new Date(),
         },
@@ -1019,7 +1019,7 @@ app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res)
     await createNotification(
       "admin@avidadb.com", // Admin email
       "monthly_payment",
-      `New monthly payment submitted by ${paymentData.userName} (${paymentData.userEmail})`,
+      `New monthly payment submitted by ${paymentData.userName} (${paymentData.username})`,
       result.insertedId,
     )
 
@@ -1048,15 +1048,15 @@ app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res)
 
 app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, res) => {
   try {
-    const { userEmail, userName, finalAmount, paymentMethod } = req.body
+    const { username, userName, finalAmount, paymentMethod } = req.body
 
-    if (!userEmail || !finalAmount || !paymentMethod || !req.file) {
+    if (!username || !finalAmount || !paymentMethod || !req.file) {
       return res.status(400).json({ success: false, message: "Missing required fields" })
     }
 
     // Create payment record
     const payment = {
-      email: userEmail,
+      email: username,
       username: userName,
       amount: Number.parseFloat(finalAmount),
       paymentMethod,
@@ -1073,7 +1073,7 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
     // Create notification for admin
     await db.collection("notifications").insertOne({
       recipient: "admin",
-      message: `New monthly dues payment from ${userName} (${userEmail})`,
+      message: `New monthly dues payment from ${userName} (${username})`,
       type: "payment",
       relatedId: result.insertedId,
       timestamp: new Date(),
@@ -1119,8 +1119,8 @@ app.get("/api/monthly-payments", async (req, res) => {
         $or: [
           { PStatus: "Delinquent" },
           { PStatus: "Almost Due" },
-          { PStatus: "Delinquent" },
-          { PStatus: "Not Paid" },
+          { paymentStatus: "Delinquent" },
+          { paymentStatus: "Not Paid" },
           { homeownerStatus: "Delinquent" },
         ],
       }
@@ -1194,7 +1194,7 @@ app.get("/api/monthly-payments", async (req, res) => {
           paymentMethod: "N/A",
           timestamp: homeowner.lastPaymentDate || homeowner.createdAt || new Date(),
           lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
-          status: homeowner.PStatus || homeowner.PStatus || homeowner.homeownerStatus || "Delinquent",
+          status: homeowner.PStatus || homeowner.paymentStatus || homeowner.homeownerStatus || "Delinquent",
           delinquentSince: delinquentSince,
           daysSincePayment: daysSincePayment,
           // Include original fields for reference
@@ -1212,7 +1212,7 @@ app.get("/api/monthly-payments", async (req, res) => {
 
       // Add search functionality
       if (search) {
-        query.$or = [{ userName: { $regex: search, $options: "i" } }, { userEmail: { $regex: search, $options: "i" } }]
+        query.$or = [{ userName: { $regex: search, $options: "i" } }, { username: { $regex: search, $options: "i" } }]
       }
 
       console.log("Payments query:", JSON.stringify(query))
@@ -1453,13 +1453,13 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
     )
 
     // Update homeowner status using username or fallback to email
-    const updateQuery = payment.username ? { username: payment.username } : { email: payment.userEmail }
+    const updateQuery = payment.username ? { username: payment.username } : { email: payment.username }
     await homeownersCollection.updateOne(
       updateQuery,
       {
         $set: {
           PStatus: "Compliant",
-          PStatus: "Compliant",
+          paymentStatus: "Compliant",
           PtStatus: "Compliant",
           HStatus: "Compliant",
         },
@@ -1467,10 +1467,10 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
     )
 
     // Log the approval
-    await logActivity("paymentApproval", `Monthly dues payment for ${payment.username || payment.userEmail} approved`)
+    await logActivity("paymentApproval", `Monthly dues payment for ${payment.username || payment.username} approved`)
 
     // Create notification for the user using username or email
-    const notificationRecipient = payment.username || payment.userEmail
+    const notificationRecipient = payment.username || payment.username
     await createNotification(
       notificationRecipient,
       "payment_approved",
@@ -1531,11 +1531,11 @@ app.post("/api/monthly-payments/:id/reject", async (req, res) => {
     )
 
     // Log the rejection
-    await logActivity("paymentRejection", `Monthly dues payment for ${payment.userEmail} rejected: ${reason}`)
+    await logActivity("paymentRejection", `Monthly dues payment for ${payment.username} rejected: ${reason}`)
 
     // Create notification for the user
     await createNotification(
-      payment.userEmail,
+      payment.username,
       "payment_rejected",
       `Your monthly dues payment was rejected. Reason: ${reason}`,
       payment._id,
@@ -1603,7 +1603,7 @@ app.post("/api/review-monthly-payment", async (req, res) => {
     // If approved, update user's delinquent status
     if (action === "approve") {
       await usersCollection.updateOne(
-        { email: payment.userEmail },
+        { email: payment.username },
         {
           $set: {
             isDelinquent: false,
@@ -1615,7 +1615,7 @@ app.post("/api/review-monthly-payment", async (req, res) => {
 
       // Create notification for user
       await createNotification(
-        payment.userEmail,
+        payment.username,
         "payment_approved",
         `Your monthly dues payment of ₱${payment.amount} for ${payment.month} ${payment.year} has been approved.`,
         payment._id.toString(),
@@ -1626,7 +1626,7 @@ app.post("/api/review-monthly-payment", async (req, res) => {
     } else {
       // Create notification for rejection
       await createNotification(
-        payment.userEmail,
+        payment.username,
         "payment_rejected",
         `Your monthly dues payment of ₱${payment.amount} for ${payment.month} ${payment.year} has been rejected. Reason: ${notes || "No reason provided"}`,
         payment._id.toString(),
@@ -1732,7 +1732,7 @@ app.post("/homeowner-details", async (req, res) => {
       address,
       phoneNumber,
       landline,
-      PStatus: "To be verified",
+      paymentStatus: "To be verified",
       homeownerStatus: "To be verified",
     }
 
@@ -2082,7 +2082,7 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
 
     // Construct the MongoDB document
     const paymentData = {
-      userEmail: req.body.userEmail,
+      username: req.body.username,
       userName: req.body.userName,
       amount: req.body.finalAmount,
       paymentMethod: req.body.paymentMethod,
@@ -2103,7 +2103,7 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
     await createNotification(
       "admin@avidadb.com", // Admin email
       "monthly_payment",
-      `New monthly payment submitted by ${paymentData.userName} (${paymentData.userEmail})`,
+      `New monthly payment submitted by ${paymentData.userName} (${paymentData.username})`,
       paymentData._id,
     )
 
@@ -2246,7 +2246,7 @@ app.get("/profile", async (req, res) => {
         email: req.session.user.email,
         firstname: homeownerUser.firstName,
         lastname: homeownerUser.lastName,
-        status: homeownerUser.PStatus,
+        status: homeownerUser.paymentStatus,
       })
     } else {
       return res.json({ success: false, message: "User not found in one or both collections" })
@@ -2308,14 +2308,14 @@ app.get("/api/approved-events", async (req, res) => {
     const paidEventsMap = new Map(eventPayments.map(payment => [payment.eventName, true]))
 
     // Add payment status to each event
-    const eventsWithPStatus = events.map(event => ({
+    const eventsWithPaymentStatus = events.map(event => ({
       ...event,
       isPaid: paidEventsMap.has(event.eventName)
     }))
 
     res.json({
       success: true,
-      events: eventsWithPStatus,
+      events: eventsWithPaymentStatus,
     })
   } catch (error) {
     console.error("Error fetching approved events:", error)
@@ -2353,7 +2353,7 @@ async function checkAndDeleteUnpaidEvents() {
 
           // Create notification for the user
           await createNotification(
-            event.userEmail,
+            event.username,
             "event_deleted",
             `Your event "${event.eventName}" has been automatically cancelled due to pending payment for more than 3 days.`,
             event._id,
@@ -2406,12 +2406,12 @@ app.post("/update-payment-status", async (req, res) => {
         eventName,
         paidAt: new Date(),
         eventId: event._id,
-        userEmail: event.userEmail,
+        username: event.username,
       })
 
       // Create notification for payment confirmation
       await createNotification(
-        event.userEmail,
+        event.username,
         "payment_confirmed",
         `Payment confirmed for your event "${eventName}"`,
         event._id,
@@ -2437,7 +2437,7 @@ app.post("/update-payment-status", async (req, res) => {
 })
 
 // Update the createNotification function to properly set the notification type for admin responses
-async function createNotification(userEmail, type, message, relatedId, subject, amenity, eventDetails = {}) {
+async function createNotification(username, type, message, relatedId, subject, amenity, eventDetails = {}) {
   try {
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
@@ -2457,7 +2457,7 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
     // Check if this is an event notification that could be a free event or already paid
     let isFreeEvent = false
     let isAlreadyPaid = false
-    let PStatus = "pending"
+    let paymentStatus = "pending"
 
     // Only process these checks for event-related notifications
     if (!isAdminResponse) {
@@ -2468,9 +2468,9 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
       }
 
       // Check if payment has already been made
-      if (eventDetails.PStatus === "paid" || eventDetails.isPaid === true || type === "payment_confirmed") {
+      if (eventDetails.paymentStatus === "paid" || eventDetails.isPaid === true || type === "payment_confirmed") {
         isAlreadyPaid = true
-        PStatus = "paid"
+        paymentStatus = "paid"
       }
 
       // Check message and event name for free event keywords
@@ -2484,7 +2484,7 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
         isFreeEvent = freeEventKeywords.some((keyword) => lowerCaseMsg.includes(keyword) || eventName.includes(keyword))
 
         if (isFreeEvent) {
-          PStatus = "free"
+          paymentStatus = "free"
         }
       }
 
@@ -2518,7 +2518,7 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
 
     // Create base notification object
     const notification = {
-      userEmail,
+      username,
       type,
       message,
       relatedId: relatedIdStr,
@@ -2552,7 +2552,7 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
       notification.eventDate = eventDetails.eventDate || null
       notification.startTime = eventDetails.startTime || null
       notification.endTime = eventDetails.endTime || null
-      notification.PStatus = PStatus
+      notification.paymentStatus = paymentStatus
     }
 
     console.log("Creating notification:", JSON.stringify(notification))
@@ -2890,7 +2890,7 @@ app.put("/approveEvent/:eventName", async (req, res) => {
 
     // Create notification with complete details
     await createNotification(
-      event.userEmail,
+      event.username,
       "payment_required",
       `Your event "${eventName}" has been approved. Please proceed with the payment.`,
       result.insertedId,
@@ -2906,9 +2906,9 @@ app.put("/approveEvent/:eventName", async (req, res) => {
 })
 
 app.post("/api/approve-event", async (req, res) => {
-  const { eventName, eventDate, startTime, endTime, amenity, userEmail, HomeownerName, guests } = req.body;
+  const { eventName, eventDate, startTime, endTime, amenity, username, HomeownerName, guests } = req.body;
 
-  if (!eventName || !eventDate || !startTime || !endTime || !amenity || !userEmail) {
+  if (!eventName || !eventDate || !startTime || !endTime || !amenity || !username) {
     return res.status(400).json({
       success: false,
       message: "Missing event details",
@@ -2921,7 +2921,7 @@ app.post("/api/approve-event", async (req, res) => {
     const aeventsCollection = db.collection("aevents");
 
     // Find the event in the events collection
-    const event = await eventsCollection.findOne({ eventName, eventDate, startTime, endTime, amenity, userEmail });
+    const event = await eventsCollection.findOne({ eventName, eventDate, startTime, endTime, amenity, username });
 
     if (!event) {
       return res.status(404).json({
@@ -2944,7 +2944,7 @@ app.post("/api/approve-event", async (req, res) => {
 
     // Create notification with all event details
     await db.collection("notifications").insertOne({
-      userEmail,
+      username,
       type: "payment_required",
       message: `Your event \"${eventName}\" has been approved. Please proceed with the payment.`,
       relatedId: result.insertedId.toString(),
@@ -2956,7 +2956,7 @@ app.post("/api/approve-event", async (req, res) => {
       endTime: formatTime(endTime),
       HomeownerName: HomeownerName || event.HomeownerName,
       guests: guests || event.guests,
-      PStatus: "pending",
+      paymentStatus: "pending",
       timestamp: new Date(),
       read: false,
       isAdminResponse: false
@@ -3571,9 +3571,9 @@ app.put("/updateConcernStatus/:id", async (req, res) => {
 
 app.get("/api/user-events/:email", async (req, res) => {
   try {
-    const userEmail = req.params.email
+    const username = req.params.email
 
-    if (!userEmail) {
+    if (!username) {
       return res.status(400).json({
         success: false,
         message: "User email is required",
@@ -3586,7 +3586,7 @@ app.get("/api/user-events/:email", async (req, res) => {
     // Find events by user email
     const events = await eventsCollection
       .find({
-        userEmail: userEmail,
+        username: username,
       })
       .sort({ eventDate: -1 })
       .toArray()
@@ -3788,53 +3788,6 @@ app.post("/api/markNotificationAsRead", async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to mark notification as read",
-    })
-  }
-})
-
-app.post("/api/markAllNotificationsRead", async (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
-      return res.status(401).json({
-        success: false,
-        error: "Not authenticated",
-      })
-    }
-
-    const userEmail = req.session.user.email
-
-    const { notificationIds } = req.body
-
-    if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No notification IDs provided",
-      })
-    }
-
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    // Update selected notifications for this user to be marked as read
-    const result = await notificationsCollection.updateMany(
-      {
-        _id: { $in: notificationIds.map((id) => new MongoClient.ObjectId(id)) },
-        username: username, // Ensure we only update this user's notifications
-      },
-      { $set: { read: true } },
-    )
-
-    res.json({
-      success: true,
-      message: "Selected notifications marked as read",
-      modifiedCount: result.modifiedCount,
-    })
-  } catch (error) {
-    console.error("Error marking selected notifications as read:", error)
-    res.status(500).json({
-      success: false,
-      error: "Failed to mark selected notifications as read",
     })
   }
 })
@@ -4106,7 +4059,7 @@ app.post("/api/create-homeowner", async (req, res) => {
       Address,
       phoneNumber,
       landLine,
-      PStatus,
+      paymentStatus,
       homeownerStatus,
       carStickerStatus,
     } = req.body
@@ -4139,7 +4092,7 @@ app.post("/api/create-homeowner", async (req, res) => {
       Address,
       phoneNumber,
       landLine: landLine || "",
-      PStatus: PStatus || "Compliant",
+      paymentStatus: paymentStatus || "Compliant",
       homeownerStatus: homeownerStatus || "Compliant",
       carStickerStatus: carStickerStatus || "undetermined",
       createdAt: new Date(),
@@ -4167,67 +4120,6 @@ app.post("/api/create-homeowner", async (req, res) => {
 
 
 
-async function notifyDelinquentHomeowners() {
-  try {
-    const db = await connectToDatabase()
-    const homeownersCollection = db.collection("homeowners")
-    const notificationsCollection = db.collection("notifications")
-
-    // Find all homeowners with delinquent status
-    const delinquentHomeowners = await homeownersCollection
-      .find({
-        $or: [{ PStatus: "Not Paid" }, { homeownerStatus: "Delinquent" }],
-      })
-      .toArray()
-
-    console.log(`Found ${delinquentHomeowners.length} delinquent homeowners`)
-
-    // Create notifications for each delinquent homeowner
-    for (const homeowner of delinquentHomeowners) {
-      // Check if we already sent a notification this month
-      const today = new Date()
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-
-      const existingNotification = await notificationsCollection.findOne({
-        userEmail: homeowner.email,
-        type: "payment_reminder",
-        timestamp: { $gte: firstDayOfMonth },
-      })
-
-      // If no notification was sent this month, create one
-      if (!existingNotification) {
-        await createNotification(
-          homeowner.email,
-          "payment_reminder",
-          `Payment Reminder: Your homeowner dues are currently marked as unpaid. Please settle your payment as soon as possible to avoid penalties.`,
-          null,
-          "Payment Reminder",
-          null,
-          { isPaid: false },
-        )
-
-        console.log(`Sent payment reminder to ${homeowner.email}`)
-      }
-    }
-
-    return {
-      success: true,
-      message: `Notifications sent to ${delinquentHomeowners.length} delinquent homeowners`,
-    }
-  } catch (error) {
-    console.error("Error sending delinquent notifications:", error)
-    return {
-      success: false,
-      message: "Failed to send notifications",
-      error: error.message,
-    }
-  }
-}
-schedule.scheduleJob("0 9 1 * *", async () => {
-  console.log("Running scheduled delinquent homeowner notifications")
-  await notifyDelinquentHomeowners()
-})
-
 app.post("/api/send-delinquent-notifications", async (req, res) => {
   try {
     const { type, subject, message, recipientType } = req.body
@@ -4254,12 +4146,12 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
       query = { PStatus: "Not Paid" }
     } else if (recipientType === "all_delinquent") {
       query = {
-        $or: [{ PStatus: "Delinquent" }, { PStatus: "Not Paid" }],
+        $or: [{ PStatus: "Delinquent" }],
       }
     } else {
       // Default to all delinquent homeowners
       query = {
-        $or: [{ PStatus: "Delinquent" }, { PStatus: "Not Paid" }],
+        $or: [{ PStatus: "Delinquent" }],
       }
     }
 
@@ -4277,9 +4169,9 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
     const notifications = []
 
     for (const homeowner of homeowners) {
-      if (homeowner.email) {
+      if (homeowner.username) {
         notifications.push({
-          userEmail: homeowner.email,
+          username: homeowner.username,
           type: type || "payment_reminder",
           subject,
           message,
@@ -4327,20 +4219,7 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
   }
 })
 
-// API endpoint to manually trigger notifications
-app.post("/api/notify-delinquent-homeowners", async (req, res) => {
-  try {
-    const result = await notifyDelinquentHomeowners()
-    res.json(result)
-  } catch (error) {
-    console.error("Error in notify-delinquent-homeowners endpoint:", error)
-    res.status(500).json({
-      success: false,
-      message: "Server error while sending notifications",
-      error: error.message,
-    })
-  }
-})
+
 
 app.get("/api/payment-report", async (req, res) => {
   try {
@@ -4352,9 +4231,9 @@ app.get("/api/payment-report", async (req, res) => {
 
     // Count payment statuses
     const paymentStats = {
-      paid: homeowners.filter((h) => h.PStatus === "Paid").length,
-      notPaid: homeowners.filter((h) => h.PStatus === "Not Paid").length,
-      toBeVerified: homeowners.filter((h) => h.PStatus === "To be verified").length,
+      paid: homeowners.filter((h) => h.paymentStatus === "Paid").length,
+      notPaid: homeowners.filter((h) => h.paymentStatus === "Not Paid").length,
+      toBeVerified: homeowners.filter((h) => h.paymentStatus === "To be verified").length,
       total: homeowners.length,
     }
 
@@ -4602,7 +4481,7 @@ app.get("/api/generate-payment-report", async (req, res) => {
     
         rows.push([
           fullName,
-          String(p.userEmail || ""),
+          String(p.username || ""),
           p.amount || 0,
           String(p.paymentMethod || ""),
           paymentDate.toLocaleDateString(),
@@ -4874,7 +4753,7 @@ const generateOTP = () => {
 //otp sending
 
 app.post("/send-otp", (req, res) => {
-  const userEmail = req.body.email
+  const username = req.body.email
 
   const otp = generateOTP()
 
@@ -4883,7 +4762,7 @@ app.post("/send-otp", (req, res) => {
   const mailOptions = {
     from: "test@mail", // Replace with your email address
 
-    to: userEmail,
+    to: username,
 
     subject: "Your OTP Code",
 
@@ -5311,9 +5190,9 @@ app.get("/api/homeowners/delinquent", async (req, res) => {
     // Build search query if provided
     let query = {
       $or: [
-        { PStatus: "Delinquent" },
+        { paymentStatus: "Delinquent" },
         { homeownerStatus: "Delinquent" },
-        { PStatus: "Not Paid" }
+        { paymentStatus: "Not Paid" }
       ]
     };
     
@@ -5354,7 +5233,7 @@ app.get("/api/homeowners/delinquent", async (req, res) => {
       monthlyDue: homeowner.monthlyDue || "5000.00",
       lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
       paymentMethod: homeowner.paymentMethod || "Not specified",
-      PStatus: homeowner.PStatus,
+      paymentStatus: homeowner.paymentStatus,
       homeownerStatus: homeowner.homeownerStatus
     }));
     
