@@ -743,7 +743,6 @@ app.post("/api/login", async (req, res) => {
       const homeowner = await homeownersCollection.findOne({
         $or: [
           { username: user.username },
-          { email: user.email },
         ]
       });
 
@@ -776,18 +775,26 @@ app.post("/api/login", async (req, res) => {
 
       // Check for delinquent or almost due status (case-insensitive)
       const pStatus = (homeowner.PStatus || "").toLowerCase();
-      const hStatus = (homeowner.HStatus  || "").toLowerCase();
 
-      if (pStatus === "delinquent" || hStatus === "delinquent") {
+      console.log(`PStatus for ${user.username}: ${pStatus}`);
+
+      if (pStatus === "delinquent") {
+        console.log(`User ${user.username} is delinquent.`);
+        // Calculate overdue days and penalty
+        const lastPaymentDate = new Date(homeowner.lastPaymentDate);
+        const today = new Date();
+        const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+        const penalty = daysOverdue > 0 ? daysOverdue * 10 : 0;
+
         return res.json({
           success: false,
           isDelinquent: true,
           username: user.username,
           email: user.email || user.username,
-          dueAmount: dueAmount,
+          dueAmount: dueAmount + penalty,
           message: "Account is delinquent. Please pay your monthly dues.",
         });
-      } else if (pStatus === "almost due" || hStatus === "almost due") {
+      } else if (pStatus === "Almost Due") {
         return res.json({
           success: true,
           isAlmostDue: true,
@@ -1894,7 +1901,7 @@ app.post("/addevent", async (req, res) => {
       eventDate,
       startTime,
       endTime,
-      amenities,
+      amenity,
       guests,
       poolOptions,
       courtOptions,
@@ -1907,13 +1914,13 @@ app.post("/addevent", async (req, res) => {
     const newEndTime24 = convertTo24HourFormat(endTime);
 
     // Validate required fields
-    if (!username || !eventName || !eventDate || !startTime || !endTime || !amenities || !guests) {
+    if (!username || !eventName || !eventDate || !startTime || !endTime || !amenity || !guests) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    // Validate amenities array
-    if (!Array.isArray(amenities) || amenities.length === 0) {
-      return res.status(400).json({ success: false, message: "At least one amenity must be selected" });
+    // Validate amenity
+    if (typeof amenity !== 'string' || amenity.length === 0) {
+      return res.status(400).json({ success: false, message: "An amenity must be selected" });
     }
 
     // Validate time format and constraints
@@ -1929,79 +1936,77 @@ app.post("/addevent", async (req, res) => {
     }
 
     // Validate amenity-specific constraints
-    for (const amenity of amenities) {
-      switch (amenity) {
-        case 'Pool':
-          if (poolOptions) {
-            const startHour = startDateTime.getHours();
-            const endHour = endDateTime.getHours();
-            
-            if (poolOptions.type === 'morning') {
-              if (startHour < 6 || endHour > 17) {
-                return res.status(400).json({ 
-                  success: false, 
-                  message: "Pool morning sessions are only available from 6 AM to 5 PM" 
-                });
-              }
-            } else {
-              if (startHour < 17 || endHour > 23) {
-                return res.status(400).json({ 
-                  success: false, 
-                  message: "Pool evening sessions are only available from 5 PM to 11 PM" 
-                });
-              }
-            }
-          }
-          
-          if (guests.number > 30) {
-            return res.status(400).json({ 
-              success: false, 
-              message: "Pool reservations are limited to 30 guests" 
-            });
-          }
-          break;
-
-        case 'Court':
-          if (courtOptions) {
-            const startHour = startDateTime.getHours();
-            const endHour = endDateTime.getHours();
-            
-            if (startHour < 18 || endHour > 22) {
-              return res.status(400).json({ 
-                success: false, 
-                message: "Court is only available from 6 PM to 10 PM" 
-              });
-            }
-            
-            const duration = (endDateTime - startDateTime) / (1000 * 60 * 60);
-            if (duration > 4) {
-              return res.status(400).json({ 
-                success: false, 
-                message: "Court reservations are limited to 4 hours" 
-              });
-            }
-          }
-          break;
-
-        case 'Clubhouse':
+    switch (amenity) {
+      case 'Pool':
+        if (poolOptions) {
           const startHour = startDateTime.getHours();
           const endHour = endDateTime.getHours();
           
-          if (startHour < 6 || endHour > 22) {
+          if (poolOptions.type === 'morning') {
+            if (startHour < 6 || endHour > 17) {
+              return res.status(400).json({ 
+                success: false, 
+                message: "Pool morning sessions are only available from 6 AM to 5 PM" 
+              });
+            }
+          } else {
+            if (startHour < 17 || endHour > 23) {
+              return res.status(400).json({ 
+                success: false, 
+                message: "Pool evening sessions are only available from 5 PM to 11 PM" 
+              });
+            }
+          }
+        }
+        
+        if (guests.number > 30) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Pool reservations are limited to 30 guests" 
+          });
+        }
+        break;
+
+      case 'Court':
+        if (courtOptions) {
+          const startHour = startDateTime.getHours();
+          const endHour = endDateTime.getHours();
+          
+          if (startHour < 18 || endHour > 22) {
             return res.status(400).json({ 
               success: false, 
-              message: "Clubhouse is only available from 6 AM to 10 PM" 
+              message: "Court is only available from 6 PM to 10 PM" 
             });
           }
           
-          if (guests.number > 60) {
+          const duration = (endDateTime - startDateTime) / (1000 * 60 * 60);
+          if (duration > 4) {
             return res.status(400).json({ 
               success: false, 
-              message: "Clubhouse reservations are limited to 60 guests" 
+              message: "Court reservations are limited to 4 hours" 
             });
           }
-          break;
-      }
+        }
+        break;
+
+      case 'Clubhouse':
+        const startHour = startDateTime.getHours();
+        const endHour = endDateTime.getHours();
+        
+        if (startHour < 6 || endHour > 22) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Clubhouse is only available from 6 AM to 10 PM" 
+          });
+        }
+        
+        if (guests.number > 60) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Clubhouse reservations are limited to 60 guests" 
+          });
+        }
+        break;
     }
 
     // Check for overlapping reservations
@@ -2014,7 +2019,7 @@ app.post("/addevent", async (req, res) => {
           endTime: { $gt: newStartTime24 }   // Use 24-hour format for comparison
         }
       ],
-      amenities: { $in: amenities }
+      amenity // Changed from amenities to amenity
     }).toArray();
 
     if (overlappingReservations.length > 0) {
@@ -2028,51 +2033,49 @@ app.post("/addevent", async (req, res) => {
     let totalPayment = 0;
     const paymentDetails = [];
 
-    for (const amenity of amenities) {
-      switch (amenity) {
-        case 'Pool':
-          const poolBaseRate = 100;
-          const poolTotal = guests.number * poolBaseRate;
-          totalPayment += poolTotal;
-          paymentDetails.push(`Pool: ${guests.number} guests × ₱${poolBaseRate} = ₱${poolTotal}`);
-          
-          if (poolOptions?.isReserved) {
-            totalPayment += 1000;
-            paymentDetails.push('Private Pool Reservation: +₱1000');
-          }
-          break;
+    switch (amenity) {
+      case 'Pool':
+        const poolBaseRate = 100;
+        const poolTotal = guests.number * poolBaseRate;
+        totalPayment += poolTotal;
+        paymentDetails.push(`Pool: ${guests.number} guests × ₱${poolBaseRate} = ₱${poolTotal}`);
+        
+        if (poolOptions?.isReserved) {
+          totalPayment += 1000;
+          paymentDetails.push('Private Pool Reservation: +₱1000');
+        }
+        break;
 
-        case 'Court':
-          const duration = (endDateTime - startDateTime) / (1000 * 60 * 60);
-          const courtBaseRate = 300;
-          const courtTotal = duration * courtBaseRate;
-          totalPayment += courtTotal;
-          paymentDetails.push(`Court: ${duration} hours × ₱${courtBaseRate} = ₱${courtTotal}`);
-          
-          if (courtOptions?.hasLighting) {
-            const lightingTotal = duration * 300;
-            totalPayment += lightingTotal;
-            paymentDetails.push(`Lighting: ${duration} hours × ₱300 = ₱${lightingTotal}`);
-          }
-          break;
+      case 'Court':
+        const duration = (endDateTime - startDateTime) / (1000 * 60 * 60);
+        const courtBaseRate = 300;
+        const courtTotal = duration * courtBaseRate;
+        totalPayment += courtTotal;
+        paymentDetails.push(`Court: ${duration} hours × ₱${courtBaseRate} = ₱${courtTotal}`);
+        
+        if (courtOptions?.hasLighting) {
+          const lightingTotal = duration * 300;
+          totalPayment += lightingTotal;
+          paymentDetails.push(`Lighting: ${duration} hours × ₱300 = ₱${lightingTotal}`);
+        }
+        break;
 
-        case 'Clubhouse':
-          const clubhouseDuration = (endDateTime - startDateTime) / (1000 * 60 * 60);
-          const clubhouseBaseRate = 1000;
-          const clubhouseTotal = clubhouseDuration * clubhouseBaseRate;
-          totalPayment += clubhouseTotal;
-          paymentDetails.push(`Clubhouse: ${clubhouseDuration} hours × ₱${clubhouseBaseRate} = ₱${clubhouseTotal}`);
-          
-          if (clubhouseOptions?.hasCatering) {
-            totalPayment += 2000;
-            paymentDetails.push('Catering Service: +₱2000');
-          }
-          if (clubhouseOptions?.hasSetup) {
-            totalPayment += 1000;
-            paymentDetails.push('Setup/Cleanup Service: +₱1000');
-          }
-          break;
-      }
+      case 'Clubhouse':
+        const clubhouseDuration = (endDateTime - startDateTime) / (1000 * 60 * 60);
+        const clubhouseBaseRate = 1000;
+        const clubhouseTotal = clubhouseDuration * clubhouseBaseRate;
+        totalPayment += clubhouseTotal;
+        paymentDetails.push(`Clubhouse: ${clubhouseDuration} hours × ₱${clubhouseBaseRate} = ₱${clubhouseTotal}`);
+        
+        if (clubhouseOptions?.hasCatering) {
+          totalPayment += 2000;
+          paymentDetails.push('Catering Service: +₱2000');
+        }
+        if (clubhouseOptions?.hasSetup) {
+          totalPayment += 1000;
+          paymentDetails.push('Setup/Cleanup Service: +₱1000');
+        }
+        break;
     }
 
     // Create the event
@@ -2082,7 +2085,7 @@ app.post("/addevent", async (req, res) => {
       eventDate,
       startTime: newStartTime24, // Store in 24-hour format
       endTime: newEndTime24,   // Store in 24-hour format
-      amenities,
+      amenity,
       guests,
       poolOptions,
       courtOptions,
@@ -2648,6 +2651,53 @@ async function createNotification(username, type, message, relatedId, subject, a
   }
 }
 
+async function createEventNotification(username, type, message, relatedId, subject, amenity, eventDetails = {}) {
+  try {
+    const db = await connectToDatabase();
+    const notificationsCollection = db.collection("eventNotifications");
+
+    let relatedIdStr = relatedId;
+    if (relatedId) {
+      if (relatedId instanceof ObjectId) {
+        relatedIdStr = relatedId.toString();
+      } else if (typeof relatedId !== "string") {
+        relatedIdStr = String(relatedId);
+      }
+    }
+
+    // Create base notification object
+    const notification = {
+      username,
+      type,
+      message,
+      relatedId: relatedIdStr,
+      timestamp: new Date(),
+      read: false,
+      isAdminResponse: false,
+    };
+
+    // Add type-specific fields
+    if (type === "EventPaymentRequired" || type === "EventPaymentConfirmed") {
+      // For event payment notifications, include event-specific fields
+      notification.subject = subject;
+      notification.amenity = amenity || eventDetails.amenity || null;
+      notification.eventName = eventDetails.eventName || null;
+      notification.eventDate = eventDetails.eventDate || null;
+      notification.startTime = eventDetails.startTime || null;
+      notification.endTime = eventDetails.endTime || null;
+      notification.paymentStatus = eventDetails.paymentStatus || "pending";
+    }
+
+    console.log("Creating event notification:", JSON.stringify(notification));
+
+    await notificationsCollection.insertOne(notification);
+  } catch (error) {
+    console.error("Error creating event notification:", error);
+  }
+}
+
+
+
 app.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -2903,6 +2953,8 @@ app.put("/updateHomeownerById/:id", async (req, res) => {
   }
 })
 
+
+
 // Update the existing approve event route
 
 app.get("/api/event/:id", async (req, res) => {
@@ -3013,7 +3065,7 @@ app.put("/approveEvent/:eventName", async (req, res) => {
     const subject = `${eventName} on ${event.eventDate} ${timeInfo}`.trim()
 
     // Create notification with complete details
-    await createNotification(
+    await createEventNotification(
       event.username,
       "payment_required",
       `Your event "${eventName}" has been approved. Please proceed with the payment.`,
@@ -3064,9 +3116,8 @@ app.post("/api/approve-event/:eventId", async (req, res) => {
     // Destructure details from the fetched event.
     // Note: startTime and endTime from eventToApprove are already in 24-hour "HH:MM" format
     // due to the /addevent route's processing.
-    const { username, eventName, eventDate, startTime, endTime, amenity, guests, HomeownerName: HomeownerNameFromEvent } = eventToApprove;
+    const { username, eventName, eventDate, startTime, endTime, amenity, guests } = eventToApprove;
 
-    // Basic validation of fetched event data
     if (!username || !eventName || !eventDate || !startTime || !endTime || !amenity) {
         console.error("Fetched event data is incomplete for eventId:", eventId, eventToApprove);
         return res.status(400).json({
@@ -3074,6 +3125,10 @@ app.post("/api/approve-event/:eventId", async (req, res) => {
             message: "Fetched event data is incomplete. Cannot approve.",
         });
     }
+
+    // Log the fetched event data for debugging
+    console.log("Fetched event data:", eventToApprove);
+
     
     const approvedEventDataForDb = {
       ...eventToApprove, // Spreads all fields from the fetched event
@@ -3097,7 +3152,7 @@ app.post("/api/approve-event/:eventId", async (req, res) => {
 
     // Create notification
     if (username) {
-      await createNotification(
+      await createEventNotification(
         username,
         "payment_required",
         `Your event "${eventName}" has been approved. Please proceed with the payment.`,
@@ -3106,11 +3161,11 @@ app.post("/api/approve-event/:eventId", async (req, res) => {
         amenity,
         { // Pass eventDetails for createNotification to use
             eventName: eventName,
+            username: username,
             eventDate: eventDate,
             startTime: displayStartTime, // For notification consistency
             endTime: displayEndTime,   // For notification consistency
             amenity: amenity,
-            HomeownerName: HomeownerNameFromClient || HomeownerNameFromEvent, // Prefer client passed, fallback to event's
             guests: guests, // Use guests object from the fetched event
             paymentStatus: "pending" // Initial payment status for approved event
         }
@@ -3291,7 +3346,7 @@ app.get("/api/repair-notifications", async (req, res) => {
 })
 
 // Add this to server.js
-app.get("/api/event-by-name/:eventName", async (req, res) => {
+app.get("/api/aevents-by-name/:eventName", async (req, res) => {
   const { eventName } = req.params
 
   try {
@@ -3318,6 +3373,52 @@ app.get("/api/event-by-name/:eventName", async (req, res) => {
     })
   }
 })
+app.get('/api/homeowner-payment-details', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+
+    // Assuming you have a way to identify the homeowner, e.g., from session or query
+    const homeowner = await homeownersCollection.findOne({ /* criteria to find homeowner */ });
+
+    if (!homeowner) {
+      return res.status(404).json({ success: false, message: 'Homeowner not found' });
+    }
+
+    const { lastPaymentDate, paymentStatus, MDAmount } = homeowner;
+
+    res.json({
+      success: true,
+      lastPaymentDate,
+      paymentStatus,
+      MDAmount
+    });
+  } catch (error) {
+    console.error('Error fetching homeowner payment details:', error);
+    res.status(500).json({ success: false, message: 'Error fetching homeowner payment details' });
+  }
+});
+
+app.get('/api/aevents/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const db = await connectToDatabase();
+    const aeventsCollection = db.collection('aevents');
+
+    const event = await aeventsCollection.findOne({ _id: new ObjectId(eventId) });
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    res.json({ success: true, event });
+  } catch (error) {
+    console.error('Error fetching event by ID:', error);
+    res.status(500).json({ success: false, message: 'Error fetching event by ID' });
+  }
+});
+
+
 
 // Add this to server.js
 async function cleanupOrphanedNotifications() {
@@ -4978,18 +5079,6 @@ app.use((err, req, res, next) => {
 })
 
 module.exports = app
-
-app.use((req, res, next) => {
-  const oldJson = res.json
-
-  res.json = (data) => {
-    console.log("Response data:", JSON.stringify(data))
-
-    oldJson.apply(res, [data]) // Fix: Pass data as an array
-  }
-
-  next()
-})
 
 const { handleCreateAccounts, handleGetHomeownerCredentials } = require("./create-homeowner-accounts")
 

@@ -950,7 +950,7 @@ z-index: 1002; /* Ensure it's above the header */
   const notificationList = document.getElementById('notificationList');
   if (!notificationList) {
     console.error('Notification list element not found');
-      return;
+      return; // Buttons not found
     }
     
   notificationList.innerHTML = ''; // Clear existing list
@@ -1012,9 +1012,18 @@ z-index: 1002; /* Ensure it's above the header */
       console.log("Notification clicked:", notification);
       if (e.target !== checkbox) {
         switch (notification.type) {
+            case 'EventPaymentRequired':
+              showEventDetailsModal(notification);
+              break;
           case 'payment_reminder':
             showPaymentReminderModal(notification);
             break;
+            case 'payment_required':
+              showDefaultModal({
+                ...notification,
+                message: "Your monthly dues are due, please pay them at your earliest convenience."
+              });
+              break;
           default:
             showDefaultModal(notification);
         }
@@ -1088,38 +1097,20 @@ function showErrorMessage(message) {
 }
 
 function proceedToPayment(notification) {
-  // Debug: Print notification and relatedId
   console.log('Proceed to Payment clicked. Notification:', notification);
   const eventId = notification.relatedId || notification._id;
   console.log('Attempting to fetch event with ID:', eventId);
 
-  // Use notification data directly if all details are present
-  if (notification.eventName && notification.eventDate && notification.startTime && notification.endTime && notification.amenity) {
-    const eventData = {
-      eventName: notification.eventName,
-      eventDate: notification.eventDate,
-      startTime: notification.startTime,
-      endTime: notification.endTime,
-      amenity: notification.amenity,
-      username: notification.username || '',
-      _id: eventId || '',
-    };
-    sessionStorage.setItem('eventData', JSON.stringify(eventData));
-    window.location.href = 'payment.html';
-    return;
-  }
-
-  // Otherwise, try fetching from the server
   if (eventId) {
-    const url = `/api/event/${eventId}`;
+      const url = `/api/aevents/${eventId}`;
     console.log('Fetching event from:', url);
     fetch(url)
       .then(response => {
         console.log('Fetch response:', response);
         if (!response.ok) {
+            console.error('Failed to fetch event by ID:', response.statusText);
           if (notification.eventName) {
-            // Try by event name
-            const nameUrl = `/api/event-by-name/${encodeURIComponent(notification.eventName)}`;
+              const nameUrl = `/api/aevents-by-name/${encodeURIComponent(notification.eventName)}`;
             console.log('Event not found by ID, trying by name:', nameUrl);
             return fetch(nameUrl);
           }
@@ -1133,7 +1124,6 @@ function proceedToPayment(notification) {
           sessionStorage.setItem('eventData', JSON.stringify(data.event));
           window.location.href = 'payment.html';
         } else if (notification.eventName && notification.eventDate) {
-          // Try by event name and date
           const nameDateUrl = `/eventshow?eventName=${encodeURIComponent(notification.eventName)}&eventDate=${encodeURIComponent(notification.eventDate)}`;
           console.log('Trying by event name and date:', nameDateUrl);
           fetch(nameDateUrl)
@@ -1556,24 +1546,190 @@ async function clearSelectedNotifications() {
    console.log("Main initialization complete.");
  });
 
- // This function was part of the original script but seems to be replaced by inline checks or not used.
- // If it's needed, it should be defined properly. For now, it's commented out as its logic is integrated.
- /*
- function checkElements() {
-   const notificationIcon = document.getElementById('notificationIcon');
-   const notificationModal = document.getElementById('notificationModal');
-   const notificationList = document.getElementById('notificationList');
-   
-   if (!notificationIcon) console.error('Notification icon element not found');
-   if (!notificationModal) console.error('Notification modal element not found');
-   if (!notificationList) console.error('Notification list element not found');
-   
-   return {
-     notificationIcon,
-     notificationModal,
-     notificationList
-   };
- }
- */
+ 
+
+ function showPaymentReminderModal(notification) {
+    // Create the modal element
+    const modal = document.createElement('div');
+    modal.className = 'event-details-modal';
+    modal.style.display = 'flex';
+
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'event-details-content';
+
+    // Add close button
+    const closeButton = document.createElement('span');
+    closeButton.className = 'close-event-details';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+      modal.style.display = 'none';
+      document.body.removeChild(modal);
+    };
+
+    // Add title
+    const title = document.createElement('h3');
+    title.id = 'eventDetailsTitle';
+    title.textContent = 'Payment Reminder';
+
+    // Add message
+    const message = document.createElement('div');
+    message.className = 'event-detail-value';
+    message.textContent = notification.message || 'You have a pending payment.';
+
+    // Add proceed to payment button
+    const proceedButton = document.createElement('button');
+    proceedButton.className = 'payment-button';
+    proceedButton.textContent = 'Proceed to Payment';
+    proceedButton.onclick = () => {
+      window.location.href = 'MDPayment.html';
+    };
+
+    // Append elements
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(title);
+    modalContent.appendChild(message);
+    modalContent.appendChild(proceedButton);
+    modal.appendChild(modalContent);
+
+    // Append modal to body
+    document.body.appendChild(modal);
+  }
+
+  function showDefaultModal(notification) {
+    // Create the modal element
+    const modal = document.createElement('div');
+    modal.className = 'event-details-modal';
+    modal.style.display = 'flex';
+
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'event-details-content';
+
+    // Add close button
+    const closeButton = document.createElement('span');
+    closeButton.className = 'close-event-details';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+      modal.style.display = 'none';
+      document.body.removeChild(modal);
+    };
+
+    // Add title
+    const title = document.createElement('h3');
+    title.id = 'eventDetailsTitle';
+    title.textContent = 'Notification';
+
+    // Add message
+    const message = document.createElement('div');
+    message.className = 'event-detail-value';
+    message.textContent = notification.message || 'You have a new notification.';
+
+    // Append elements
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(title);
+    modalContent.appendChild(message);
+    modal.appendChild(modalContent);
+
+    // Append modal to body
+    document.body.appendChild(modal);
+  }
+
+  function showEventDetailsModal(notification) {
+    // Create the modal element
+    const modal = document.createElement('div');
+    modal.className = 'event-details-modal';
+    modal.style.display = 'flex';
+
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'event-details-content';
+
+    // Add close button
+    const closeButton = document.createElement('span');
+    closeButton.className = 'close-event-details';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+      modal.style.display = 'none';
+      document.body.removeChild(modal);
+    };
+
+    // Add title
+    const title = document.createElement('h3');
+    title.id = 'eventDetailsTitle';
+    title.textContent = 'Event Payment Required';
+
+    // Add event details
+    const details = [
+      { label: 'Event Name:', value: notification.eventName },
+      { label: 'Date:', value: notification.eventDate },
+      { label: 'Time:', value: `${notification.startTime} - ${notification.endTime}` },
+      { label: 'Amenity:', value: notification.amenity },
+      { label: 'Amount:', value: notification.totalPayment },
+      { label: 'Breakdown:', value: notification.paymentDetails || 'N/A' }
+    ];
+
+    details.forEach(detail => {
+      const row = document.createElement('div');
+      row.className = 'event-detail-row';
+
+      const label = document.createElement('div');
+      label.className = 'event-detail-label';
+      label.textContent = detail.label;
+
+      const value = document.createElement('div');
+      value.className = 'event-detail-value';
+      value.textContent = detail.value;
+
+      row.appendChild(label);
+      row.appendChild(value);
+      modalContent.appendChild(row);
+    });
+
+    // Add payment button
+    const paymentButton = document.createElement('button');
+    paymentButton.className = 'payment-button';
+    paymentButton.textContent = 'Proceed to Payment';
+    paymentButton.onclick = () => proceedToPayment(notification);
+
+    const actions = document.createElement('div');
+    actions.className = 'event-actions';
+    actions.appendChild(paymentButton);
+
+    // Append elements
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(title);
+    modalContent.appendChild(actions);
+    modal.appendChild(modalContent);
+
+    // Append modal to body
+    document.body.appendChild(modal);
+  }
+
+  async function fetchHomeownerPaymentDetails() {
+    try {
+      const response = await fetch('/api/homeowner-payment-details');
+      if (!response.ok) throw new Error('Failed to fetch homeowner payment details');
+
+      const data = await response.json();
+      console.log('Fetched homeowner payment details:', data);
+
+      if (data && data.success) {
+        const { lastPaymentDate, paymentStatus, MDAmount } = data;
+
+        // Display the fetched data
+        document.getElementById('lastPaymentDate').textContent = new Date(lastPaymentDate).toLocaleString();
+        document.getElementById('paymentStatus').textContent = paymentStatus;
+        document.getElementById('MDAmount').textContent = `₱${MDAmount.toFixed(2)}`;
+      } else {
+        console.error('Invalid data received:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching homeowner payment details:', error);
+    }
+  }
+
+  // Call the function to fetch and display the payment details
+  fetchHomeownerPaymentDetails();
  </script>
 </html>

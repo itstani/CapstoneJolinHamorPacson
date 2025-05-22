@@ -851,6 +851,7 @@
 
     // Handle form submission
     async function handleLoginSubmit(event) {
+        console.log('handleLoginSubmit function called'); // Debug log
         if (event) {
             event.preventDefault();
         }
@@ -918,14 +919,17 @@
                 return false; // Prevent form submission
             } else if (data.isDelinquent) {
                 // Store user data in localStorage
-                localStorage.setItem('username', data.username || email);
-                localStorage.setItem('MDAmount', data.dueAmount || data.MDAmount || "1500.00");
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('MDAmount', data.dueAmount || "1500.00");
 
                 // Show the delinquent modal and set the amount
                 document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "1500.00"}`;
                 document.getElementById('delinquentModal').style.display = 'block';
-
-                // Do NOT redirect here! Only redirect in handlePayNow()
+                return false;
+            } else if (data.isAlmostDue) {
+                // Show a different modal or message for "almost due" status
+                alert("Your dues are almost due. Would you like to pay now?");
+                // Optionally, redirect to a payment page or show a modal
                 return false;
             } else {
                 showError(data.message || 'Login failed. Please check your credentials.');
@@ -1198,12 +1202,12 @@
     }
 
     async function checkDuesStatus() {
-        const username = document.getElementById('username').value;
+        const email = document.getElementById('username').value;
         const password = document.getElementById('duesPassword').value;
         const errorMessage = document.getElementById('duesErrorMessage');
         
-        if (!username || !password) {
-            errorMessage.textContent = 'Please enter both username and password';
+        if (!email || !password) {
+            errorMessage.textContent = 'Please enter both email and password';
             errorMessage.style.display = 'block';
             return;
         }
@@ -1216,7 +1220,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    login: username,
+                    login: email,
                     password: password
                 }),
                 credentials: 'include'
@@ -1232,8 +1236,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        login: username,
-                        password: password
+                        email: email
                     })
                 });
                 
@@ -1242,8 +1245,9 @@
                 if (duesData.hasUnpaidDues) {
                     // Store user info and redirect to payment page
                     localStorage.setItem('username', data.username);
-                    localStorage.setItem('MDAmount', duesData.MDAmount || "1500.00");
-                    window.location.href = '/Webpages/MDPayment.html';
+                    localStorage.setItem('email', email);
+                    localStorage.setItem('dueAmount', duesData.dueAmount || "5000.00");
+                    window.location.href = 'MDPayment.html';
                 } else {
                     errorMessage.textContent = 'You have no unpaid dues for this month';
                     errorMessage.style.display = 'block';
@@ -1251,8 +1255,9 @@
             } else if (data.isDelinquent) {
                 // User is delinquent, redirect to payment page
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('MDAmount', data.MDAmount || "1500.00");
-                window.location.href = '/Webpages/MDPayment.html';
+                localStorage.setItem('email', data.email);
+                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                window.location.href = 'MDPayment.html';
             } else {
                 errorMessage.textContent = 'Invalid credentials';
                 errorMessage.style.display = 'block';
@@ -1477,6 +1482,8 @@
             });
         }
     });
+
+    console.log('PStatus received:', data.PStatus);
   </script>
 </body>
 </html>

@@ -305,106 +305,42 @@
     }
 
     /* Amenity Selection */
-    .amenities {
+    .amenity {
         margin: 25px 0;
         display: flex;
-        gap: 24px;
-        align-items: flex-start;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .amenity-card {
-        display: flex;
-        flex-direction: column;
+        gap: 10px;
         align-items: center;
-        margin-bottom: 20px;
-        background: rgba(255,255,255,0.15);
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        padding: 18px 16px 10px 16px;
-        transition: box-shadow 0.2s, transform 0.2s, border 0.2s;
-        min-width: 220px;
-        max-width: 260px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        position: relative;
     }
-    .amenity-card.selected {
-        border: 2px solid #AF2630;
-        box-shadow: 0 6px 18px rgba(175,38,48,0.18);
-        transform: translateY(-4px) scale(1.03);
-    }
-    .amenity-card input[type="checkbox"] {
-        position: absolute;
-        opacity: 0;
-        cursor: pointer;
-        height: 0;
-        width: 0;
-    }
-    .amenity-card .custom-checkbox {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 22px;
-        height: 22px;
-        background: #fff;
-        border: 2px solid #AF2630;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2;
-    }
-    .amenity-card.selected .custom-checkbox {
-        background: #AF2630;
-    }
-    .amenity-card .custom-checkbox svg {
+
+    .amenity input[type="radio"] {
         display: none;
     }
-    .amenity-card.selected .custom-checkbox svg {
-        display: block;
-        color: #fff;
-    }
 
-    .amenities div {
+    .amenity div {
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-bottom: 20px;
-        background: rgba(255,255,255,0.15);
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        padding: 18px 16px 10px 16px;
-        transition: box-shadow 0.2s, transform 0.2s;
-        min-width: 220px;
-        max-width: 260px;
     }
 
-    .amenities div:hover {
-        box-shadow: 0 6px 18px rgba(175,38,48,0.18);
-        transform: translateY(-4px) scale(1.03);
+    .amenity label img {
+        width: 100px;
+        height: 100px;
+        border-radius: 10px;
+        transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
     }
 
-    .amenities label img {
-        width: 110px;
-        height: 110px;
-        border-radius: 12px;
-        margin-bottom: 8px;
-        border: 2px solid #fff;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    .amenity input[type="radio"]:checked + label img {
+        transform: scale(1.1);
+        border: 3px solid white;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
     }
 
-    .amenities input[type="radio"]:checked + label img {
-       transform: scale(1.1); /* Enlarge the button when selected */
-       border: 3px solid white; /* Add border on hover */
-       box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
+    .amenity label:hover img {
+        transform: scale(1.1);
+        border: 3px solid #f86a73;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
     }
-    .amenities label:hover img {
-        transform: scale(1.1); /* Enlarge the button */
-        border: 3px solid #f86a73; /* Add border on hover */
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add shadow */
-      }
-      
+
     /* Homeowner Status */
     .homeowner {
         display: flex;
@@ -558,7 +494,7 @@
             justify-content: center;
         }
 
-        .amenities div {
+        .amenity div {
             margin-bottom: 15px;
         }
 
@@ -613,11 +549,11 @@
     }
 
     @media (max-width: 900px) {
-        .amenities {
+        .amenity {
             flex-direction: column;
             align-items: stretch;
         }
-        .amenities div {
+        .amenity div {
             max-width: 100%;
             min-width: 0;
         }
@@ -722,73 +658,26 @@
 
       <label>Choose an amenity</label>
   
-      <div class="amenities">
-        <div class="amenity-card" id="cardPool">
-            <input type="checkbox" id="amenityPool" name="amenities" value="Pool">
-            <span class="custom-checkbox">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10.5L9 14.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <label for="amenityPool" style="cursor:pointer;">
-                <img src="../images/pool.png" alt="Pool">
+      <div class="amenity">
+        <div>
+            <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
+            <label for="amenityPool">
+                <img src="/images/pool.png" alt="Pool">
             </label>
         </div>
-        <div class="amenity-card" id="cardClubhouse">
-            <input type="checkbox" id="amenityClubhouse" name="amenities" value="Clubhouse">
-            <span class="custom-checkbox">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10.5L9 14.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <label for="amenityClubhouse" style="cursor:pointer;">
-                <img src="../images/clubhouse.png" alt="Clubhouse">
+        <div>
+            <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse">
+            <label for="amenityClubhouse">
+                <img src="/images/clubhouse.png" alt="Clubhouse">
             </label>
         </div>
-        <div class="amenity-card" id="cardCourt">
-            <input type="checkbox" id="amenityCourt" name="amenities" value="Court">
-            <span class="custom-checkbox">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10.5L9 14.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <label for="amenityCourt" style="cursor:pointer;">
-                <img src="../images/court.png" alt="Court">
+        <div>
+            <input type="radio" id="amenityCourt" name="amenity" value="Court">
+            <label for="amenityCourt">
+                <img src="/images/court.png" alt="Court">
             </label>
         </div>
-      </div>
-
-      <!-- Add amenity options containers -->
-      <div id="poolOptions" class="amenity-options" style="display: none;">
-        <div class="option-group">
-          <label>
-            <input type="radio" name="poolType" value="morning" checked> Morning Session (6AM - 5PM)
-          </label>
-          <label>
-            <input type="radio" name="poolType" value="evening"> Evening Session (5PM - 11PM) +₱1000
-          </label>
-        </div>
-        <div class="option-group">
-          <label>
-            <input type="checkbox" id="poolReservation" name="poolReservation"> Reserve for Private Use (+₱1000)
-          </label>
-        </div>
-      </div>
-
-      <div id="courtOptions" class="amenity-options" style="display: none;">
-        <div class="option-group">
-          <label>
-            <input type="checkbox" id="courtLighting" name="courtLighting" checked> Include Lighting Fee (₱300/hour)
-          </label>
-        </div>
-      </div>
-
-      <div id="clubhouseOptions" class="amenity-options" style="display: none;">
-        <div class="option-group">
-          <label>
-            <input type="checkbox" id="clubhouseCatering" name="clubhouseCatering"> Include Catering Service (+₱2000)
-          </label>
-        </div>
-        <div class="option-group">
-          <label>
-            <input type="checkbox" id="clubhouseSetup" name="clubhouseSetup"> Include Setup/Cleanup Service (+₱1000)
-          </label>
-        </div>
-      </div>
+    </div>
 
       <div id="timeWarning" style="display:none;color:#dc3545;font-weight:600;text-align:center;margin-bottom:10px;"></div>
 
@@ -808,15 +697,12 @@
         const eventEndHourInput = document.getElementById('eventEndHour');
         const eventEndMinuteInput = document.getElementById('eventEndMinute');
         const eventEndAmPmSelect = document.getElementById('eventEndAmPm');
-        const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]');
+        const amenityRadios = document.querySelectorAll('input[name="amenity"]');
         const guestNumberInput = document.getElementById('guestNumber');
         const guestInputsDiv = document.getElementById('guest-inputs');
         const guestPopup = document.getElementById('guest-popup');
         const amenityPreviewImg = document.getElementById('amenityPreview');
         const amenityDetailsContainerDiv = document.getElementById('amenityDetailsContainer');
-        const poolOptionsDiv = document.getElementById('poolOptions');
-        const courtOptionsDiv = document.getElementById('courtOptions');
-        const clubhouseOptionsDiv = document.getElementById('clubhouseOptions');
 
         const amenityImages = {
             Pool: '/images/pool.jpg',
@@ -918,9 +804,9 @@
         }
         
         function updateTimeConstraints() {
-            const selectedAmenities = Array.from(amenityCheckboxes)
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
+            const selectedAmenities = Array.from(amenityRadios)
+                .filter(rb => rb.checked)
+                .map(rb => rb.value);
 
             // Reset general constraints first
             [eventStartHourInput, eventEndHourInput].forEach(input => { input.min = '1'; input.max = '12'; });
@@ -981,25 +867,32 @@
 
         // --- Amenity Preview and Details ---
         function updateAmenityPreviewAndDetails() {
-            const checkedAmenities = Array.from(amenityCheckboxes).filter(cb => cb.checked);
+            const checkedAmenity = document.querySelector('input[name="amenity"]:checked');
             let detailsHTML = '';
             let previewSrc = '/images/pool.jpg'; // Default preview
             let previewAlt = 'Amenity Preview';
 
-            if (checkedAmenities.length > 0) {
-                // Preview the last selected or a primary one
-                const lastSelectedAmenityValue = checkedAmenities[checkedAmenities.length - 1].value;
-                previewSrc = amenityImages[lastSelectedAmenityValue] || previewSrc;
-                previewAlt = `${lastSelectedAmenityValue} Preview`;
+            if (checkedAmenity) {
+                const selectedAmenityValue = checkedAmenity.value;
+                previewSrc = amenityImages[selectedAmenityValue] || previewSrc;
+                previewAlt = `${selectedAmenityValue} Preview`;
+                detailsHTML = amenityDetailsConfig[selectedAmenityValue] || `<p>Details for ${selectedAmenityValue} not configured.</p>`;
 
-                if (checkedAmenities.length > 1) {
-                    detailsHTML += '<div class="amenity-details"><div class="amenity-info" style="color:#AF2630;font-weight:bold;margin-bottom:10px;">Multiple amenities selected. Details for each:</div>';
-                    checkedAmenities.forEach(amenity => {
-                        detailsHTML += amenityDetailsConfig[amenity.value] || `<p>Details for ${amenity.value} not configured.</p>`;
-                    });
-                    detailsHTML += '</div>';
-                } else {
-                    detailsHTML = amenityDetailsConfig[lastSelectedAmenityValue] || `<p>Details for ${lastSelectedAmenityValue} not configured.</p>`;
+                // Automatic fee notifications
+                if (selectedAmenityValue === 'Pool') {
+                    const startHour = parseInt(eventStartHourInput.value);
+                    const endHour = parseInt(eventEndHourInput.value);
+                    const isEvening = startHour >= 18 || endHour <= 22;
+                    if (isEvening) {
+                        detailsHTML += '<p>Note: Evening pool reservations incur an additional fee of ₱1000.</p>';
+                    }
+                } else if (selectedAmenityValue === 'Court') {
+                    const startHour = parseInt(eventStartHourInput.value);
+                    const endHour = parseInt(eventEndHourInput.value);
+                    const isNight = startHour >= 18 || endHour <= 22;
+                    if (isNight) {
+                        detailsHTML += '<p>Note: Night court reservations incur an additional lighting fee of ₱300 per hour.</p>';
+                    }
                 }
             } else {
                 // Default details or empty
@@ -1013,14 +906,9 @@
             if (amenityDetailsContainerDiv) {
                 amenityDetailsContainerDiv.innerHTML = detailsHTML;
             }
-
-            // Show/hide specific options
-            if(poolOptionsDiv) poolOptionsDiv.style.display = checkedAmenities.some(cb => cb.value === 'Pool') ? 'block' : 'none';
-            if(courtOptionsDiv) courtOptionsDiv.style.display = checkedAmenities.some(cb => cb.value === 'Court') ? 'block' : 'none';
-            if(clubhouseOptionsDiv) clubhouseOptionsDiv.style.display = checkedAmenities.some(cb => cb.value === 'Clubhouse') ? 'block' : 'none';
         }
         
-        amenityCheckboxes.forEach(cb => cb.addEventListener('change', updateAmenityPreviewAndDetails));
+        amenityRadios.forEach(rb => rb.addEventListener('change', updateAmenityPreviewAndDetails));
         updateAmenityPreviewAndDetails(); // Initial call
 
         // --- Form Submission ---
@@ -1037,35 +925,34 @@
                         eventDate: dateInput ? dateInput.value : '',
                         startTime: startTimeStr,
                         endTime: endTimeStr,
-                        amenities: Array.from(amenityCheckboxes).filter(cb => cb.checked).map(cb => cb.value),
+                        amenity: document.querySelector('input[name="amenity"]:checked').value,
                         guests: {
                             number: guestNumberInput ? (parseInt(guestNumberInput.value) || 0) : 0,
                             names: Array.from(document.querySelectorAll('.guest-name')).map(input => input.value.trim()).filter(name => name)
-                        }
-                        // HomeownerName and homeownerStatus are not typically set by the user when creating an event.
-                        // These might be derived server-side or from user session.
+                        },
+                       
                     };
 
-                    if (formData.amenities.includes('Pool') && poolOptionsDiv) {
+                    if (formData.amenity === 'Pool') {
                         formData.poolOptions = {
-                            type: poolOptionsDiv.querySelector('input[name="poolType"]:checked')?.value || 'morning',
-                            isReserved: poolOptionsDiv.querySelector('#poolReservation')?.checked || false
+                            type: document.querySelector('input[name="poolType"]:checked')?.value || 'morning',
+                            isReserved: document.querySelector('#poolReservation')?.checked || false
                         };
                     }
-                    if (formData.amenities.includes('Court') && courtOptionsDiv) {
+                    if (formData.amenity === 'Court') {
                         formData.courtOptions = {
-                            hasLighting: courtOptionsDiv.querySelector('#courtLighting')?.checked || false
+                            hasLighting: document.querySelector('#courtLighting')?.checked || false
                         };
                     }
-                    if (formData.amenities.includes('Clubhouse') && clubhouseOptionsDiv) {
+                    if (formData.amenity === 'Clubhouse') {
                         formData.clubhouseOptions = {
-                            hasCatering: clubhouseOptionsDiv.querySelector('#clubhouseCatering')?.checked || false,
-                            hasSetup: clubhouseOptionsDiv.querySelector('#clubhouseSetup')?.checked || false
+                            hasCatering: document.querySelector('#clubhouseCatering')?.checked || false,
+                            hasSetup: document.querySelector('#clubhouseSetup')?.checked || false
                         };
                     }
 
-                    if (formData.amenities.length === 0) {
-                        alert("Please select at least one amenity.");
+                    if (formData.amenity === '') {
+                        alert("Please select an amenity.");
                         return;
                     }
 
@@ -1130,6 +1017,42 @@
             this.value = value;
         });
     }
+
+    const amenity = document.querySelectorAll('input[name="amenity"]');
+    const previewImage = document.getElementById('amenityPreview');
+
+    // Event listener for changing the image preview based on selected amenity
+    amenity.forEach(amenity => {
+        amenity.addEventListener('change', function() {
+            if (this.checked) {
+                let selectedImage;
+                switch (this.value) {
+                    case 'Pool':
+                        selectedImage = '/images/pool.png';
+                        break;
+                    case 'Clubhouse':
+                        selectedImage = '/images/clubhouse.png';
+                        break;
+                    case 'Court':
+                        selectedImage = '/images/court.png';
+                        break;
+                }
+                previewImage.src = selectedImage;
+            }
+        });
+    });
+
+    // Add date validation
+    function validateDate() {
+        const today = new Date();
+        const selectedDate = new Date(dateInput.value);
+        if (selectedDate <= today) {
+            alert('Reservations cannot be made for today or past dates.');
+            dateInput.value = '';
+        }
+    }
+
+    dateInput.addEventListener('change', validateDate);
       </script>
     <!-- guests --------------------------------------------------------->
     <div class="guests-container">

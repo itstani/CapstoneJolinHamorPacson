@@ -371,23 +371,15 @@
             const userName = localStorage.getItem('username');
             if (!userName) return;
 
-            const res = await fetch(`/api/get-monthly-due?&username=${encodeURIComponent(userName || "")}`);
+            const res = await fetch(`/api/get-monthly-due?username=${encodeURIComponent(userName)}`);
             const data = await res.json();
             if (data.success) {
+                document.getElementById('userName').textContent = data.homeowner.username || 'N/A';
+                document.getElementById('homeownerName').textContent = `${data.homeowner.firstName || ''} ${data.homeowner.lastName || ''}`;
+                const address = data.homeowner.Address || {};
+                document.getElementById('address').textContent = `Block ${address.Block?.$numberInt || ''}, Lot ${address.Lot?.$numberInt || ''}, Phase ${address.Phase?.$numberInt || ''}`;
                 document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
                 document.getElementById('totalAmount').textContent = data.totalDue.toFixed(2);
-                // Homeowner name and address
-                const h = data.homeowner || {};
-                document.getElementById('homeownerName').textContent = `${h.firstName || ''} ${h.lastName || ''}`.trim();
-                // Format address
-                let addr = '';
-                if (h.Address) {
-                    const b = h.Address.Block?.$numberInt || h.Address.Block || '';
-                    const l = h.Address.Lot?.$numberInt || h.Address.Lot || '';
-                    const p = h.Address.Phase?.$numberInt || h.Address.Phase || '';
-                    addr = `Block ${b}, Lot ${l}, Phase ${p}`;
-                }
-                document.getElementById('address').textContent = addr;
                 // Extra fees
                 const base = parseFloat(data.baseDue);
                 const total = parseFloat(data.totalDue);
@@ -398,12 +390,6 @@
                     document.getElementById('extraFeesRow').style.display = 'none';
                 }
             }
-
-            document.getElementById('userName').textContent = userName;
-
-            
-            // Set hidden input values
-            document.getElementById('finalAmountInput').value = data.baseDue.toFixed(2);
 
             document.getElementById('userNameInput').value = userName;
             
@@ -532,6 +518,32 @@
                     console.error('Error during logout:', error);
                     alert('An error occurred during logout. Please try again.');
                 });
+        }
+
+        function handlePayNow() {
+            console.log('Pay Now button clicked'); // Debug log
+
+            const username = localStorage.getItem('username');
+            const MDAmount = localStorage.getItem('MDAmount');
+
+            // Log localStorage contents before redirect
+            console.log('localStorage before redirect:', {
+                username,
+                MDAmount
+            });
+
+            // Ensure data is stored before redirecting
+            if (!username || !MDAmount) {
+                console.error('Missing required data for payment page');
+                showError('Error: Missing payment information. Please try logging in again.');
+                return;
+            }
+
+            // Redirect to payment page after a short delay
+            setTimeout(() => {
+                console.log('Redirecting to MDPayment.html'); // Debug log
+                window.location.href = '/Webpages/MDPayment.html';
+            }, 100);
         }
     </script>
 </body>

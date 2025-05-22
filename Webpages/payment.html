@@ -113,25 +113,12 @@
         <p><strong>Start Time:</strong> <span id="eventStartTime"></span></p>
         <p><strong>End Time:</strong> <span id="eventEndTime"></span></p>
         <p><strong>Amenity:</strong> <span id="eventAmenity"></span></p>
-        <p><strong>Base Amount:</strong> ₱<span id="baseAmount">0</span></p>
-        <p><strong>Final Amount:</strong> ₱<span id="finalAmount">0</span></p>
+        <p><strong>Base Amount:</strong> <span id="baseAmount"></span></p>
+        <p><strong>Final Amount:</strong> <span id="finalAmount"></span></p>
+    
       </div>
 
-      <div class="payment-method">
-        <h3>Choose Payment Method:</h3>
-        <label>
-          <input type="radio" name="paymentMethod" value="gcash" />
-          GCash (+₱15)
-        </label>
-        <label>
-          <input type="radio" name="paymentMethod" value="card" />
-          Credit Card
-        </label>
-        <label>
-          <input type="radio" name="paymentMethod" value="cash" />
-          Cash
-        </label>
-      </div>
+     
 
       <div class="qr-container">
         <h3>QR Code:</h3>
@@ -163,7 +150,7 @@
     </div>
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('DOMContentLoaded', async function() {
         // Get event data from sessionStorage
         const eventData = JSON.parse(sessionStorage.getItem('eventData') || '{}');
         const notificationData = JSON.parse(sessionStorage.getItem('notificationData') || '{}');
@@ -188,54 +175,93 @@
           return;
         }
 
-        // Calculate base amount based on amenity and duration
-        const baseAmount = calculateBaseAmount(eventData.amenity, eventData.startTime, eventData.endTime);
-        
-        // Populate form fields
-        document.getElementById('userEmail').textContent = eventData.userEmail || 'N/A';
-        document.getElementById('eventName').textContent = eventData.eventName || 'N/A';
-        document.getElementById('eventDate').textContent = eventData.eventDate || 'N/A';
-        document.getElementById('eventStartTime').textContent = eventData.startTime || 'N/A';
-        document.getElementById('eventEndTime').textContent = eventData.endTime || 'N/A';
-        document.getElementById('eventAmenity').textContent = eventData.amenity || 'N/A';
-        document.getElementById('baseAmount').textContent = baseAmount.toFixed(2);
-        document.getElementById('finalAmount').textContent = baseAmount.toFixed(2);
-        document.getElementById('totalAmount').textContent = baseAmount.toFixed(2);
+        try {
+          // Fetch event details from the server
+          const response = await fetch(`/api/aevents/${eventData._id}`);
+          if (!response.ok) throw new Error('Failed to fetch event details');
 
-        // Set hidden input values
-        document.getElementById('finalAmountInput').value = baseAmount;
-        document.getElementById('userEmailInput').value = eventData.userEmail || '';
-        document.getElementById('eventNameInput').value = eventData.eventName || '';
-        document.getElementById('eventDateInput').value = eventData.eventDate || '';
-        document.getElementById('startTimeInput').value = eventData.startTime || '';
-        document.getElementById('endTimeInput').value = eventData.endTime || '';
-        document.getElementById('notificationIdInput').value = notificationData._id || '';
-        document.getElementById('eventIdInput').value = eventData._id || '';
+          const eventDetails = await response.json();
+          console.log('Fetched event details:', eventDetails);
 
-        // Handle payment method selection
-        const paymentMethods = document.getElementsByName('paymentMethod');
-        paymentMethods.forEach(method => {
-          method.addEventListener('change', function() {
-            const gcashFee = this.value === 'gcash' ? 15 : 0;
-            const totalAmount = baseAmount + gcashFee;
-            document.getElementById('finalAmount').textContent = totalAmount.toFixed(2);
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-            document.getElementById('finalAmountInput').value = totalAmount;
-          });
-        });
+          // Check if totalPayment is defined
+          const totalPayment = eventDetails.event.totalPayment || 0; // Default to 0 if undefined
+
+          document.getElementById('eventName').textContent = eventDetails.event.eventName || 'N/A';
+          document.getElementById('eventDate').textContent = eventDetails.event.eventDate || 'N/A';
+          document.getElementById('eventStartTime').textContent = eventDetails.event.startTime || 'N/A';
+          document.getElementById('eventEndTime').textContent = eventDetails.event.endTime || 'N/A';
+          document.getElementById('eventAmenity').textContent = eventDetails.event.amenity || 'N/A';
+
+          // Add guests display if number is present
+          if (eventDetails.event.guests && eventDetails.event.guests.number) {
+            const guestsElement = document.createElement('p');
+            guestsElement.innerHTML = `<strong>Guests:</strong> <span>${eventDetails.event.guests.number}</span>`;
+            document.querySelector('.detail').insertBefore(guestsElement, document.getElementById('baseAmount').parentElement);
+          }
+
+          // Update display based on amenity type
+          let baseAmountText = '';
+          let extraFeesText = '';
+          let totalAmountText = totalPayment.toFixed(2);
+
+          const startTime = new Date(`2000-01-01T${eventDetails.event.startTime}:00`);
+          const endTime = new Date(`2000-01-01T${eventDetails.event.endTime}:00`);
+          const nightStart = new Date('2000-01-01T18:00:00');
+          const nightEnd = new Date('2000-01-01T22:00:00');
+
+          switch (eventDetails.event.amenity) {
+            case 'Pool':
+              let poolBaseAmount = 100;
+              let poolExtraFees = 1000;
+              baseAmountText = `₱${poolBaseAmount} per person`;
+              if (startTime < nightEnd && endTime > nightStart) {
+                extraFeesText = `₱${poolExtraFees} (Night swimming)`;
+              }
+              break;
+            case 'Court':
+              let courtBaseAmount = 0;
+              let courtExtraFees = 300;
+              if (startTime < nightEnd && endTime > nightStart) {
+                extraFeesText = `₱${courtExtraFees} (Night time)`;
+              } else {
+                baseAmountText = `₱${courtBaseAmount} per hour`;
+              }
+              break;
+            case 'Clubhouse':
+              let clubhouseBaseAmount = 1000;
+              let clubhouseExtraFees = 0;
+              baseAmountText = `₱${clubhouseBaseAmount} per hour`;
+              if (clubhouseExtraFees > 0) {
+                extraFeesText = `₱${clubhouseExtraFees}`;
+              }
+              break;
+            default:
+              baseAmountText = `₱${eventDetails.event.baseAmount.toFixed(2)}`;
+          }
+
+          document.getElementById('baseAmount').textContent = baseAmountText;
+          document.getElementById('finalAmount').textContent = extraFeesText;
+          document.getElementById('totalAmount').textContent = totalAmountText;
+
+          // Set hidden input values
+          document.getElementById('finalAmountInput').value = totalPayment;
+          document.getElementById('eventNameInput').value = eventDetails.event.eventName || '';
+          document.getElementById('eventDateInput').value = eventDetails.event.eventDate || '';
+          document.getElementById('startTimeInput').value = eventDetails.event.startTime || '';
+          document.getElementById('endTimeInput').value = eventDetails.event.endTime || '';
+          document.getElementById('notificationIdInput').value = notificationData._id || '';
+          document.getElementById('eventIdInput').value = eventData._id || '';
+        } catch (error) {
+          console.error('Error fetching event details:', error);
+          alert('Error fetching event details. Please try again later.');
+        }
 
         // Handle file upload
         const receiptUpload = document.getElementById('receiptUpload');
         const proceedButton = document.getElementById('proceedButton');
 
         receiptUpload.addEventListener('change', function() {
-          proceedButton.disabled = !this.files.length || !document.querySelector('input[name="paymentMethod"]:checked');
-        });
-
-        paymentMethods.forEach(method => {
-          method.addEventListener('change', function() {
-            proceedButton.disabled = !receiptUpload.files.length;
-          });
+          proceedButton.disabled = !this.files.length;
         });
 
         // Handle form submission
@@ -290,24 +316,6 @@
           }
         });
       });
-
-      // Function to calculate base amount
-      function calculateBaseAmount(amenity, startTime, endTime) {
-        // Convert times to hours for calculation
-        const start = new Date(`2000-01-01 ${startTime}`);
-        const end = new Date(`2000-01-01 ${endTime}`);
-        const hours = (end - start) / (1000 * 60 * 60);
-
-        // Base rates per hour for different amenities
-        const rates = {
-          'Clubhouse': 500,
-          'Pool': 300,
-          'Court': 200
-        };
-
-        const baseRate = rates[amenity] || 300; // Default to 300 if amenity not found
-        return baseRate * hours;
-      }
     </script>
   </body>
 </html>
