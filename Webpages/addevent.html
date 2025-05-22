@@ -622,6 +622,26 @@
             min-width: 0;
         }
     }
+
+    .amenity-options {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0 20px 0;
+    }
+    .option-group {
+      margin-bottom: 10px;
+    }
+    .option-group label {
+      display: block;
+      margin: 8px 0;
+      color: white;
+      font-size: 0.95em;
+    }
+    .option-group input[type="radio"],
+    .option-group input[type="checkbox"] {
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -727,6 +747,44 @@
             <label for="amenityCourt" style="cursor:pointer;">
                 <img src="../images/court.png" alt="Court">
             </label>
+        </div>
+      </div>
+
+      <!-- Add amenity options containers -->
+      <div id="poolOptions" class="amenity-options" style="display: none;">
+        <div class="option-group">
+          <label>
+            <input type="radio" name="poolType" value="morning" checked> Morning Session (6AM - 5PM)
+          </label>
+          <label>
+            <input type="radio" name="poolType" value="evening"> Evening Session (5PM - 11PM) +₱1000
+          </label>
+        </div>
+        <div class="option-group">
+          <label>
+            <input type="checkbox" id="poolReservation" name="poolReservation"> Reserve for Private Use (+₱1000)
+          </label>
+        </div>
+      </div>
+
+      <div id="courtOptions" class="amenity-options" style="display: none;">
+        <div class="option-group">
+          <label>
+            <input type="checkbox" id="courtLighting" name="courtLighting" checked> Include Lighting Fee (₱300/hour)
+          </label>
+        </div>
+      </div>
+
+      <div id="clubhouseOptions" class="amenity-options" style="display: none;">
+        <div class="option-group">
+          <label>
+            <input type="checkbox" id="clubhouseCatering" name="clubhouseCatering"> Include Catering Service (+₱2000)
+          </label>
+        </div>
+        <div class="option-group">
+          <label>
+            <input type="checkbox" id="clubhouseSetup" name="clubhouseSetup"> Include Setup/Cleanup Service (+₱1000)
+          </label>
         </div>
       </div>
 
@@ -1362,12 +1420,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 case 'Clubhouse':
                     const clubhouseHours = calculateHours();
-                    const clubhouseTotal = clubhouseHours * 1000;
-                    totalPayment += clubhouseTotal;
-                    paymentDetails.clubhouse = {
-                        hours: clubhouseHours,
-                        total: clubhouseTotal
-                    };
+                    const hasCatering = document.getElementById('clubhouseCatering').checked;
+                    const hasSetup = document.getElementById('clubhouseSetup').checked;
+                    
+                    amenityCost = clubhouseHours * config.basePrice;
+                    if (hasCatering) amenityCost += config.cateringFee;
+                    if (hasSetup) amenityCost += config.setupFee;
+                    
+                    amenityDetails.push(`${clubhouseHours} hours × ₱${config.basePrice}`);
+                    if (hasCatering) amenityDetails.push('Catering service +₱2000');
+                    if (hasSetup) amenityDetails.push('Setup/Cleanup +₱1000');
                     break;
             }
         });
