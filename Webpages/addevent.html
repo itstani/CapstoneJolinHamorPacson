@@ -660,10 +660,7 @@
       <h2>New Event Details</h2>
       <input type="hidden" id="username" name="username">
     <input type="hidden" id="email" name="email">
-
-    <label for="HomeownerName">Homeowner Name:</label>
-    <input type="text" id="HomeownerName" name="HomeownerName" required><br>
-  
+    
     <label for="eventName">Event Name:</label>
     <input type="text" id="eventName" name="eventName" required><br>
 
@@ -953,26 +950,12 @@
         <button type="button" class="close-btn" onclick="closePopup()">Confirm</button>
     </div>
 </div>
-
-
-      <div class="homeonwerstatuslabel">
-        <label for="homeownerStatus">Homeowner status:</label>
-      </div>
-  
-      <div class="homeowner">
-        <input type="radio" id="homeownerYes" name="homeownerStatus" value="Yes">
-        <label for="homeownerYes">Yes</label>
-    
-        <input type="radio" id="homeownerNo" name="homeownerStatus" value="No">
-        <label for="homeownerNo">No</label>
-      </div>
-  
       <button type="submit" class="create-button">Create</button>
 
     </form>
   
     <!-- Preview Image -->
-    <img id="amenityPreview" src="/images/poolimg.PNG" alt="Amenity Preview" class="amenity-preview">
+    <img id="amenityPreview" src="/images/pool.jpg" alt="Amenity Preview" class="amenity-preview">
     <div id="amenityDetailsContainer"></div>
   </div>
 
@@ -1124,13 +1107,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update preview image
     function updatePreviewImage(amenityValue) {
         const imagePaths = {
-            'Pool': '/images/poolimg.PNG',
-            'Clubhouse': '/images/clubhouseimg.jpg',
-            'Court': '/images/Courtimg.jpg'
+            'Pool': '/images/pool.jpg',
+            'Clubhouse': '/images/clubhouse.jpg',
+            'Court': '/images/court.jpg'
         };
         
         if (previewImage) {
-            previewImage.src = imagePaths[amenityValue] || '/images/poolimg.PNG';
+            previewImage.src = imagePaths[amenityValue] || '/images/pool.jpg';
             previewImage.alt = `${amenityValue} Preview`;
         }
     }
@@ -1501,9 +1484,9 @@ const amenityDetails = {
   `
 };
 const amenityImages = {
-  Pool: '/images/poolimg.PNG',
-  Clubhouse: '/images/clubhouseimg.jpg',
-  Court: '/images/Courtimg.jpg'
+  Pool: '/images/pool.jpg',
+  Clubhouse: '/images/clubhouse.jpg',
+  Court: '/images/Court.jpg'
 };
 function updateAmenityPreviewAndDetails() {
   const checked = Array.from(document.querySelectorAll('input[name="amenities"]:checked'));
