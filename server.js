@@ -1316,6 +1316,50 @@ app.get("/api/monthly-payments/:id", async (req, res) => {
   }
 })
 
+app.get("/api/monthly-payment-search", async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const collection = db.collection("monthlyPayments");
+
+    const { status, search, limit } = req.query;
+
+    const query = {};
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$or = [
+        { userName: { $regex: new RegExp(search, 'i') } },
+        { userEmail: { $regex: new RegExp(search, 'i') } }
+      ];
+    }
+
+    const options = {
+      sort: { timestamp: -1 },
+      limit: parseInt(limit) || 50
+    };
+
+    const payments = await collection.find(query, options).toArray();
+
+    res.json({
+      success: true,
+      payments
+    });
+  } catch (error) {
+    console.error("Error fetching monthly payments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while retrieving payments",
+      error: error.message
+    });
+  }
+});
+
+
+
+
 app.post("/api/check-address-exists", async (req, res) => {
   try {
     const { blockNumber, lotNumber, phaseNumber } = req.body;
@@ -2573,6 +2617,19 @@ app.post("/logout", (req, res) => {
     res.status(200).json({ message: "Logout successful" })
   })
 })
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+      return res.status(500).json({ success: false, message: "Logout failed" });
+    }
+    res.clearCookie('connect.sid');
+    return res.json({ success: true, message: "Logged out successfully" });
+  });
+});
+
+
 async function run() {
   try {
     await connectToDatabase()

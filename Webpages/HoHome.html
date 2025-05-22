@@ -892,19 +892,6 @@ const RETRY_DELAY = 2000;
 let retryCount = 0;
 let currentNotification = null;
 
-// Add this function to check if elements exist
-function checkElements() {
-  const elements = {
-    notificationIcon: document.getElementById('notificationIcon'),
-    notificationModal: document.getElementById('notificationModal'),
-    notificationList: document.getElementById('notificationList'),
-    logoutButton: document.getElementById('logoutButton')
-  };
-  
-  console.log('Checking elements:', elements);
-  return elements;
-}
-
 // Update the fetchNotifications function with more debugging
 async function fetchNotifications() {
   try {
@@ -1012,40 +999,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log("Close modal clicked");
         elements.notificationModal.style.display = 'none';
       });
-    }
-
-    // Set up logout button handler
-    if (elements.logoutButton) {
-      console.log("Setting up logout button handler");
-      elements.logoutButton.addEventListener('click', async () => {
-        console.log("Logout button clicked");
-        try {
-          const response = await fetch("/api/logout", {
-            method: "POST",
-            credentials: "include",
-      headers: {
-        'Content-Type': 'application/json'
-            }
-          });
-
-          console.log("Logout response status:", response.status);
-          
-          if (response.ok) {
-            console.log("Logout successful, clearing data");
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = "/login.html";
-    } else {
-            console.error("Logout failed");
-            alert("Logout failed. Please try again.");
-    }
-  } catch (error) {
-          console.error("Error during logout:", error);
-          alert("An error occurred during logout. Please try again.");
-        }
-      });
-    } else {
-      console.error("Logout button not found");
     }
 
     // Initial fetch of notifications
@@ -1490,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', function() {
     paymentsList.innerHTML = '<div class="payments-empty">Please log in to view your payment history.</div>';
     return;
   }
-  fetch(`/api/monthly-payments?status=approved&search="${encodeURIComponent(username)}"&limit=100`)
+  fetch(`/api/monthly-payment-search?status=approved&search=${encodeURIComponent(username)}&limit=100`)
     .then(res => res.json())
     .then(data => {
       if (!data.success || !data.payments || data.payments.length === 0) {
@@ -1504,11 +1457,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const date = new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString();
         const amount = payment.amount || payment.monthlyDue || payment.MDAmount || '0.00';
         const status = payment.status || 'Paid';
-        // Build receipt link with query params for MDR.html
-        const receiptUrl = `MDR.html?username=${encodeURIComponent(payment.userName||'')}` +
+
+        const receiptUrl = `MDR.html?username=${encodeURIComponent(payment.username||'')}` +
           `&address=${encodeURIComponent(payment.address||'')}` +
-          `&amount=${encodeURIComponent(amount)}` +
-          `&period=${encodeURIComponent(payment.period||'')}`;
+          `&amount=${encodeURIComponent(amount)}`;
         html += `<tr>` +
           `<td>${date}</td>` +
           `<td>₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>` +
@@ -1522,21 +1474,35 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(err => {
       paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
     });
-    document.getElementById("logoutButton").addEventListener("click", async () => {
-          try {
-            const response = await fetch("/logout", { method: "POST" });
-            if (response.ok) {
-              localStorage.clear(); // Clear user data
-              window.location.href = "login.html"; // Redirect to the login page
-            } else {
-              showCustomAlert("Logout failed. Please try again.");
-            }
-          } catch (error) {
-            console.error("Error during logout:", error);
-            showCustomAlert("An error occurred during logout. Please try again.");
-          }
-        });
+   
 });
+document.addEventListener('DOMContentLoaded', function () {
+  const logoutButton = document.getElementById('logoutButton');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
+      const response = await fetch('/api/logout', { method: 'POST' });
+      if (response.ok) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/login.html';
+      } else {
+        alert('Logout failed.');
+      }
+    });
+  }
+
+  const notificationIcon = document.getElementById('notificationIcon');
+  if (notificationIcon) {
+    notificationIcon.addEventListener('click', function () {
+      document.getElementById('notificationModal').style.display = 'block';
+    });
+  }
+
+  document.getElementById('closeModal').addEventListener('click', () => {
+    document.getElementById('notificationModal').style.display = 'none';
+  });
+});
+
   </script>
 </html>
 
