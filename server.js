@@ -3524,15 +3524,15 @@ app.get("/api/event/:eventId", async (req, res) => {
 app.get("/api/notifications", async (req, res) => {
   try {
     // Check if user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
+    if (!req.session || !req.session.user || !req.session.user.username) {
       return res.status(401).json({
         success: false,
         error: "Not authenticated",
       })
     }
 
-    const userEmail = req.session.user.email
-    console.log("Fetching notifications for user:", userEmail)
+    const username = req.session.user.username
+    console.log("Fetching notifications for user:", username)
 
     const db = await connectToDatabase()
     const notificationsCollection = db.collection("notifications")
@@ -3540,12 +3540,12 @@ app.get("/api/notifications", async (req, res) => {
     // Get notifications for the current user only
     const notifications = await notificationsCollection
       .find({
-        userEmail: userEmail, // Filter by the current user's email
+        username: username, // Filter by the current user's email
       })
       .sort({ timestamp: -1 })
       .toArray()
 
-    console.log(`Found ${notifications.length} notifications for user ${userEmail}`)
+    console.log(`Found ${notifications.length} notifications for user ${username}`)
 
     // Count unread notifications
     const unreadCount = notifications.filter((notification) => !notification.read).length
@@ -3577,7 +3577,7 @@ app.post("/api/updateNotificationAfterPayment", async (req, res) => {
 
     // Create a new notification
     const newNotification = {
-      userEmail: req.session.user.email,
+      username: req.session.user.username,
       message: `Your payment for "${eventName}" has been processed successfully.`,
       subject: `${eventName} on ${eventDate} ${startTime}-${endTime}`,
       type: "payment_confirmed",
@@ -3621,7 +3621,7 @@ app.post("/api/markNotificationAsRead", async (req, res) => {
     const result = await notificationsCollection.updateOne(
       {
         _id: new ObjectId(notificationId),
-        userEmail: req.session.user.email, // Ensure we only update this user's notification
+        username: req.session.user.username, // Ensure we only update this user's notification
       },
       { $set: { read: true } },
     )
@@ -3668,7 +3668,7 @@ app.post("/api/markAllNotificationsRead", async (req, res) => {
     const result = await notificationsCollection.updateMany(
       {
         _id: { $in: notificationIds.map((id) => new MongoClient.ObjectId(id)) },
-        userEmail: userEmail, // Ensure we only update this user's notifications
+        username: username, // Ensure we only update this user's notifications
       },
       { $set: { read: true } },
     )
