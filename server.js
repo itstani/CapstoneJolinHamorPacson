@@ -306,6 +306,41 @@ function formatTime(timeString) {
 }
 
 
+// Helper function to convert time to 24-hour format string (HH:MM)
+function convertTo24HourFormat(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return "00:00"; // Default or error
+    const [time, modifier] = timeStr.toUpperCase().split(' ');
+    if (!time || !modifier) return "00:00"; // Invalid format
+
+    let [hours, minutes] = time.split(':');
+    hours = parseInt(hours, 10);
+    minutes = parseInt(minutes, 10);
+
+    if (isNaN(hours) || isNaN(minutes)) return "00:00"; // Invalid numbers
+
+    if (modifier === 'PM' && hours < 12) {
+        hours += 12;
+    } else if (modifier === 'AM' && hours === 12) { // Midnight case for 12 AM
+        hours = 0;
+    } else if (modifier === 'PM' && hours === 12) { // Noon case for 12 PM
+        // hours remains 12, no change needed
+    }
+
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+// Helper function to convert 24-hour "HH:MM" to "H:MM AM/PM"
+function convert24HourTo12HourFormat(time24) {
+    if (!time24 || typeof time24 !== 'string' || !time24.includes(':')) return 'N/A';
+    const [hoursStr, minutesStr] = time24.split(':');
+    const hours = parseInt(hoursStr, 10);
+    const minutes = String(minutesStr).padStart(2, '0');
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const adjustedHour = hours % 12 || 12; // Converts '00' or '12' to 12, others to hour % 12
+    return `${adjustedHour}:${minutes} ${period}`;
+}
+
 // API endpoint to check authentication status
 app.get("/api/auth-status", (req, res) => {
   if (req.session && req.session.user) {
@@ -1852,7 +1887,7 @@ app.get("/api/user-info", (req, res) => {
 app.post("/addevent", async (req, res) => {
   try {
     const db = await connectToDatabase();
-    const aeventsCollection = db.collection("aevents");
+    const aeventsCollection = db.collection("events");
     const {
       username,
       eventName,
@@ -1865,6 +1900,11 @@ app.post("/addevent", async (req, res) => {
       courtOptions,
       clubhouseOptions
     } = req.body;
+
+    // Convert times to 24-hour format for storage and reliable comparison
+    // These are new variables; original startTime/endTime are still used for initial Date object validation
+    const newStartTime24 = convertTo24HourFormat(startTime);
+    const newEndTime24 = convertTo24HourFormat(endTime);
 
     // Validate required fields
     if (!username || !eventName || !eventDate || !startTime || !endTime || !amenities || !guests) {
@@ -1970,8 +2010,8 @@ app.post("/addevent", async (req, res) => {
       status: "approved",
       $or: [
         {
-          startTime: { $lt: endTime },
-          endTime: { $gt: startTime }
+          startTime: { $lt: newEndTime24 }, // Use 24-hour format for comparison
+          endTime: { $gt: newStartTime24 }   // Use 24-hour format for comparison
         }
       ],
       amenities: { $in: amenities }
@@ -2040,8 +2080,8 @@ app.post("/addevent", async (req, res) => {
       username,
       eventName,
       eventDate,
-      startTime,
-      endTime,
+      startTime: newStartTime24, // Store in 24-hour format
+      endTime: newEndTime24,   // Store in 24-hour format
       amenities,
       guests,
       poolOptions,
@@ -2989,74 +3029,106 @@ app.put("/approveEvent/:eventName", async (req, res) => {
   }
 })
 
-app.post("/api/approve-event", async (req, res) => {
-  const { eventName, eventDate, startTime, endTime, amenity, username, HomeownerName, guests } = req.body;
+app.post("/api/approve-event/:eventId", async (req, res) => {
+  const { eventId } = req.params;
+  // HomeownerName might be passed from client if not available on event object, guests also
+  const { HomeownerName: HomeownerNameFromClient } = req.body;
 
-  if (!eventName || !eventDate || !startTime || !endTime || !amenity || !username) {
+  if (!eventId) {
     return res.status(400).json({
       success: false,
-      message: "Missing event details",
+      message: "Missing event ID",
     });
   }
 
   try {
     const db = await connectToDatabase();
-    const eventsCollection = db.collection("events");
-    const aeventsCollection = db.collection("aevents");
+    const eventsCollection = db.collection("events"); // Pending events collection
+    const aeventsCollection = db.collection("aevents"); // Approved events collection
 
-    // Find the event in the events collection
-    const event = await eventsCollection.findOne({ eventName, eventDate, startTime, endTime, amenity, username });
-
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: "Event not found",
-      });
+    let eventToApprove;
+    try {
+      eventToApprove = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
+    } catch (e) {
+      console.error("Invalid event ID format for approval:", eventId, e);
+      return res.status(400).json({ success: false, message: "Invalid event ID format" });
     }
 
-    // Format times before moving to approved events
-    const approvedEvent = {
-      ...event,
-      startTime: formatTime(event.startTime),
-      endTime: formatTime(event.endTime),
+    if (!eventToApprove) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found in pending list or has already been processed.",
+      });
+    }
+    
+    // Destructure details from the fetched event.
+    // Note: startTime and endTime from eventToApprove are already in 24-hour "HH:MM" format
+    // due to the /addevent route's processing.
+    const { username, eventName, eventDate, startTime, endTime, amenity, guests, HomeownerName: HomeownerNameFromEvent } = eventToApprove;
+
+    // Basic validation of fetched event data
+    if (!username || !eventName || !eventDate || !startTime || !endTime || !amenity) {
+        console.error("Fetched event data is incomplete for eventId:", eventId, eventToApprove);
+        return res.status(400).json({
+            success: false,
+            message: "Fetched event data is incomplete. Cannot approve.",
+        });
+    }
+    
+    const approvedEventDataForDb = {
+      ...eventToApprove, // Spreads all fields from the fetched event
       approvedAt: new Date(),
       status: "approved",
+      // startTime and endTime are already in 24-hour "HH:MM" format
     };
+    // Remove original _id before inserting into aevents to avoid issues if it was a re-approval attempt (though logic should prevent this)
+    // However, it's safer to ensure the new document in aevents gets its own _id.
+    const originalId = approvedEventDataForDb._id; // Keep original ID for deletion from 'events'
+    delete approvedEventDataForDb._id;
 
-    const result = await aeventsCollection.insertOne(approvedEvent);
-    await eventsCollection.deleteOne({ _id: event._id });
 
-    // Create notification with all event details
-    await db.collection("notifications").insertOne({
-      username,
-      type: "payment_required",
-      message: `Your event \"${eventName}\" has been approved. Please proceed with the payment.`,
-      relatedId: result.insertedId.toString(),
-      subject: `${eventName} on ${eventDate} ${formatTime(startTime)}-${formatTime(endTime)}`,
-      amenity,
-      eventName,
-      eventDate,
-      startTime: formatTime(startTime),
-      endTime: formatTime(endTime),
-      HomeownerName: HomeownerName || event.HomeownerName,
-      guests: guests || event.guests,
-      paymentStatus: "pending",
-      timestamp: new Date(),
-      read: false,
-      isAdminResponse: false
-    });
+    const insertResult = await aeventsCollection.insertOne(approvedEventDataForDb);
+    await eventsCollection.deleteOne({ _id: originalId });
 
-    await logActivity("eventApproval", `Event ${eventName} approved`);
+    // Prepare times for user-friendly notification display
+    const displayStartTime = convert24HourTo12HourFormat(startTime); // Use startTime from fetched event
+    const displayEndTime = convert24HourTo12HourFormat(endTime);   // Use endTime from fetched event
+    const timeRangeForSubject = `${displayStartTime}-${displayEndTime}`;
+
+    // Create notification
+    if (username) {
+      await createNotification(
+        username,
+        "payment_required",
+        `Your event "${eventName}" has been approved. Please proceed with the payment.`,
+        insertResult.insertedId.toString(), // Use the new _id from aevents collection for relatedId
+        `${eventName} on ${eventDate} ${timeRangeForSubject}`,
+        amenity,
+        { // Pass eventDetails for createNotification to use
+            eventName: eventName,
+            eventDate: eventDate,
+            startTime: displayStartTime, // For notification consistency
+            endTime: displayEndTime,   // For notification consistency
+            amenity: amenity,
+            HomeownerName: HomeownerNameFromClient || HomeownerNameFromEvent, // Prefer client passed, fallback to event's
+            guests: guests, // Use guests object from the fetched event
+            paymentStatus: "pending" // Initial payment status for approved event
+        }
+      );
+    }
+
+    await logActivity("eventApproval", `Event ${eventName} (ID: ${originalId}) approved by admin. New ID in aevents: ${insertResult.insertedId}`);
 
     res.json({
       success: true,
-      message: "Event approved successfully",
+      message: "Event approved successfully and moved to approved events.",
+      approvedEventId: insertResult.insertedId
     });
   } catch (error) {
     console.error("Error approving event:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while approving event",
+      message: "Server error while approving event.",
       error: error.message,
     });
   }
@@ -6278,3 +6350,4 @@ app.get("*", (req, res) => {
   }
   res.sendFile(path.join(__dirname, "Webpages", "login.html"));
 });
+

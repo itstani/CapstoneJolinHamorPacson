@@ -877,10 +877,10 @@
            }
        }
 
-       const endpoint = action === 'approve' ? '/api/approve-event' : `/api/reject-event/${eventId}`; // Assuming a reject endpoint
+       const endpoint = action === 'approve' ? `/api/approve-event/${eventId}` : `/api/reject-event/${eventId}`; // Assuming a reject endpoint
        const method = 'POST';
        const body = action === 'approve' ?
-           JSON.stringify({ eventName, eventDate, startTime, endTime, amenity, username, HomeownerName: homeownerName, guests: { number: guests } }) :
+           JSON.stringify({ eventName, eventDate, startTime, endTime, amenity, username, guests: { number: guests } }) :
            JSON.stringify({ reason });
 
        try {
