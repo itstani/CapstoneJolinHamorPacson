@@ -1425,8 +1425,8 @@ async function fetchEventDetails(notification, eventName) {
     }
     
     // If still not found, try by user email
-    if (!response.ok && notification.userEmail) {
-      url = `/api/user-events/${encodeURIComponent(notification.userEmail)}`;
+    if (!response.ok && notification.username) {
+      url = `/api/user-events/${encodeURIComponent(notification.username)}`;
       response = await fetch(url);
     }
     
@@ -1577,7 +1577,7 @@ function proceedToPayment(notification) {
       startTime: notification.startTime,
       endTime: notification.endTime,
       amenity: notification.amenity,
-      userEmail: notification.userEmail || '',
+      username: notification.username || '',
       _id: eventId || '',
     };
     sessionStorage.setItem('eventData', JSON.stringify(eventData));
@@ -1649,6 +1649,79 @@ const response = await fetch('/api/check-auth', {
     'Cache-Control': 'no-cache'
   }
 });
+
+function proceedToMDPayment(notification) {
+  // Debug: Print notification and relatedId
+  console.log('Proceed to Payment clicked. Notification:', notification);
+  const eventId = notification.relatedId || notification._id;
+  console.log('Attempting to fetch event with ID:', eventId);
+
+  // Use notification data directly if all details are present
+  if (notification.eventName && notification.eventDate && notification.startTime && notification.endTime && notification.amenity) {
+    const eventData = {
+      username: notification.username || '',
+      _id: eventId || '',
+    };
+    sessionStorage.setItem('eventData', JSON.stringify(eventData));
+    window.location.href = 'payment.html';
+    return;
+  }
+
+  // Otherwise, try fetching from the server
+  if (eventId) {
+    const url = `/api/event/${eventId}`;
+    console.log('Fetching event from:', url);
+    fetch(url)
+      .then(response => {
+        console.log('Fetch response:', response);
+        if (!response.ok) {
+          if (notification.eventName) {
+            // Try by event name
+            const nameUrl = `/api/event-by-name/${encodeURIComponent(notification.eventName)}`;
+            console.log('Event not found by ID, trying by name:', nameUrl);
+            return fetch(nameUrl);
+          }
+          throw new Error('Event not found by ID');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Event fetch data:', data);
+        if (data && data.success && data.event) {
+          sessionStorage.setItem('eventData', JSON.stringify(data.event));
+          window.location.href = 'payment.html';
+        } else if (notification.eventName && notification.eventDate) {
+          // Try by event name and date
+          const nameDateUrl = `/eventshow?eventName=${encodeURIComponent(notification.eventName)}&eventDate=${encodeURIComponent(notification.eventDate)}`;
+          console.log('Trying by event name and date:', nameDateUrl);
+          fetch(nameDateUrl)
+            .then(resp => resp.json())
+            .then(evData => {
+              console.log('Event fetch by name and date:', evData);
+              if (evData && evData.success && evData.eventDetails) {
+                sessionStorage.setItem('eventData', JSON.stringify(evData.eventDetails));
+                window.location.href = 'payment.html';
+              } else {
+                throw new Error('Event not found by name and date');
+              }
+            })
+            .catch(error => {
+              alert('Failed to fetch event details. Please contact admin or try again later.');
+              console.error('Final event fetch error:', error);
+            });
+        } else {
+          throw new Error('Unknown error');
+        }
+      })
+      .catch(error => {
+        alert('Failed to fetch event details. Please contact admin or try again later.');
+        console.error('Final event fetch error:', error);
+      });
+  } else {
+    alert('Event ID not found. Please contact admin.');
+    console.error('No eventId found in notification:', notification);
+  }
+};
 
 
 // Function to clear all notifications

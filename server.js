@@ -3792,53 +3792,6 @@ app.post("/api/markNotificationAsRead", async (req, res) => {
   }
 })
 
-app.post("/api/markAllNotificationsRead", async (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.session || !req.session.user || !req.session.user.email) {
-      return res.status(401).json({
-        success: false,
-        error: "Not authenticated",
-      })
-    }
-
-    const userEmail = req.session.user.email
-
-    const { notificationIds } = req.body
-
-    if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No notification IDs provided",
-      })
-    }
-
-    const db = await connectToDatabase()
-    const notificationsCollection = db.collection("notifications")
-
-    // Update selected notifications for this user to be marked as read
-    const result = await notificationsCollection.updateMany(
-      {
-        _id: { $in: notificationIds.map((id) => new MongoClient.ObjectId(id)) },
-        username: username, // Ensure we only update this user's notifications
-      },
-      { $set: { read: true } },
-    )
-
-    res.json({
-      success: true,
-      message: "Selected notifications marked as read",
-      modifiedCount: result.modifiedCount,
-    })
-  } catch (error) {
-    console.error("Error marking selected notifications as read:", error)
-    res.status(500).json({
-      success: false,
-      error: "Failed to mark selected notifications as read",
-    })
-  }
-})
-
 // Declare notifications and showEventDetails variables
 const notifications = []
 const showEventDetails = () => {}
@@ -4189,7 +4142,7 @@ async function notifyDelinquentHomeowners() {
       const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
 
       const existingNotification = await notificationsCollection.findOne({
-        userEmail: homeowner.email,
+        username: homeowner.username,
         type: "payment_reminder",
         timestamp: { $gte: firstDayOfMonth },
       })
@@ -4197,7 +4150,7 @@ async function notifyDelinquentHomeowners() {
       // If no notification was sent this month, create one
       if (!existingNotification) {
         await createNotification(
-          homeowner.email,
+          homeowner.username,
           "payment_reminder",
           `Payment Reminder: Your homeowner dues are currently marked as unpaid. Please settle your payment as soon as possible to avoid penalties.`,
           null,
@@ -4206,7 +4159,7 @@ async function notifyDelinquentHomeowners() {
           { isPaid: false },
         )
 
-        console.log(`Sent payment reminder to ${homeowner.email}`)
+        console.log(`Sent payment reminder to ${homeowner.username}`)
       }
     }
 
@@ -4277,9 +4230,9 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
     const notifications = []
 
     for (const homeowner of homeowners) {
-      if (homeowner.email) {
+      if (homeowner.username) {
         notifications.push({
-          userEmail: homeowner.email,
+          username: homeowner.username,
           type: type || "payment_reminder",
           subject,
           message,
