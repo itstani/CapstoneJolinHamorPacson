@@ -220,39 +220,37 @@
       /* Notification Icon Styles */
       .notification-icon {
 position: fixed;
-top: 7px;
-right: 16px;
-
-background: rgb(195, 67, 67);
-
+        top: 20px;
+        right: 20px;
+        background: #af2630;
 border-radius: 50%;
-
 width: 40px;
-
 height: 40px;
-
 display: flex;
-
 align-items: center;
-
 justify-content: center;
-
 cursor: pointer;
-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 transition: transform 0.2s;
-z-index: 1002; /* Ensure it's above the header */
+        z-index: 1002;
+        border: 2px solid white;
+      }
+
+      .notification-icon:hover {
+        transform: scale(1.1);
 }
 
       .notification-icon img {
         width: 24px;
         height: 24px;
+        filter: brightness(0) invert(1); /* Make the bell icon white */
       }
 
       .notification-count {
         position: absolute;
         top: -5px;
         right: -5px;
-        background-color: #af2630;
+        background-color: #ff4444;
         color: white;
         border-radius: 50%;
         width: 20px;
@@ -262,6 +260,7 @@ z-index: 1002; /* Ensure it's above the header */
         align-items: center;
         font-size: 12px;
         font-weight: bold;
+        border: 2px solid white;
       }
       
       /* Notification Modal Styles */
@@ -274,10 +273,10 @@ z-index: 1002; /* Ensure it's above the header */
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        z-index: 1000;
+        z-index: 1001;
         overflow: hidden;
         max-height: 80vh;
-        flex-direction: column;
+        border: 1px solid #ddd;
       }
 
       .notification-header {
@@ -287,11 +286,13 @@ z-index: 1002; /* Ensure it's above the header */
         display: flex;
         justify-content: space-between;
         align-items: center;
+        position: relative;
       }
 
       .notification-header h2 {
         margin: 0;
         font-size: 18px;
+        font-weight: bold;
       }
 
       .close-modal {
@@ -301,22 +302,18 @@ z-index: 1002; /* Ensure it's above the header */
         position: absolute;
         top: 10px;
         right: 15px;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background-color 0.2s;
       }
-      .logoutbutton{
 
-        margin-top: auto;
-
-        margin-bottom: 30px; /* Adjust this as needed */
-
-        width: 100%;
-
-        text-align: center;
-
-        }
-
-
-
-
+      .close-modal:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
 
       .notification-list {
         overflow-y: auto;
@@ -324,11 +321,51 @@ z-index: 1002; /* Ensure it's above the header */
         padding: 0;
       }
 
+      .notification-item {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .notification-item:hover {
+        background-color: #f5f5f5;
+      }
+      
+      .notification-checkbox {
+        margin-top: 3px;
+      }
+      
+      .notification-content {
+        flex: 1;
+      }
+      
+      .notification-subject {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+      }
+      
+      .notification-message {
+        color: #666;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      
+      .notification-timestamp {
+        font-size: 12px;
+        color: #888;
+      }
+      
       .notification-actions {
         display: flex;
         justify-content: space-between;
         padding: 15px;
         border-top: 1px solid #eee;
+        background-color: #f9f9f9;
       }
 
       .clear-btn {
@@ -339,6 +376,11 @@ z-index: 1002; /* Ensure it's above the header */
         border-radius: 5px;
         cursor: pointer;
         font-size: 14px;
+        transition: background-color 0.2s;
+      }
+
+      .clear-btn:hover {
+        background-color: #8f1d25;
       }
 
       .clear-btn:disabled {
@@ -350,143 +392,20 @@ z-index: 1002; /* Ensure it's above the header */
         padding: 20px;
         text-align: center;
         color: #888;
-      }
-        
-      /* Notification Item Styles */
-      .notification-item {
-        position: relative;
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: flex-start;
-      }
-      
-      .notification-item:hover {
-        background-color: #f9f9f9;
-      }
-      
-      .notification-checkbox {
-        margin-right: 10px;
-        margin-top: 3px;
-      }
-      
-      .notification-content {
-        flex: 1;
-      }
-      
-      .notification-subject {
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-      
-      .notification-message {
-        color: #555;
-        margin-bottom: 5px;
-      }
-      
-      .notification-timestamp {
-        font-size: 0.8em;
-        color: #888;
-      }
-      
-      .payment-required {
-        color: #af2630;
-        font-weight: bold;
-        margin-top: 5px;
-      }
-      
-      /* Event Details Modal Styles */
-      .event-details-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1003;
-        justify-content: center;
-        align-items: center;
-      }
-      
-      .event-details-content {
-        background-color: white;
-        padding: 30px 20px 20px;
-        border-radius: 10px;
-        max-width: 500px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        position: relative;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-      
-      .close-event-details {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        font-size: 24px;
-        cursor: pointer;
-        color: #888;
-        background: none;
-        border: none;
-        padding: 0;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-      }
-      
-      .close-event-details:hover {
-        background-color: #f5f5f5;
-      }
-      
-      .event-detail-row {
-        display: flex;
-        margin-bottom: 15px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-      }
-      
-      .event-detail-label {
-        font-weight: bold;
-        width: 120px;
-        flex-shrink: 0;
-        color: #333;
-      }
-      
-      .event-detail-value {
-        flex-grow: 1;
-        color: #666;
-      }
-      
-      .event-actions {
-        margin-top: 20px;
-        text-align: right;
-      }
-      
-      .payment-button {
-        background-color: #af2630;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 5px;
-        cursor: pointer;
+        font-style: italic;
       }
 
-      #eventDetailsTitle {
-        margin: 0 0 20px;
-        color: #333;
-        font-size: 1.5em;
-        padding-right: 30px;
+      /* Add debug styles to make sure elements are visible */
+      #notificationIcon {
+        border: 2px solid red !important; /* Debug border */
       }
 
-      /* Mobile CSS*/
-      @media (max-width: 768px) {
+      #notificationModal {
+        border: 2px solid blue !important; /* Debug border */
+      }
+
+      /* Mobile responsiveness */
+      @media screen and (max-width: 768px) {
         .notification-modal {
           width: 95vw;
           max-height: 80vh;
@@ -511,164 +430,8 @@ z-index: 1002; /* Ensure it's above the header */
           padding: 8px 12px;
           font-size: 0.85rem;
         }
-        
-        .event-details-content {
-          width: 95%;
-          max-width: none;
-          margin: 10px;
-        }
       }
 
-      /* Tablet improvements */
-      @media screen and (min-width: 769px) and (max-width: 1024px) {
-        .reserve button img {
-          width: 250px;
-          height: 250px;
-        }
-
-        .Welcome {
-          margin-left: 90px;
-        }
-
-        .form-image-container {
-          margin-left: 90px;
-        }
-      }
-
-      /* Touch device improvements */
-      @media (hover: none) {
-        .reserve button:hover {
-          transform: none;
-        }
-
-        .reserve button:active {
-          background-color: rgba(62, 4, 8, 0.1);
-        }
-      }
-      .top-bar {
-        z-index: 1001; /* Lower z-index than notification icon */
-      }
-      /* Animation */
-      @keyframes slideIn {
-        from {
-          transform: translate(-50%, -60%);
-          opacity: 0;
-        }
-        to {
-          transform: translate(-50%, -50%);
-          opacity: 1;
-        }
-      }
-      
-      @media screen and (max-width: 768px) {
-        /* Sidebar becomes bottom navigation */
-        .side-bar {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          height: 70px;
-          padding: 0;
-          display: flex;
-          justify-content: space-around;
-          align-items: center;
-          background-color: #D9D9D9;
-          z-index: 1000;
-        }
-
-        .Home, .Calendar, .Profile {
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .Home img, .Calendar img, .Profile img {
-          width: 30px;
-          height: 30px;
-        }
-
-        .Home p, .Calendar p, .Profile p {
-          margin-top: 4px;
-          font-size: 12px;
-        }
-
-        /* Welcome section adjustments */
-        
-
-        /* Reserve section adjustments */
-        .reserve {
-          padding: 20px;
-          margin-bottom: 80px;
-          flex-direction: column;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .reservetext1 {
-          font-size: 24px;
-          margin-bottom: 20px;
-        }
-
-        .reserve-item {
-          width: 100%;
-          max-width: 300px;
-        }
-
-        .reserve button img {
-          width: 200px;
-          height: 200px;
-        }
-
-        /* Popup improvements */
-        .popup-content {
-          width: 95%;
-          max-width: 400px;
-          margin: 10px;
-          height: auto;
-          max-height: 90vh;
-        }
-
-        .popup-content-inner {
-          margin-top: 50px;
-          padding: 10px;
-        }
-
-        /* Form inputs */
-        .popup-content input[type="text"],
-        .popup-content textarea {
-          font-size: 16px;
-          padding: 12px;
-        }
-
-        /* Notification adjustments */
-        .notification-icon {
-          top: 10px;
-          right: 10px;
-        }
-
-        /* Button improvements */
-        .button {
-          position: fixed;
-          bottom: 70px;
-          left: 0;
-          width: 100%;
-          background-color: #D9D9D9;
-          padding: 10px;
-          margin: 0;
-          text-align: center;
-          z-index: 999;
-        }
-
-        /* Improve touch targets */
-        button,
-        input[type="button"],
-        input[type="submit"] {
-          min-height: 44px;
-          min-width: 44px;
-          padding: 12px;
-        }
-      }
       .avidalogo {
   max-width: 300px;
   width: 100%;
@@ -751,6 +514,11 @@ z-index: 1002; /* Ensure it's above the header */
         <img src="/images/bell.png" alt="Notifications" onerror="handleImageError(this)" />
         <span class="notification-count" id="notificationCount">0</span>
       </div>
+    
+    <!-- Add this test button -->
+    <button id="testNotification" style="position: fixed; top: 70px; right: 20px; z-index: 1003; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Test Notification
+    </button>
     
     <div class="top-bar"></div>
     
@@ -892,30 +660,233 @@ const RETRY_DELAY = 2000;
 let retryCount = 0;
 let currentNotification = null;
 
-// Function to update the notification list in the UI - defined first since it's used by multiple functions
+// Add this function to check if elements exist
+function checkElements() {
+  const elements = {
+    notificationIcon: document.getElementById('notificationIcon'),
+    notificationModal: document.getElementById('notificationModal'),
+    notificationList: document.getElementById('notificationList'),
+    logoutButton: document.getElementById('logoutButton')
+  };
+  
+  console.log('Checking elements:', elements);
+  return elements;
+}
+
+// Update the fetchNotifications function with more debugging
+async function fetchNotifications() {
+  try {
+    console.log("Starting to fetch notifications...");
+    const response = await fetch("/api/notifications", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Accept": "application/json",
+        "Cache-Control": "no-cache"
+      }
+    });
+
+    console.log("Notification fetch response status:", response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Raw notification data:", data);
+    
+    if (data && Array.isArray(data)) {
+      notifications = data;
+      console.log("Processed notifications:", notifications);
+      
+      // Update notification count
+      const unreadCount = notifications.filter(n => !n.read).length;
+      console.log("Unread count:", unreadCount);
+      
+      const notificationCount = document.getElementById('notificationCount');
+      if (notificationCount) {
+        notificationCount.textContent = unreadCount.toString();
+        console.log("Updated notification count display");
+    } else {
+        console.error("Notification count element not found");
+      }
+      
+      updateNotificationList();
+      updateClearButtons();
+    } else {
+      console.error("Invalid notification data received:", data);
+      notifications = [];
+    }
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    showErrorMessage("Failed to load notifications. Please try again.");
+    notifications = [];
+  }
+}
+
+// Add this initialization function
+async function initializeApp() {
+  try {
+    console.log("Starting app initialization...");
+    
+    // Debug: Log all elements
+    console.log("Checking elements:", {
+      notificationIcon: document.getElementById('notificationIcon'),
+      notificationModal: document.getElementById('notificationModal'),
+      notificationList: document.getElementById('notificationList'),
+      closeModal: document.getElementById('closeModal'),
+      logoutButton: document.getElementById('logoutButton')
+    });
+
+    // Check authentication
+    const authResponse = await fetch('/api/check-auth', {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+
+    console.log("Auth response:", authResponse.status);
+
+    if (!authResponse.ok) {
+      console.log("Auth check failed, redirecting to login");
+      window.location.href = "/login.html";
+      return;
+    }
+
+    const authData = await authResponse.json();
+    console.log("Auth data:", authData);
+
+    if (!authData.authenticated) {
+      console.log("Not authenticated, redirecting to login");
+      window.location.href = "/login.html";
+      return;
+    }
+
+    console.log("Authentication successful");
+    
+    // Initialize notification elements
+    const notificationIcon = document.getElementById('notificationIcon');
+  const notificationModal = document.getElementById('notificationModal');
+    const closeModal = document.getElementById('closeModal');
+    const logoutButton = document.getElementById('logoutButton');
+
+    if (!notificationIcon || !notificationModal || !closeModal || !logoutButton) {
+      console.error("Required elements not found:", {
+        notificationIcon: !!notificationIcon,
+        notificationModal: !!notificationModal,
+        closeModal: !!closeModal,
+        logoutButton: !!logoutButton
+      });
+      return;
+    }
+
+    // Set up notification icon click handler
+    notificationIcon.addEventListener('click', async (e) => {
+      console.log("Notification icon clicked", e);
+      e.preventDefault();
+      e.stopPropagation();
+      notificationModal.style.display = 'block';
+      await fetchNotifications();
+    });
+
+    // Set up close modal handler
+    closeModal.addEventListener('click', (e) => {
+      console.log("Close modal clicked", e);
+      e.preventDefault();
+      e.stopPropagation();
+      notificationModal.style.display = 'none';
+    });
+
+    // Set up logout button handler
+    logoutButton.addEventListener('click', async (e) => {
+      console.log("Logout button clicked", e);
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const response = await fetch("/api/logout", {
+          method: "POST",
+          credentials: "include",
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+        console.log("Logout response status:", response.status);
+        
+        if (response.ok) {
+          console.log("Logout successful, clearing data");
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.href = "/login.html";
+        } else {
+          console.error("Logout failed");
+          alert("Logout failed. Please try again.");
+    }
+  } catch (error) {
+        console.error("Error during logout:", error);
+        alert("An error occurred during logout. Please try again.");
+      }
+    });
+
+    // Add test button handler
+    const testButton = document.getElementById('testNotification');
+    if (testButton) {
+        testButton.addEventListener('click', async () => {
+            console.log("Test button clicked");
+  const notificationModal = document.getElementById('notificationModal');
+  if (notificationModal) {
+                console.log("Showing modal");
+                notificationModal.style.display = 'block';
+                await fetchNotifications();
+            } else {
+                console.error("Modal not found");
+            }
+        });
+    }
+
+    // Initial fetch of notifications
+    console.log("Performing initial notification fetch");
+    await fetchNotifications();
+
+  } catch (error) {
+    console.error("Error during initialization:", error);
+    window.location.href = "/login.html";
+  }
+}
+
+// Call the initialization function when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("DOM Content Loaded - Starting initialization");
+  initializeApp();
+});
+
+// Add this to help debug notification clicks
 function updateNotificationList() {
+  console.log("Updating notification list");
   const notificationList = document.getElementById('notificationList');
   if (!notificationList) {
     console.error('Notification list element not found');
-    return;
-  }
-
+      return;
+    }
+    
   notificationList.innerHTML = ''; // Clear existing list
 
   if (!notifications || notifications.length === 0) {
+    console.log("No notifications to display");
     const noNotifications = document.createElement('div');
     noNotifications.classList.add('no-notifications');
     noNotifications.textContent = 'No new notifications';
     notificationList.appendChild(noNotifications);
-    return;
-  }
-
-  notifications.forEach((notification) => {
-    // Skip deleted event notifications
-    if (notification.type === 'event_deleted') {
       return;
     }
+    
+  console.log("Rendering notifications:", notifications);
 
+  notifications.forEach((notification) => {
+    console.log("Creating notification item for:", notification);
     const notificationItem = document.createElement('div');
     notificationItem.classList.add('notification-item');
     notificationItem.dataset.id = notification._id;
@@ -925,7 +896,7 @@ function updateNotificationList() {
     checkbox.type = 'checkbox';
     checkbox.className = 'notification-checkbox';
     checkbox.dataset.id = notification._id;
-    checkbox.onclick = (e) => e.stopPropagation(); // Prevent opening modal when clicking checkbox
+    checkbox.onclick = (e) => e.stopPropagation();
 
     // Create content wrapper
     const contentWrapper = document.createElement('div');
@@ -934,52 +905,17 @@ function updateNotificationList() {
     // Create subject line
     const subjectDiv = document.createElement('div');
     subjectDiv.className = 'notification-subject';
-    
-    // Format the subject line based on notification type
-    let subject = '';
-    if (notification.type === 'monthly_payment' || notification.type === 'payment_approved' || notification.type === 'payment_rejected') {
-      subject = `Monthly Payment ${notification.type === 'payment_approved' ? 'Approved' : notification.type === 'payment_rejected' ? 'Rejected' : 'Submitted'}`;
-    } else if (notification.type === 'concern' || notification.type === 'new_concern' || notification.type === 'concern_reply') {
-      subject = notification.subject || 'Concern Update';
-    } else if (notification.type === 'payment_required' || notification.type === 'payment_confirmed' || notification.type === 'event_confirmed') {
-      subject = notification.subject || `${notification.eventName || 'Event'} on ${notification.eventDate || 'N/A'}`;
-    } else {
-      subject = notification.subject || notification.message;
-    }
-    subjectDiv.textContent = subject;
+    subjectDiv.textContent = notification.subject || 'Notification';
 
     // Create message element
     const messageDiv = document.createElement('div');
     messageDiv.className = 'notification-message';
-
-    // Add type-specific indicators
-    if (notification.type === 'monthly_payment' || notification.type === 'payment_approved' || notification.type === 'payment_rejected') {
-      const paymentStatus = document.createElement('div');
-      paymentStatus.className = 'payment-status';
-      paymentStatus.style.color = notification.type === 'payment_approved' ? '#28a745' : 
-                                notification.type === 'payment_rejected' ? '#dc3545' : '#ffc107';
-      paymentStatus.textContent = notification.type === 'payment_approved' ? 'Payment Approved' : 
-                                notification.type === 'payment_rejected' ? 'Payment Rejected' : 'Payment Pending';
-      contentWrapper.appendChild(paymentStatus);
-    }
-
-    // Add admin response indicator if needed
-    if (notification.isAdminResponse) {
-      const adminResponseDiv = document.createElement('div');
-      adminResponseDiv.className = 'admin-response';
-      adminResponseDiv.style.color = '#3e0408';
-      adminResponseDiv.style.fontWeight = 'bold';
-      adminResponseDiv.style.marginTop = '5px';
-      adminResponseDiv.textContent = 'Admin Response';
-      contentWrapper.appendChild(adminResponseDiv);
-    }
-
     messageDiv.textContent = notification.message;
 
     // Create timestamp element
     const timestampDiv = document.createElement('div');
     timestampDiv.className = 'notification-timestamp';
-    timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
+    timestampDiv.textContent = new Date(notification.timestamp.$date).toLocaleString();
 
     // Add elements to content wrapper
     contentWrapper.appendChild(subjectDiv);
@@ -990,515 +926,22 @@ function updateNotificationList() {
     notificationItem.appendChild(checkbox);
     notificationItem.appendChild(contentWrapper);
 
-    // Add click event based on notification type
+    // Add click event
     notificationItem.addEventListener('click', (e) => {
+      console.log("Notification clicked:", notification);
       if (e.target !== checkbox) {
         switch (notification.type) {
-          case 'monthly_payment':
-          case 'payment_approved':
-          case 'payment_rejected':
-            showMonthlyPaymentModal(notification);
-            break;
-          case 'event_payment':
-            showEventPaymentModal(notification);
-            break;
-          case 'event_payment_finished':
-            showEventDetailsModal(notification);
-            break;
-          case 'admin_reply':
-          case 'concern_reply':
-            showAdminResponsePopup(notification);
+          case 'payment_reminder':
+            showPaymentReminderModal(notification);
             break;
           default:
-            showEventDetailsModal(notification);
+            showDefaultModal(notification);
         }
       }
     });
 
     notificationList.appendChild(notificationItem);
   });
-}
-
-// Implement separate modal functions for each notification type
-function showMonthlyPaymentModal(notification) {
-  // Create a modal for monthly payment details
-  const modal = document.createElement('div');
-  modal.style.position = 'fixed';
-  modal.style.top = '0';
-  modal.style.left = '0';
-  modal.style.width = '100%';
-  modal.style.height = '100%';
-  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-  modal.style.display = 'flex';
-  modal.style.justifyContent = 'center';
-  modal.style.alignItems = 'center';
-  modal.style.zIndex = '1000';
-
-  const modalContent = document.createElement('div');
-  modalContent.style.backgroundColor = 'white';
-  modalContent.style.padding = '20px';
-  modalContent.style.borderRadius = '10px';
-  modalContent.style.maxWidth = '500px';
-  modalContent.style.width = '90%';
-
-  // Add payment details
-  const title = document.createElement('h3');
-  title.textContent = 'Monthly Payment Details';
-  title.style.color = '#af2630';
-  title.style.marginTop = '0';
-
-  const details = document.createElement('div');
-  details.style.marginTop = '20px';
-
-  // Add payment amount
-  const amountDiv = document.createElement('div');
-  amountDiv.style.marginBottom = '10px';
-  amountDiv.innerHTML = `<strong>Amount:</strong> ₱${notification.paymentDetails?.amount?.toFixed(2) || '0.00'}`;
-  details.appendChild(amountDiv);
-
-  // Add payment date
-  const paymentDateDiv = document.createElement('div');
-  paymentDateDiv.style.marginBottom = '10px';
-  paymentDateDiv.innerHTML = `<strong>Payment Date:</strong> ${new Date(notification.paymentDetails?.paymentDate).toLocaleDateString()}`;
-  details.appendChild(paymentDateDiv);
-
-  // Add next payment date
-  const nextPaymentDateDiv = document.createElement('div');
-  nextPaymentDateDiv.style.marginBottom = '10px';
-  nextPaymentDateDiv.innerHTML = `<strong>Next Payment Due:</strong> ${new Date(notification.paymentDetails?.nextPaymentDate).toLocaleDateString()}`;
-  details.appendChild(nextPaymentDateDiv);
-
-  // Add penalty if any
-  if (notification.paymentDetails?.penalty > 0) {
-    const penaltyDiv = document.createElement('div');
-    penaltyDiv.style.marginBottom = '10px';
-    penaltyDiv.style.color = '#af2630';
-    penaltyDiv.innerHTML = `<strong>Penalty:</strong> ₱${notification.paymentDetails.penalty.toFixed(2)}`;
-    details.appendChild(penaltyDiv);
-  }
-
-  // Add message
-  const messageDiv = document.createElement('div');
-  messageDiv.style.marginTop = '20px';
-  messageDiv.style.padding = '10px';
-  messageDiv.style.backgroundColor = '#f8f8f8';
-  messageDiv.style.borderRadius = '5px';
-  messageDiv.textContent = notification.message;
-
-  // Add close button
-  const closeButton = document.createElement('button');
-  closeButton.textContent = 'Close';
-  closeButton.style.backgroundColor = '#af2630';
-  closeButton.style.color = 'white';
-  closeButton.style.border = 'none';
-  closeButton.style.padding = '10px 15px';
-  closeButton.style.borderRadius = '5px';
-  closeButton.style.cursor = 'pointer';
-  closeButton.style.marginTop = '20px';
-  closeButton.onclick = () => {
-    document.body.removeChild(modal);
-  };
-
-  modalContent.appendChild(title);
-  modalContent.appendChild(details);
-  modalContent.appendChild(messageDiv);
-  modalContent.appendChild(closeButton);
-  modal.appendChild(modalContent);
-  document.body.appendChild(modal);
-
-  // Mark notification as read
-  markNotificationAsRead(notification._id);
-}
-
-function showEventPaymentModal(notification) {
-  // Show a modal prompting for event payment
-  alert('Event Payment Required! Please pay for your event.');
-  // You can replace this with your custom modal logic
-}
-
-function showEventDetailsModal(notification) {
-  // Show a modal with event details (for finished events)
-  alert('Event Payment Finished! Here are the event details.');
-  // You can replace this with your custom modal logic
-}
-
-// Add a function to show admin responses in a popup
-function showAdminResponsePopup(notification) {
-  // Close the notification modal
-  const notificationModal = document.getElementById('notificationModal');
-  if (notificationModal) {
-    notificationModal.style.display = 'none';
-  }
-  
-  // Create a popup for the admin response
-  const popup = document.createElement('div');
-  popup.style.position = 'fixed';
-  popup.style.top = '0';
-  popup.style.left = '0';
-  popup.style.width = '100%';
-  popup.style.height = '100%';
-  popup.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-  popup.style.display = 'flex';
-  popup.style.justifyContent = 'center';
-  popup.style.alignItems = 'center';
-  popup.style.zIndex = '1000';
-  
-  const popupContent = document.createElement('div');
-  popupContent.style.backgroundColor = 'white';
-  popupContent.style.padding = '20px';
-  popupContent.style.borderRadius = '10px';
-  popupContent.style.maxWidth = '500px';
-  popupContent.style.width = '90%';
-  popupContent.style.maxHeight = '80vh';
-  popupContent.style.overflowY = 'auto';
-  
-  const title = document.createElement('h3');
-  title.textContent = notification.subject || 'Admin Response';
-  title.style.marginTop = '0';
-  title.style.color = '#af2630';
-  
-  const message = document.createElement('p');
-  message.textContent = notification.message || '';
-  
-  const timestamp = document.createElement('p');
-  timestamp.textContent = `Received: ${new Date(notification.timestamp).toLocaleString()}`;
-  timestamp.style.color = '#888';
-  timestamp.style.fontSize = '0.9em';
-  
-  const closeButton = document.createElement('button');
-  closeButton.textContent = 'Close';
-  closeButton.style.backgroundColor = '#af2630';
-  closeButton.style.color = 'white';
-  closeButton.style.border = 'none';
-  closeButton.style.padding = '10px 15px';
-  closeButton.style.borderRadius = '5px';
-  closeButton.style.cursor = 'pointer';
-  closeButton.style.marginTop = '15px';
-  closeButton.onclick = () => {
-    document.body.removeChild(popup);
-  };
-  
-  popupContent.appendChild(title);
-  popupContent.appendChild(message);
-  popupContent.appendChild(timestamp);
-  popupContent.appendChild(closeButton);
-  
-  popup.appendChild(popupContent);
-  document.body.appendChild(popup);
-  
-  // Mark the notification as read
-  markNotificationAsRead(notification._id);
-}
-
-// Function to mark a notification as read
-async function markNotificationAsRead(notificationId) {
-  try {
-    const response = await fetch('/api/markNotificationAsRead', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ notificationId })
-    });
-    
-    if (response.ok) {
-      // Update the local notification object
-      const index = notifications.findIndex(n => n._id === notificationId);
-      if (index !== -1) {
-        notifications[index].read = true;
-        
-        // Update the notification count
-        const unreadCount = notifications.filter(n => !n.read).length;
-        const notificationCountElement = document.getElementById('notificationCount');
-        if (notificationCountElement) {
-          notificationCountElement.textContent = unreadCount.toString();
-        }
-      }
-    } else {
-      console.error('Server returned error when marking notification as read');
-    }
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-  }
-}
-
-// Function to mark all notifications as read
-async function markAllNotificationsAsRead() {
-  try {
-    const response = await fetch('/api/markAllNotificationsRead', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      // Update all local notification objects
-      notifications.forEach(notification => {
-        notification.read = true;
-      });
-      
-      // Update the notification count
-      const notificationCountElement = document.getElementById('notificationCount');
-      if (notificationCountElement) {
-        notificationCountElement.textContent = '0';
-      }
-    }
-  } catch (error) {
-    console.error('Error marking all notifications as read:', error);
-  }
-}
-
-// Update the showEventDetails function with better debugging and fallback options
-// Update the showEventDetails function with better data extraction
-// Update the showEventDetails function with more robust payment requirement detection
-function showEventDetails(notification) {
-  console.log("Showing event details for notification:", notification);
-  currentNotification = notification;
-
-  // Close the notification modal
-  const notificationModal = document.getElementById('notificationModal');
-  if (notificationModal) {
-    notificationModal.style.display = 'none';
-  }
-
-  // Extract event name
-  let displayEventName = notification.eventName || 'N/A';
-  if (!displayEventName || displayEventName === 'N/A') {
-    const match = notification.message?.match(/"([^"]+)"/);
-    if (match && match[1]) {
-      displayEventName = match[1];
-    } else if (notification.subject) {
-      const subjectParts = notification.subject.split(' on ');
-      if (subjectParts.length > 0) {
-        displayEventName = subjectParts[0];
-      }
-    }
-  }
-  document.getElementById('eventDetailsName').textContent = displayEventName;
-
-  // Extract date
-  let displayDate = notification.eventDate || 'N/A';
-  if (!displayDate || displayDate === 'N/A') {
-    if (notification.subject) {
-      const dateMatch = notification.subject.match(/on\s+(\d{4}-\d{2}-\d{2})/);
-      if (dateMatch && dateMatch[1]) {
-        displayDate = dateMatch[1];
-      }
-    }
-    if ((!displayDate || displayDate === 'N/A') && notification.message) {
-      const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
-      if (dateMatch && dateMatch[1]) {
-        displayDate = dateMatch[1];
-      }
-    }
-  }
-  document.getElementById('eventDetailsDate').textContent = displayDate;
-
-  // Extract time
-  let displayTime = 'N/A';
-  
-  // First check direct properties
-  if (notification.startTime && notification.endTime) {
-    displayTime = `${notification.startTime} - ${notification.endTime}`;
-  } 
-  // Then check subject - specifically for the format in your data
-  else if (notification.subject && notification.subject.includes('PM-')) {
-    // Handle the specific format in your data like "Liga on 2025-03-20 4: PM-6: PM"
-    const timeMatch = notification.subject.match(/(\d+:\s*PM)-(\d+:\s*PM)/i);
-    if (timeMatch && timeMatch[1] && timeMatch[2]) {
-      displayTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
-    }
-  }
-  // Try other patterns if still not found
-  else if (notification.subject) {
-    const timeMatch = notification.subject.match(/(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*-\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)/i);
-    if (timeMatch && timeMatch[1] && timeMatch[2]) {
-      displayTime = `${timeMatch[1].trim()} - ${timeMatch[2].trim()}`;
-    }
-  }
-  document.getElementById('eventDetailsTime').textContent = displayTime;
-
-  // Extract amenity
-  let displayAmenity = notification.amenity || 'N/A';
-  if (!displayAmenity || displayAmenity === 'N/A') {
-    if (notification.message) {
-      const amenityMatch = notification.message.match(/at\s+([A-Za-z]+)/i);
-      if (amenityMatch && amenityMatch[1]) {
-        displayAmenity = amenityMatch[1];
-      }
-    }
-  }
-  document.getElementById('eventDetailsAmenity').textContent = displayAmenity;
-
-  // Determine if payment is required based on multiple factors
-  let requiresPayment = false;
-  let status = 'Confirmed';
-
-  // 1. If the message contains 'proceed with the payment', always require payment
-  if (notification.message && notification.message.toLowerCase().includes('proceed with the payment')) {
-    requiresPayment = true;
-    status = 'Payment Required';
-  }
-  // 2. Explicit payment indicators
-  else if (notification.type === 'payment_required') {
-    requiresPayment = true;
-    status = 'Payment Required';
-  }
-  // 3. Status-based
-  else if (
-    (notification.status === 'approved' || notification.status === 'Payment Required') && !notification.isPaid
-  ) {
-    requiresPayment = true;
-    status = 'Payment Required';
-  }
-
-  // Check event type - certain types typically don't require payment
-  const freeEventTypes = ['birthday', 'meeting', 'community'];
-  if (notification.eventType && freeEventTypes.includes(notification.eventType.toLowerCase())) {
-    requiresPayment = false;
-    if (status === 'Payment Required') {
-      status = 'Confirmed'; // Override status for free event types
-    }
-  }
-
-  console.log("DEBUG: requiresPayment?", requiresPayment, {
-    message: notification.message,
-    type: notification.type,
-    status: notification.status,
-    isPaid: notification.isPaid
-  });
-
-  document.getElementById('eventDetailsStatus').textContent = status;
-  
-  // Set message
-  document.getElementById('eventDetailsMessage').textContent = notification.message || '';
-
-  // Ensure eventActions div exists
-  let actionsDiv = document.getElementById('eventActions');
-  if (!actionsDiv) {
-    // Try to find the modal content container
-    let modalContent = document.querySelector('.event-details-content');
-    if (modalContent) {
-      actionsDiv = document.createElement('div');
-      actionsDiv.id = 'eventActions';
-      actionsDiv.className = 'event-actions';
-      modalContent.appendChild(actionsDiv);
-    }
-  }
-  actionsDiv.innerHTML = '';
-  if (requiresPayment) {
-    console.log("DEBUG: Showing Proceed to Payment button for notification:", notification);
-    const paymentButton = document.createElement('button');
-    paymentButton.className = 'payment-button';
-    paymentButton.textContent = 'Proceed to Payment';
-    paymentButton.onclick = () => proceedToPayment(notification);
-    actionsDiv.appendChild(paymentButton);
-  }
-
-  // Show the modal
-  const eventDetailsModal = document.getElementById('eventDetailsModal');
-  if (eventDetailsModal) {
-    eventDetailsModal.style.display = 'flex';
-  }
-
-  // If we're missing important details, try to fetch them from the server
-  if (displayDate === 'N/A' || displayTime === 'N/A' || displayAmenity === 'N/A') {
-    fetchEventDetails(notification, displayEventName);
-  }
-
-  // Mark the notification as read
-  markNotificationAsRead(notification._id);
-}
-
-// Add this new function to fetch missing event details
-async function fetchEventDetails(notification, eventName) {
-  try {
-    // First try by relatedId
-    let url = `/api/event/${notification.relatedId}`;
-    let response = await fetch(url);
-    
-    // If that fails, try by event name
-    if (!response.ok && eventName && eventName !== 'N/A') {
-      url = `/api/event-by-name/${encodeURIComponent(eventName)}`;
-      response = await fetch(url);
-    }
-    
-    // If still not found, try by user email
-    if (!response.ok && notification.username) {
-      url = `/api/user-events/${encodeURIComponent(notification.username)}`;
-      response = await fetch(url);
-    }
-    
-    if (!response.ok) {
-      console.log("Could not fetch event details from server");
-      return;
-    }
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      console.log("Server returned error:", data.message);
-      return;
-    }
-    
-    let event = null;
-    
-    if (data.event) {
-      event = data.event;
-    } else if (data.events && data.events.length > 0) {
-      // If we got multiple events, try to find the one matching our notification
-      if (notification.relatedId) {
-        event = data.events.find(e => e._id.toString() === notification.relatedId);
-      }
-      
-      // If not found by ID, try by name
-      if (!event && eventName && eventName !== 'N/A') {
-        event = data.events.find(e => e.eventName === eventName);
-      }
-      
-      // If still not found, just use the most recent one
-      if (!event) {
-        event = data.events[0];
-      }
-    }
-    
-    if (!event) {
-      console.log("No event data found");
-      return;
-    }
-    
-    console.log("Found event details:", event);
-    
-    // Update the UI with the fetched data
-    if (event.eventDate && document.getElementById('eventDetailsDate').textContent === 'N/A') {
-      document.getElementById('eventDetailsDate').textContent = event.eventDate;
-    }
-    
-    if (event.startTime && event.endTime && document.getElementById('eventDetailsTime').textContent === 'N/A') {
-      document.getElementById('eventDetailsTime').textContent = `${event.startTime} - ${event.endTime}`;
-    }
-    
-    if (event.amenity && document.getElementById('eventDetailsAmenity').textContent === 'N/A') {
-      document.getElementById('eventDetailsAmenity').textContent = event.amenity;
-    }
-    
-    // Update payment requirement based on event data
-    if (event.eventType && ['birthday', 'meeting', 'community'].includes(event.eventType.toLowerCase())) {
-      // If it's a free event type, remove payment button if it exists
-      const actionsDiv = document.getElementById('eventActions');
-      if (actionsDiv) {
-        actionsDiv.innerHTML = '';
-      }
-      // Update status if needed
-      if (document.getElementById('eventDetailsStatus').textContent === 'Payment Required') {
-        document.getElementById('eventDetailsStatus').textContent = 'Confirmed';
-      }
-    }
-    
-  } catch (error) {
-    console.error("Error fetching event details:", error);
-  }
 }
 
 // Function to update the clear buttons state
@@ -1797,188 +1240,6 @@ async function clearSelectedNotifications() {
     showErrorMessage('Failed to clear selected notifications. Please try again.');
   }
 }
-
-// Function to fetch notifications from the server
-async function fetchNotifications() {
-  try {
-    const response = await fetch("/api/notifications", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("Fetched notifications:", data);
-    notifications = data.notifications || [];
-    updateNotificationList();
-    updateClearButtons();
-  } catch (error) {
-    console.error("Detailed error in fetchNotifications:", error);
-    showErrorMessage("Failed to load notifications. Please try again.");
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("DOM fully loaded, initializing notification system");
-
-  try {
-    // Initialize notification elements
-    const notificationIcon = document.getElementById('notificationIcon');
-    const notificationModal = document.getElementById('notificationModal');
-    const closeModal = document.getElementById('closeModal');
-    const closeEventDetails = document.getElementById('closeEventDetails');
-    const clearSelectedBtn = document.getElementById('clearSelectedBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    const notificationCount = document.getElementById('notificationCount');
-    const notificationList = document.getElementById('notificationList');
-    const eventDetailsModal = document.getElementById('eventDetailsModal');
-    const logoutButton = document.getElementById('logoutButton');
-    
-    console.log("Notification elements:", {
-      notificationIcon: !!notificationIcon,
-      notificationModal: !!notificationModal,
-      closeModal: !!closeModal,
-      closeEventDetails: !!closeEventDetails,
-      clearSelectedBtn: !!clearSelectedBtn,
-      clearAllBtn: !!clearAllBtn,
-      notificationCount: !!notificationCount,
-      notificationList: !!notificationList,
-      eventDetailsModal: !!eventDetailsModal,
-      logoutButton: !!logoutButton
-    });
-    
-    // Set up event listeners
-    if (notificationIcon) {
-      notificationIcon.addEventListener('click', () => {
-        console.log("Notification icon clicked");
-        fetchNotifications(); // Always fetch latest notifications
-        if (notificationModal) {
-          notificationModal.style.display = 'block';
-          updateNotificationList();
-          markAllNotificationsAsRead();
-        }
-      });
-    }
-    
-    if (closeModal) {
-      closeModal.addEventListener('click', () => {
-        console.log("Close modal clicked");
-        if (notificationModal) {
-          notificationModal.style.display = 'none';
-        }
-      });
-    }
-    
-    if (closeEventDetails) {
-      closeEventDetails.addEventListener('click', () => {
-        console.log("Close event details clicked");
-        if (eventDetailsModal) {
-          eventDetailsModal.style.display = 'none';
-        }
-      });
-    }
-    
-    if (clearSelectedBtn) {
-      clearSelectedBtn.addEventListener('click', clearSelectedNotifications);
-    }
-    
-    if (clearAllBtn) {
-      clearAllBtn.addEventListener('click', clearAllNotifications);
-    }
-
-    // Initialize logout button
-    if (logoutButton) {
-      logoutButton.addEventListener('click', async () => {
-        try {
-          console.log("Logout button clicked");
-          const response = await fetch("/api/logout", { 
-            method: "POST",
-            credentials: "include",
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-
-          console.log("Logout response:", response.status);
-          
-          if (response.ok) {
-            // Clear all local storage
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Clear any cookies
-            document.cookie.split(";").forEach(function(c) { 
-              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-            });
-            
-            console.log("Logout successful, redirecting to login page");
-            window.location.href = "/login.html";
-          } else {
-            console.error("Logout failed with status:", response.status);
-            showCustomAlert("Logout failed. Please try again.");
-          }
-        } catch (error) {
-          console.error("Error during logout:", error);
-          showCustomAlert("An error occurred during logout. Please try again.");
-        }
-      });
-    }
-    
-    // Close modals when clicking outside
-    window.addEventListener('click', (event) => {
-      if (notificationModal && event.target === notificationModal) {
-        notificationModal.style.display = 'none';
-      }
-      if (eventDetailsModal && event.target === eventDetailsModal) {
-        eventDetailsModal.style.display = 'none';
-      }
-    });
-    
-    // Initialize admin popup functionality
-    const adminButton = document.getElementById("adminbutton");
-    const popup = document.getElementById("adminPopup");
-    const closePopup = document.getElementById("closePopup");
-    const form = document.getElementById("adminForm");
-    
-    if (adminButton) {
-      adminButton.addEventListener("click", () => {
-        if (popup) {
-          popup.style.display = "flex";
-        }
-      });
-    }
-    
-    if (closePopup) {
-      closePopup.addEventListener("click", () => {
-        if (popup) {
-          popup.style.display = "none";
-          if (form) {
-            form.reset();
-          }
-        }
-      });
-    }
-    
-    // Fetch notifications initially
-    console.log("Initializing first notification fetch");
-    fetchNotifications();
-    
-    // Set up periodic fetching (every 30 seconds)
-    setInterval(fetchNotifications, 30000);
-    
-  } catch (error) {
-    console.error("Error during initialization:", error);
-    showErrorMessage("Failed to initialize notification system. Please refresh the page.");
-  }
-});
 
 // Function to handle image loading errors
 function handleImageError(img) {
