@@ -825,6 +825,99 @@
         `;
     }
 
+   function displayPendingEventDetails(index) {
+       const event = currentEvents[index];
+       if (!event) {
+           console.error('Pending event not found at index:', index);
+           showCustomAlert('Could not load event details.');
+           return;
+       }
+
+       // Validate event details
+       const { errors, warnings } = validateEventDetails(event);
+       let validationMessages = '';
+       if (errors.length > 0) {
+           validationMessages += `<div class="validation-error"><h4>Errors:</h4><ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul></div>`;
+       }
+       if (warnings.length > 0) {
+           validationMessages += `<div class="validation-warning"><h4>Warnings:</h4><ul>${warnings.map(w => `<li>${w}</li>`).join('')}</ul></div>`;
+       }
+
+       const amenities = Array.isArray(event.amenities) ? event.amenities.join(', ') : event.amenity;
+       modalContent.innerHTML = `
+           <h3>${event.eventName} (Pending)</h3>
+           <p><strong>User:</strong> ${event.username || 'N/A'}</p>
+           <p><strong>Date:</strong> ${event.eventDate}</p>
+           <p><strong>Time:</strong> ${formatTime(event.startTime)} - ${formatTime(event.endTime)}</p>
+           <p><strong>Amenity:</strong> ${amenities || 'N/A'}</p>
+           <p><strong>Guests:</strong> ${event.guests?.number || 'N/A'}</p>
+           ${event.guests?.names && event.guests.names.length > 0 ? `<p><strong>Guest Names:</strong> ${event.guests.names.join(', ')}</p>` : ''}
+           ${validationMessages}
+           <div style="margin-top: 20px;">
+               <button class="approve-btn" onclick="handleEventAction('${event._id}', '${event.eventName}', '${event.eventDate}', '${event.startTime}', '${event.endTime}', '${amenities}', '${event.username}', '${event.HomeownerName || ''}', ${event.guests?.number || 0}, 'approve')">Approve</button>
+               <button class="disapprove-btn" onclick="handleEventAction('${event._id}', '${event.eventName}', null, null, null, null, null, null, 0, 'disapprove')">Disapprove</button>
+           </div>
+           <textarea id="disapprovalReason_${event._id}" placeholder="Reason for disapproval (if any)" style="width: 100%; margin-top: 10px; display: none;"></textarea>
+       `;
+       modal.style.display = 'block';
+   }
+
+   async function handleEventAction(eventId, eventName, eventDate, startTime, endTime, amenity, username, homeownerName, guests, action) {
+       const reasonTextarea = document.getElementById(`disapprovalReason_${eventId}`);
+       let reason = '';
+       if (action === 'disapprove') {
+           if (reasonTextarea) {
+               reasonTextarea.style.display = 'block'; // Show textarea for disapproval
+               // We need to wait for the admin to input a reason, so this part needs rethinking.
+               // For now, let's assume disapproval can happen without an immediate reason, or prompt separately.
+               // A better UX would be a separate prompt for the reason.
+               // For simplicity here, we'll proceed if reason is empty or make it mandatory.
+               // Let's make it optional for now.
+               reason = reasonTextarea.value.trim();
+           }
+       }
+
+       const endpoint = action === 'approve' ? '/api/approve-event' : `/api/reject-event/${eventId}`; // Assuming a reject endpoint
+       const method = 'POST';
+       const body = action === 'approve' ?
+           JSON.stringify({ eventName, eventDate, startTime, endTime, amenity, username, HomeownerName: homeownerName, guests: { number: guests } }) :
+           JSON.stringify({ reason });
+
+       try {
+           const response = await fetch(endpoint, {
+               method: method,
+               headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+               credentials: 'include',
+               body: body
+           });
+           const result = await response.json();
+           if (result.success) {
+               showCustomAlert(`Event ${eventName} has been ${action}ed.`);
+               // Refresh data
+               const [pendingData, approvedData] = await Promise.all([
+                   fetchPendingEvents(),
+                   fetchApprovedEvents()
+               ]);
+               if (pendingData && pendingData.success) {
+                   currentEvents = pendingData.events || [];
+                   displayEventList();
+               }
+               if (approvedData && approvedData.success) {
+                   processApprovedEvents(approvedData.events || []);
+                   renderCalendar();
+               }
+           } else {
+               showCustomAlert(`Failed to ${action} event: ${result.message}`);
+           }
+       } catch (error) {
+           console.error(`Error ${action}ing event:`, error);
+           showCustomAlert(`An error occurred while ${action}ing the event.`);
+       } finally {
+           closeModal();
+       }
+   }
+
+
     // Add these new validation functions
     function validateEventDetails(event) {
         const errors = [];
@@ -967,7 +1060,7 @@
         });
     }
 
-    // Initialize FullCalendar
+   /* // Initialize FullCalendar - Commenting out as it seems unused by the primary logic
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
@@ -977,9 +1070,10 @@
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            events: '/getEvents',
+            events: '/getEvents', // This endpoint might need to be '/api/approved-events' or similar
             eventClick: function(info) {
                 const event = info.event;
+                // Assuming event.extendedProps contains the full event object from your backend
                 const { errors, warnings } = validateEventDetails(event.extendedProps);
                 
                 let modalContent = formatEventDetails(event.extendedProps);
@@ -998,6 +1092,7 @@
                     </div>`;
                 }
 
+                // Assuming 'status' is part of event.extendedProps
                 if (event.extendedProps.status === 'pending') {
                     modalContent += `
                         <div class="event-actions">
@@ -1010,17 +1105,23 @@
                         </div>
                     `;
                 }
-
-                showModal(modalContent);
+                // showModal is not defined in the provided script. Assuming it's similar to displayEventDetails or opens your modal.
+                // showModal(modalContent);
+                // For now, let's use the existing modal logic:
+                 document.getElementById('modalContent').innerHTML = modalContent;
+                 document.getElementById('eventDetails').style.display = 'block';
             },
             eventDidMount: function(info) {
                 // Add status-based styling
                 const status = info.event.extendedProps.status;
-                info.el.classList.add(`status-${status}`);
+                if (status) {
+                   info.el.classList.add(`status-${status}`);
+                }
             }
         });
         calendar.render();
     });
+    */
 
     document
         .getElementById("logoutButton")

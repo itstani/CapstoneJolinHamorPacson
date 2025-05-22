@@ -886,133 +886,66 @@ z-index: 1002; /* Ensure it's above the header */
   </div>
   </body>
   <script>
-let notifications = [];
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000;
-let retryCount = 0;
-let currentNotification = null;
+  let notifications = [];
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000;
+  let retryCount = 0;
+  let currentNotification = null;
 
-// Update the fetchNotifications function with more debugging
-async function fetchNotifications() {
-  try {
-    console.log("Starting to fetch notifications...");
-    const response = await fetch("/api/notifications", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Accept": "application/json",
-        "Cache-Control": "no-cache"
+  async function fetchNotifications() {
+    try {
+      console.log("Starting to fetch notifications...");
+      const response = await fetch("/api/notifications", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "Cache-Control": "no-cache"
+        }
+      });
+
+      console.log("Notification fetch response status:", response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    });
 
-    console.log("Notification fetch response status:", response.status);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("Raw notification data:", data);
-    
-    if (data && Array.isArray(data)) {
-      notifications = data;
-      console.log("Processed notifications:", notifications);
+      const data = await response.json();
+      console.log("Raw notification data:", data);
       
-      // Update notification count
-      const unreadCount = notifications.filter(n => !n.read).length;
-      console.log("Unread count:", unreadCount);
-      
-      const notificationCount = document.getElementById('notificationCount');
-      if (notificationCount) {
-        notificationCount.textContent = unreadCount.toString();
-        console.log("Updated notification count display");
-    } else {
-        console.error("Notification count element not found");
+      if (data && data.success) {
+        notifications = data.notifications || [];
+        console.log("Processed notifications:", notifications);
+        
+        const unreadCount = data.unreadCount || 0;
+        console.log("Unread count:", unreadCount);
+        
+        const notificationCountEl = document.getElementById('notificationCount');
+        if (notificationCountEl) {
+          notificationCountEl.textContent = unreadCount.toString();
+          console.log("Updated notification count display");
+        } else {
+          console.error("Notification count element not found");
+        }
+        
+        updateNotificationList();
+        updateClearButtons();
+      } else {
+        console.error("Invalid notification data received:", data);
+        notifications = [];
+        updateNotificationList();
+        updateClearButtons();
       }
-      
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      showErrorMessage("Failed to load notifications. Please try again.");
+      notifications = [];
       updateNotificationList();
       updateClearButtons();
-    } else {
-      console.error("Invalid notification data received:", data);
-      notifications = [];
     }
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    showErrorMessage("Failed to load notifications. Please try again.");
-    notifications = [];
   }
-}
 
-// Update the initialization code
-document.addEventListener('DOMContentLoaded', async function() {
-  console.log("DOM Content Loaded - Starting initialization");
-  
-  try {
-    // Check if elements exist
-    const elements = checkElements();
-    if (!elements.notificationIcon || !elements.notificationModal || !elements.notificationList) {
-      console.error("Required elements not found");
-      return;
-    }
-
-    // Check authentication
-    console.log("Checking authentication...");
-    const authResponse = await fetch("/api/auth-status", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Accept": "application/json",
-        "Cache-Control": "no-cache"
-      }
-    });
-
-    console.log("Auth response status:", authResponse.status);
-    
-    if (!authResponse.ok) {
-      console.log("Auth check failed, redirecting to login");
-      window.location.href = "/login.html";
-      return;
-    }
-
-    const authData = await authResponse.json();
-    console.log("Auth data:", authData);
-    
-    if (!authData.authenticated) {
-      console.log("Not authenticated, redirecting to login");
-      window.location.href = "/login.html";
-      return;
-    }
-
-    console.log("Authentication successful, setting up event listeners");
-
-    // Set up notification icon click handler
-    elements.notificationIcon.addEventListener('click', async () => {
-      console.log("Notification icon clicked");
-      elements.notificationModal.style.display = 'block';
-      await fetchNotifications();
-    });
-
-    // Set up close modal handler
-    const closeModal = document.getElementById('closeModal');
-    if (closeModal) {
-      closeModal.addEventListener('click', () => {
-        console.log("Close modal clicked");
-        elements.notificationModal.style.display = 'none';
-      });
-    }
-
-    // Initial fetch of notifications
-    console.log("Performing initial notification fetch");
-    await fetchNotifications();
-
-  } catch (error) {
-    console.error("Error during initialization:", error);
-    window.location.href = "/login.html";
-  }
-});
-
-// Add this to help debug notification clicks
-function updateNotificationList() {
+  function updateNotificationList() {
   console.log("Updating notification list");
   const notificationList = document.getElementById('notificationList');
   if (!notificationList) {
@@ -1231,17 +1164,8 @@ function proceedToPayment(notification) {
     console.error('No eventId found in notification:', notification);
   }
 }
-
-const response = await fetch('/api/check-auth', {
-  method: 'GET',
-  credentials: 'include',
-  headers: {
-    'Accept': 'application/json',
-    'Cache-Control': 'no-cache'
-  }
-});
-
-function proceedToMDPayment(notification) {
+ 
+ function proceedToMDPayment(notification) {
   // Debug: Print notification and relatedId
   console.log('Proceed to Payment clicked. Notification:', notification);
   const eventId = notification.relatedId || notification._id;
@@ -1389,120 +1313,267 @@ async function clearSelectedNotifications() {
   }
 }
 
-// Function to handle image loading errors
-function handleImageError(img) {
-      console.error('Failed to load image:', img.src);
-      
-      if (img.src.includes('/images/')) {
-        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNhYWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgZm91bmQ8L3RleHQ+PC9zdmc+';
-        return;
-      }
-      
-      // Try the /images/ path first
-      const imageName = img.src.split('/').pop();
-      img.src = `/images/${imageName}`;
-    }
-
-// Add a global error handler to catch any uncaught errors
-document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    console.log("HoHome.html loaded, checking authentication...");
-
-    const response = await fetch("/api/auth-status", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-      },
-    });
-
-    if (!response.ok) throw new Error(`Auth failed with status ${response.status}`);
-
-    const data = await response.json();
-
-    if (!data.authenticated) {
-      console.warn("Not authenticated, redirecting to login.");
-      window.location.replace("/login.html");
-    } else {
-      console.log("Authentication verified, user can access this page");
-    }
-  } catch (err) {
-    console.error("Error during auth check:", err);
-    window.location.replace("/login.html");
-  }
-});
-
-console.log("Script loaded successfully");
-
-// --- Payments Section Logic ---
-document.addEventListener('DOMContentLoaded', function() {
-  const paymentsList = document.getElementById('paymentsList');
-  const username = localStorage.getItem('username');
-  if (!username) {
-    paymentsList.innerHTML = '<div class="payments-empty">Please log in to view your payment history.</div>';
-    return;
-  }
-  fetch(`/api/monthly-payment-search?status=approved&search=${encodeURIComponent(username)}&limit=100`)
-    .then(res => res.json())
-    .then(data => {
-      if (!data.success || !data.payments || data.payments.length === 0) {
-        paymentsList.innerHTML = '<div class="payments-empty">No payments found yet. Your receipts will appear here after you pay your monthly dues.</div>';
-        return;
-      }
-      // Build table
-      let html = '<table class="payments-table">';
-      html += '<tr><th>Date</th><th>Amount</th><th>Status</th><th>Receipt</th></tr>';
-      data.payments.forEach(payment => {
-        const date = new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString();
-        const amount = payment.amount || payment.monthlyDue || payment.MDAmount || '0.00';
-        const status = payment.status || 'Paid';
-
-        const receiptUrl = `MDR.html?username=${encodeURIComponent(payment.username||'')}` +
-          `&address=${encodeURIComponent(payment.address||'')}` +
-          `&amount=${encodeURIComponent(amount)}`;
-        html += `<tr>` +
-          `<td>${date}</td>` +
-          `<td>₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>` +
-          `<td>${status}</td>` +
-          `<td><button class="receipt-btn" onclick="window.open('${receiptUrl}', '_blank')">View Receipt</button></td>` +
-          `</tr>`;
-      });
-      html += '</table>';
-      paymentsList.innerHTML = html;
-    })
-    .catch(err => {
-      paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
-    });
+ // Function to handle image loading errors
+ function handleImageError(img) {
+   console.error('Failed to load image:', img.src);
    
-});
-document.addEventListener('DOMContentLoaded', function () {
-  const logoutButton = document.getElementById('logoutButton');
-  if (logoutButton) {
-    logoutButton.addEventListener('click', async () => {
-      const response = await fetch('/api/logout', { method: 'POST' });
-      if (response.ok) {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = '/login.html';
-      } else {
-        alert('Logout failed.');
-      }
-    });
-  }
+   if (img.src.includes('/images/')) {
+     img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNhYWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgZm91bmQ8L3RleHQ+PC9zdmc+';
+     return;
+   }
+   
+   // Try the /images/ path first
+   const imageName = img.src.split('/').pop();
+   img.src = `/images/${imageName}`;
+ }
 
-  const notificationIcon = document.getElementById('notificationIcon');
-  if (notificationIcon) {
-    notificationIcon.addEventListener('click', function () {
-      document.getElementById('notificationModal').style.display = 'block';
-    });
-  }
+ console.log("Script loaded successfully");
 
-  document.getElementById('closeModal').addEventListener('click', () => {
-    document.getElementById('notificationModal').style.display = 'none';
-  });
-});
+ // Consolidated DOMContentLoaded listener
+ document.addEventListener('DOMContentLoaded', async function() {
+   console.log("DOM Content Loaded - Main Initialization");
 
-  </script>
+   // --- Authentication Check ---
+   try {
+     console.log("Checking authentication...");
+     const authResponse = await fetch("/api/auth-status", {
+       method: "GET",
+       credentials: "include",
+       headers: {
+         "Accept": "application/json",
+         "Cache-Control": "no-cache, no-store, must-revalidate",
+       }
+     });
+
+     console.log("Auth response status:", authResponse.status);
+     if (!authResponse.ok) {
+       console.log("Auth check failed, redirecting to login");
+       window.location.replace("/login.html");
+       return;
+     }
+
+     const authData = await authResponse.json();
+     console.log("Auth data:", authData);
+     if (!authData.authenticated) {
+       console.log("Not authenticated, redirecting to login");
+       window.location.replace("/login.html");
+       return;
+     }
+     console.log("Authentication successful, proceeding with setup.");
+
+   } catch (error) {
+     console.error("Error during authentication check:", error);
+     window.location.replace("/login.html");
+     return;
+   }
+
+   // --- Element Cache ---
+   const notificationIcon = document.getElementById('notificationIcon');
+   const notificationModal = document.getElementById('notificationModal');
+   const notificationList = document.getElementById('notificationList');
+   const logoutButton = document.getElementById('logoutButton');
+   const closeModalButton = document.getElementById('closeModal');
+   const adminButton = document.getElementById('adminbutton');
+   const adminPopup = document.getElementById('adminPopup');
+   const closePopupButton = document.getElementById('closePopup');
+   const adminForm = document.getElementById('adminForm');
+   const paymentsList = document.getElementById('paymentsList');
+
+   // --- Element Sanity Checks ---
+   if (!notificationIcon) console.error('Notification icon element not found');
+   if (!notificationModal) console.error('Notification modal element not found');
+   if (!notificationList) console.error('Notification list element not found for updates');
+   if (!logoutButton) console.error('Logout button not found');
+   if (!closeModalButton) console.error('Close modal button not found');
+   if (!adminButton) console.error('Admin button not found');
+   if (!adminPopup) console.error('Admin popup not found');
+   if (!closePopupButton) console.error('Close popup button not found');
+   if (!adminForm) console.error('Admin form not found');
+   if (!paymentsList) console.error('Payments list container not found');
+
+
+   // --- Notification Icon Functionality ---
+   if (notificationIcon && notificationModal) {
+     notificationIcon.addEventListener('click', async () => {
+       console.log("Notification icon clicked");
+       notificationModal.style.display = 'flex'; // Assuming flex is used for centering, adjust if needed
+       await fetchNotifications();
+     });
+   }
+
+   // --- Close Notification Modal Functionality ---
+   if (closeModalButton && notificationModal) {
+     closeModalButton.addEventListener('click', () => {
+       console.log("Close modal clicked");
+       notificationModal.style.display = 'none';
+     });
+   }
+
+   // --- Logout Button Functionality ---
+   if (logoutButton) {
+     logoutButton.addEventListener('click', async function() {
+       console.log('Logout button clicked');
+       try {
+         const response = await fetch('/api/logout', {
+           method: 'POST',
+           credentials: 'include',
+           headers: {
+             'Content-Type': 'application/json'
+           }
+         });
+         
+         console.log('Logout response status:', response.status);
+         if (response.ok) {
+           const result = await response.json().catch(() => ({})); // Gracefully handle non-JSON or empty responses
+           console.log('Logout successful:', result.message || "No message");
+           localStorage.clear();
+           sessionStorage.clear();
+           window.location.href = '/login.html';
+         } else {
+           const errorText = await response.text();
+           console.error('Logout failed:', response.status, errorText);
+           alert('Logout failed. Please try again.');
+         }
+       } catch (error) {
+         console.error('Error during logout:', error);
+         alert('Logout failed due to a network or script error. Please try again.');
+       }
+     });
+   }
+
+   // --- Admin Popup Functionality (Raise a Concern) ---
+   if (adminButton && adminPopup) {
+     adminButton.addEventListener('click', function() {
+       adminPopup.style.display = 'flex';
+     });
+   }
+
+   if (closePopupButton && adminPopup) {
+     closePopupButton.addEventListener('click', function() {
+       adminPopup.style.display = 'none';
+     });
+   }
+
+   if (adminForm) {
+     adminForm.addEventListener('submit', async function(e) {
+       e.preventDefault();
+       
+       const subjectEl = document.getElementById('subject');
+       const messageEl = document.getElementById('message');
+       const fileInput = document.getElementById('fileInput');
+       
+       if (!subjectEl || !messageEl || !fileInput) {
+           console.error("Form elements for admin concern not found.");
+           alert("Error with the form. Please refresh.");
+           return;
+       }
+
+       const subject = subjectEl.value;
+       const message = messageEl.value;
+       
+       if (!subject || !message) {
+         alert('Please fill in all required fields (Subject and Message)');
+         return;
+       }
+       
+       try {
+         const formData = new FormData();
+         formData.append('subject', subject);
+         formData.append('message', message);
+         
+         if (fileInput.files.length > 0) {
+           formData.append('file', fileInput.files[0]);
+         }
+         
+         const response = await fetch('/addconcern', {
+           method: 'POST',
+           body: formData,
+           credentials: 'include'
+         });
+         
+         if (response.ok) {
+           const result = await response.json();
+           if (result.success) {
+             alert('Your concern has been submitted successfully');
+             adminForm.reset();
+             if(adminPopup) adminPopup.style.display = 'none';
+           } else {
+             alert(result.message || 'Failed to submit your concern. Please try again.');
+           }
+         } else {
+           const errorData = await response.text();
+           console.error("Server error submitting concern:", response.status, errorData);
+           alert(`Failed to submit your concern. Server responded with status ${response.status}. Please try again.`);
+         }
+       } catch (error) {
+         console.error('Error submitting concern:', error);
+         alert('An error occurred while submitting your concern. Please check your connection and try again.');
+       }
+     });
+   }
+
+   // --- Payments Section Logic ---
+   const usernameForPayments = localStorage.getItem('username');
+   if (paymentsList && usernameForPayments) {
+     fetch(`/api/monthly-payment-search?status=approved&search=${encodeURIComponent(usernameForPayments)}&limit=100`)
+       .then(res => res.json())
+       .then(data => {
+         if (!data.success || !data.payments || data.payments.length === 0) {
+           paymentsList.innerHTML = '<div class="payments-empty">No payments found yet. Your receipts will appear here after you pay your monthly dues.</div>';
+           return;
+         }
+         let html = '<table class="payments-table">';
+         html += '<tr><th>Date</th><th>Amount</th><th>Status</th><th>Receipt</th></tr>';
+         data.payments.forEach(payment => {
+           const date = new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString();
+           const amount = payment.amount || payment.monthlyDue || payment.MDAmount || '0.00';
+           const status = payment.status || 'Paid';
+           const receiptUrl = `MDR.html?username=${encodeURIComponent(payment.username||payment.userName||'')}` + // Added payment.userName as fallback
+             `&address=${encodeURIComponent(payment.address||'')}` +
+             `&amount=${encodeURIComponent(amount)}`;
+           html += `<tr>` +
+             `<td>${date}</td>` +
+             `<td>₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>` +
+             `<td>${status}</td>` +
+             `<td><button class="receipt-btn" onclick="window.open('${receiptUrl}', '_blank')">View Receipt</button></td>` +
+             `</tr>`;
+         });
+         html += '</table>';
+         paymentsList.innerHTML = html;
+       })
+       .catch(err => {
+         console.error("Error loading payment history:", err);
+         paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
+       });
+   } else if (paymentsList && !usernameForPayments) {
+       paymentsList.innerHTML = '<div class="payments-empty">Please log in to view your payment history.</div>';
+   }
+   
+   // --- Initial Fetch of Notifications ---
+   console.log("Performing initial notification fetch after setup.");
+   await fetchNotifications();
+
+   console.log("Main initialization complete.");
+ });
+
+ // This function was part of the original script but seems to be replaced by inline checks or not used.
+ // If it's needed, it should be defined properly. For now, it's commented out as its logic is integrated.
+ /*
+ function checkElements() {
+   const notificationIcon = document.getElementById('notificationIcon');
+   const notificationModal = document.getElementById('notificationModal');
+   const notificationList = document.getElementById('notificationList');
+   
+   if (!notificationIcon) console.error('Notification icon element not found');
+   if (!notificationModal) console.error('Notification modal element not found');
+   if (!notificationList) console.error('Notification list element not found');
+   
+   return {
+     notificationIcon,
+     notificationModal,
+     notificationList
+   };
+ }
+ */
+ </script>
 </html>
-

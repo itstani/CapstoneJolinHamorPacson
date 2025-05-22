@@ -2618,16 +2618,43 @@ app.post("/logout", (req, res) => {
   })
 })
 
-app.post('/api/logout', (req, res) => {
+app.post("/api/logout", (req, res) => {
+  console.log("Logout request received")
+  console.log("Session before logout:", req.session)
+
+  if (!req.session) {
+    console.log("No session found to destroy")
+    return res.json({ success: true, message: "No session to logout" })
+  }
+
   req.session.destroy((err) => {
     if (err) {
-      console.error("Logout error:", err);
-      return res.status(500).json({ success: false, message: "Logout failed" });
+      console.error("Logout error:", err)
+      return res.status(500).json({ success: false, message: "Logout failed" })
     }
-    res.clearCookie('connect.sid');
-    return res.json({ success: true, message: "Logged out successfully" });
-  });
-});
+
+    console.log("Session destroyed successfully")
+    res.clearCookie("connect.sid", {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    })
+
+    return res.json({ success: true, message: "Logged out successfully" })
+  })
+})
+
+async function run() {
+  try {
+    await connectToDatabase()
+    console.log("Pinged your deployment. You successfully connected to MongoDB!")
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error)
+  }
+}
+
+run().catch(console.dir)
 
 
 async function run() {
@@ -3729,11 +3756,14 @@ app.get("/api/event/:eventId", async (req, res) => {
     }
 });
 
-// Update the notifications endpoint to include more detailed logging
 app.get("/api/notifications", async (req, res) => {
   try {
+    console.log("Notifications request received")
+    console.log("Session:", req.session)
+
     // Check if user is authenticated
     if (!req.session || !req.session.user || !req.session.user.username) {
+      console.log("User not authenticated for notifications")
       return res.status(401).json({
         success: false,
         error: "Not authenticated",
@@ -3749,7 +3779,7 @@ app.get("/api/notifications", async (req, res) => {
     // Get notifications for the current user only
     const notifications = await notificationsCollection
       .find({
-        username: username, // Filter by the current user's email
+        username: username,
       })
       .sort({ timestamp: -1 })
       .toArray()
