@@ -6365,19 +6365,20 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
 // Endpoint to get monthly due and penalty for a homeowner
 app.get('/api/get-monthly-due', async (req, res) => {
   try {
-    const { email, username } = req.query;
+    const { username } = req.query; // Ensure we are using the username from the query
+    if (!username) {
+      return res.status(400).json({ success: false, message: "Username is required" });
+    }
+
     const db = await connectToDatabase();
     const homeownersCollection = db.collection('homeowners');
     const addressCollection = db.collection('address');
 
-    // Find homeowner
-    const homeowner = await homeownersCollection.findOne({
-      $or: [
-        { email: email || null },
-        { username: username }
-      ]
-    });
-    if (!homeowner) return res.status(404).json({ success: false, message: "Homeowner not found" });
+    // Find homeowner by username
+    const homeowner = await homeownersCollection.findOne({ username });
+    if (!homeowner) {
+      return res.status(404).json({ success: false, message: "Homeowner not found" });
+    }
 
     // Find address
     const addresses = await addressCollection.find({}).toArray();
@@ -6402,7 +6403,6 @@ app.get('/api/get-monthly-due', async (req, res) => {
       daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
       penalty = daysOverdue * 10;
     }
-
 
     res.json({
       success: true,
@@ -6438,5 +6438,10 @@ app.get("*", (req, res) => {
     return res.status(404).json({ success: false, message: "API endpoint not found" });
   }
   res.sendFile(path.join(__dirname, "Webpages", "login.html"));
+});
+
+app.get('/api/get-monthly-due', (req, res) => {
+    const username = req.session.username; // Use session data
+    // Fetch and return the user's monthly due details
 });
 

@@ -368,10 +368,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log("MDPayment page loaded"); // Debug log
             
-            const userName = localStorage.getItem('username');
-            if (!userName) return;
-
-            const res = await fetch(`/api/get-monthly-due?username=${encodeURIComponent(userName)}`);
+            const res = await fetch('/api/get-monthly-due');
             const data = await res.json();
             if (data.success) {
                 document.getElementById('userName').textContent = data.homeowner.username || 'N/A';
@@ -391,7 +388,7 @@
                 }
             }
 
-            document.getElementById('userNameInput').value = userName;
+            document.getElementById('userNameInput').value = data.homeowner.username;
             
             // Handle file upload display
             const receiptUpload = document.getElementById('receiptUpload');
@@ -445,7 +442,7 @@
                     // Create a new FormData object for the file upload
                     const fileFormData = new FormData();
                     fileFormData.append('receipt', receiptUpload.files[0]);
-                    fileFormData.append('userName', userName);
+                    fileFormData.append('userName', data.homeowner.username);
                     fileFormData.append('finalAmount', data.baseDue.toFixed(2));
                     fileFormData.append('paymentMethod', 'QR');
                     
