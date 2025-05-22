@@ -902,13 +902,11 @@
 
             // Load user data if authenticated
             const username = localStorage.getItem('username');
-            const email = localStorage.getItem('email');
+   
             if (username) {
               document.getElementById('username').value = username;
             }
-            if (email) {
-              document.getElementById('email').value = email;
-            }
+            
           } catch (error) {
             console.error('Auth check failed:', error);
             window.location.href = '/login.html';
@@ -922,7 +920,6 @@
           try {
             const formData = {
               username: document.getElementById('username').value,
-              email: document.getElementById('email').value,
               eventName: document.getElementById('eventName').value,
               eventDate: document.getElementById('date').value,
               startTime: `${eventStartHour.value}:${eventStartMinute.value} ${eventStartAmPm.value}`,
@@ -1299,11 +1296,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load user email if available
-            const userEmail = localStorage.getItem('email');
-    if (userEmail) {
-        const userEmailInput = document.getElementById('userEmail');
-        if (userEmailInput) {
-            userEmailInput.value = userEmail;
+            const username = localStorage.getItem('username');
+    if (username) {
+        const usernameInput = document.getElementById('username');
+        if (usernameInput) {
+            usernameInput.value = username;
         }
             }
         });
@@ -1405,7 +1402,6 @@ if (form) {
         number: guestNumber,
         names: guestNames
       },
-      homeownerStatus: document.querySelector('input[name="homeownerStatus"]:checked')?.value || '',
       poolNight: document.getElementById('poolNight')?.checked || false
     };
 
