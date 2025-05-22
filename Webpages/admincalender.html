@@ -846,22 +846,22 @@
         amenities.forEach(amenity => {
             switch(amenity) {
                 case 'Pool':
-                    if (event.poolType === 'morning' && startTime.getHours() < 6) {
-                        errors.push("Pool morning sessions start at 6 AM");
+                    if (event.poolOptions?.type === 'morning') {
+                        if (startTime.getHours() < 6 || endTime.getHours() > 17) {
+                            errors.push("Pool morning sessions are only available from 6 AM to 5 PM");
+                        }
+                    } else {
+                        if (startTime.getHours() < 17 || endTime.getHours() > 23) {
+                            errors.push("Pool evening sessions are only available from 5 PM to 11 PM");
+                        }
                     }
-                    if (event.poolType === 'evening' && startTime.getHours() < 17) {
-                        errors.push("Pool evening sessions start at 5 PM");
-                    }
-                    if (event.poolType === 'evening' && endTime.getHours() > 23) {
-                        errors.push("Pool evening sessions end at 11 PM");
-                    }
-                    if (event.guests && event.guests.number > 30) {
+                    if (event.guests?.number > 30) {
                         errors.push("Pool reservations are limited to 30 guests");
                     }
                     break;
 
                 case 'Court':
-                    if (startTime.getHours() < 18 || startTime.getHours() >= 22) {
+                    if (startTime.getHours() < 18 || endTime.getHours() > 22) {
                         errors.push("Court is only available from 6 PM to 10 PM");
                     }
                     if (duration > 4) {
@@ -873,237 +873,154 @@
                     if (startTime.getHours() < 6 || endTime.getHours() > 22) {
                         errors.push("Clubhouse is only available from 6 AM to 10 PM");
                     }
-                    if (event.guests && event.guests.number > 60) {
+                    if (event.guests?.number > 60) {
                         errors.push("Clubhouse reservations are limited to 60 guests");
-                    }
-                    if (duration > 8) {
-                        warnings.push("Clubhouse reservations longer than 8 hours may require special approval");
                     }
                     break;
             }
         });
 
-        // Check for overlapping time slots
-        if (duration < 1) {
-            errors.push("Minimum reservation duration is 1 hour");
-        }
-
         return { errors, warnings };
     }
 
-    // Update the displayPendingEventDetails function to include validation
-    async function displayPendingEventDetails(index) {
-        const event = currentEvents[index];
-        
-        // Run validation
-        const { errors, warnings } = validateEventDetails(event);
-        
-        // Create validation messages HTML
-        const validationHTML = `
-            ${errors.length > 0 ? `
-                <div class="validation-error">
-                    <strong>Validation Errors:</strong>
-                    <ul>${errors.map(error => `<li>${error}</li>`).join('')}</ul>
-                </div>
-            ` : ''}
-            ${warnings.length > 0 ? `
-                <div class="validation-warning">
-                    <strong>Warnings:</strong>
-                    <ul>${warnings.map(warning => `<li>${warning}</li>`).join('')}</ul>
-                </div>
-            ` : ''}
+    function formatEventDetails(event) {
+        const amenities = Array.isArray(event.amenities) ? event.amenities : [event.amenity];
+        let details = `
+            <div class="event-details">
+                <h3>${event.eventName}</h3>
+                <p><strong>Date:</strong> ${formatDate(event.eventDate)}</p>
+                <p><strong>Time:</strong> ${event.startTime} - ${event.endTime}</p>
+                <p><strong>Amenities:</strong> ${amenities.join(', ')}</p>
+                <p><strong>Guests:</strong> ${event.guests?.number || 0}</p>
         `;
 
-        modalContent.innerHTML = `
-            <div class="modal-flex">
-                <div class="event-details">
-                    <h2>${event.eventName}</h2>
-                    <p><strong>Date:</strong> ${event.eventDate}</p>
-                    <p><strong>Time:</strong> ${event.startTime} - ${event.endTime}</p>
-                    <p><strong>Amenities:</strong> ${Array.isArray(event.amenities) ? event.amenities.join(', ') : event.amenity}</p>
-                    <p><strong>Host:</strong> ${event.HomeownerName || 'N/A'}</p>
-                    <p><strong>Email:</strong> ${event.userEmail || 'N/A'}</p>
-                    ${event.guests ? `
-                        <p><strong>Guests:</strong> ${typeof event.guests === 'object' ? event.guests.number : event.guests}</p>
-                        ${event.guests.names ? `<p><strong>Guest List:</strong> ${event.guests.names.join(', ')}</p>` : ''}
-                    ` : ''}
-                    <p><strong>Payment Details:</strong></p>
-                    <div class="payment-details">
-                        ${Object.entries(event.paymentDetails || {}).map(([amenity, details]) => `
-                            <p>${amenity}: ₱${details.total}</p>
-                        `).join('')}
-                        <p><strong>Total Payment:</strong> ₱${event.totalPayment}</p>
-                    </div>
-                    ${validationHTML}
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="approve-btn" onclick="approveEvent('${event.eventName}')" ${errors.length > 0 ? 'disabled' : ''}>
-                    Approve
-                </button>
-                <button class="disapprove-btn" onclick="showDisapprovalReason('${event.eventName}')">
-                    Deny
-                </button>
-            </div>
-            <textarea id="disapprovalReason" placeholder="Reason for disapproval" style="display: none;"></textarea>
-        `;
-        modal.style.display = 'block';
+        // Add amenity-specific details
+        amenities.forEach(amenity => {
+            switch(amenity) {
+                case 'Pool':
+                    if (event.poolOptions) {
+                        details += `<p><strong>Pool Session:</strong> ${event.poolOptions.type}</p>`;
+                        if (event.poolOptions.isReserved) {
+                            details += `<p><strong>Private Reservation:</strong> Yes</p>`;
+                        }
+                    }
+                    break;
+
+                case 'Court':
+                    if (event.courtOptions?.hasLighting) {
+                        details += `<p><strong>Court Lighting:</strong> Included</p>`;
+                    }
+                    break;
+
+                case 'Clubhouse':
+                    if (event.clubhouseOptions) {
+                        if (event.clubhouseOptions.hasCatering) {
+                            details += `<p><strong>Catering Service:</strong> Included</p>`;
+                        }
+                        if (event.clubhouseOptions.hasSetup) {
+                            details += `<p><strong>Setup/Cleanup:</strong> Included</p>`;
+                        }
+                    }
+                    break;
+            }
+        });
+
+        // Add payment details if available
+        if (event.paymentDetails) {
+            details += `<div class="payment-details">`;
+            details += `<h4>Payment Details:</h4>`;
+            event.paymentDetails.forEach(detail => {
+                details += `<p>${detail}</p>`;
+            });
+            details += `<p><strong>Total:</strong> ₱${event.totalPayment}</p>`;
+            details += `</div>`;
+        }
+
+        details += `</div>`;
+        return details;
     }
 
-    function showDisapprovalReason(eventName) {
-        const reasonTextarea = document.getElementById('disapprovalReason');
-        reasonTextarea.style.display = 'block';
-        reasonTextarea.focus();
-        reasonTextarea.onkeydown = (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submitDisapproval(eventName, reasonTextarea.value);
-            }
-        };
-    }
-
-    async function approveEvent(eventName) {
-        try {
-            showCustomAlert("Checking for schedule conflicts...");
-        
-            const event = currentEvents.find(e => e.eventName === eventName);
-            if (!event) {
-                throw new Error('Event not found in currentEvents');
-            }
-
-            // Run validation
-            const { errors, warnings } = validateEventDetails(event);
-            if (errors.length > 0) {
-                closeCustomAlert();
-                showCustomAlert(`Cannot approve event: ${errors.join('\n')}`);
-                return;
-            }
-
-            // Check for schedule conflicts
-            const conflictCheck = await fetch('/api/check-schedule-conflicts', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    eventDate: event.eventDate,
-                    startTime: event.startTime,
-                    endTime: event.endTime,
-                    amenities: event.amenities || [event.amenity]
-                })
-            });
-
-            const conflictResult = await conflictCheck.json();
-            
-            if (conflictResult.hasConflicts) {
-                closeCustomAlert();
-                showConflictModal(conflictResult.conflicts);
-                return;
-            }
-
-            // If no conflicts, proceed with approval
-            showCustomAlert("Processing approval...");
-
-            // Send all event details to the backend
-            const response = await fetch(`/api/approve-event`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    eventName: event.eventName,
-                    eventDate: event.eventDate,
-                    startTime: event.startTime,
-                    endTime: event.endTime,
-                    amenities: event.amenities || [event.amenity],
-                    userEmail: event.userEmail,
-                    HomeownerName: event.HomeownerName,
-                    guests: event.guests,
-                    paymentDetails: event.paymentDetails,
-                    totalPayment: event.totalPayment
-                })
-            });
-        
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-        
-            const data = await response.json();
+    function updateEventStatus(eventId, newStatus) {
+        fetch('/updateEventStatus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                eventId,
+                status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
             if (data.success) {
-                closeCustomAlert();
-                showCustomAlert('Event approved successfully');
-                closeModal();
-            
-                // Refresh data after approval
-                const [pendingData, approvedData] = await Promise.all([
-                    fetchPendingEvents(),
-                    fetchApprovedEvents()
-                ]);
-            
-                if (pendingData && pendingData.success) {
-                    currentEvents = pendingData.events || [];
-                    displayEventList();
-                }
-            
-                if (approvedData && approvedData.success) {
-                    processApprovedEvents(approvedData.events || []);
-                    renderCalendar();
-                }
+                // Refresh the calendar
+                calendar.refetchEvents();
+                showNotification(`Event ${newStatus} successfully`);
             } else {
-                closeCustomAlert();
-                showCustomAlert('Failed to approve event: ' + data.message);
+                showNotification('Failed to update event status', 'error');
             }
-        } catch (error) {
-            console.error("Error approving event:", error);
-            closeCustomAlert();
-            showCustomAlert('An error occurred while approving the event: ' + error.message);
-        }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while updating event status', 'error');
+        });
     }
 
-    async function submitDisapproval(eventName, reason) {
-        if (!reason || reason.trim() === '') {
-            alert('Please provide a reason for disapproval');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/disapprove-event', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ eventName, reason })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            if (data.success) {
-                alert('Event disapproved successfully');
-                closeModal();
+    // Initialize FullCalendar
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '/getEvents',
+            eventClick: function(info) {
+                const event = info.event;
+                const { errors, warnings } = validateEventDetails(event.extendedProps);
                 
-                // Refresh pending events after disapproval
-                const pendingData = await fetchPendingEvents();
-                if (pendingData && pendingData.success) {
-                    currentEvents = pendingData.events || [];
-                    displayEventList();
+                let modalContent = formatEventDetails(event.extendedProps);
+                
+                if (errors.length > 0) {
+                    modalContent += `<div class="validation-errors">
+                        <h4>Validation Errors:</h4>
+                        <ul>${errors.map(error => `<li>${error}</li>`).join('')}</ul>
+                    </div>`;
                 }
-            } else {
-                alert('Failed to disapprove event: ' + data.message);
+                
+                if (warnings.length > 0) {
+                    modalContent += `<div class="validation-warnings">
+                        <h4>Warnings:</h4>
+                        <ul>${warnings.map(warning => `<li>${warning}</li>`).join('')}</ul>
+                    </div>`;
+                }
+
+                if (event.extendedProps.status === 'pending') {
+                    modalContent += `
+                        <div class="event-actions">
+                            <button onclick="updateEventStatus('${event.id}', 'approved')" class="approve-btn">
+                                Approve
+                            </button>
+                            <button onclick="updateEventStatus('${event.id}', 'rejected')" class="reject-btn">
+                                Reject
+                            </button>
+                        </div>
+                    `;
+                }
+
+                showModal(modalContent);
+            },
+            eventDidMount: function(info) {
+                // Add status-based styling
+                const status = info.event.extendedProps.status;
+                info.el.classList.add(`status-${status}`);
             }
-        } catch (error) {
-            console.error("Error disapproving event:", error);
-            alert('An error occurred while disapproving the event: ' + error.message);
-        }
-    }
+        });
+        calendar.render();
+    });
 
     document
         .getElementById("logoutButton")

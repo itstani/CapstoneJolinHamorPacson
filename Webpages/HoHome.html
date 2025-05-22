@@ -935,18 +935,16 @@ function updateNotificationList() {
     const subjectDiv = document.createElement('div');
     subjectDiv.className = 'notification-subject';
     
-    // Format the subject line based on notification data
-    let subject = notification.subject || '';
-    if (!subject && notification.message) {
-      // Try to extract event name and date from message if subject is not available
-      const eventNameMatch = notification.message.match(/"([^"]+)"/);
-      const eventName = eventNameMatch ? eventNameMatch[1] : 'Event';
-      
-      // Try to extract date from message or use a placeholder
-      const dateMatch = notification.message.match(/(\d{4}-\d{2}-\d{2})/);
-      const date = dateMatch ? dateMatch[1] : '';
-      
-      subject = `${eventName}${date ? ' on ' + date : ''}`;
+    // Format the subject line based on notification type
+    let subject = '';
+    if (notification.type === 'monthly_payment' || notification.type === 'payment_approved' || notification.type === 'payment_rejected') {
+      subject = `Monthly Payment ${notification.type === 'payment_approved' ? 'Approved' : notification.type === 'payment_rejected' ? 'Rejected' : 'Submitted'}`;
+    } else if (notification.type === 'concern' || notification.type === 'new_concern' || notification.type === 'concern_reply') {
+      subject = notification.subject || 'Concern Update';
+    } else if (notification.type === 'payment_required' || notification.type === 'payment_confirmed' || notification.type === 'event_confirmed') {
+      subject = notification.subject || `${notification.eventName || 'Event'} on ${notification.eventDate || 'N/A'}`;
+    } else {
+      subject = notification.subject || notification.message;
     }
     subjectDiv.textContent = subject;
 
@@ -954,42 +952,19 @@ function updateNotificationList() {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'notification-message';
 
-    // Check if this notification requires payment
-    const requiresPayment = notification.type === 'payment_required' || 
-                        (notification.message && notification.message.includes('proceed with the payment') && 
-                        !(notification.type === 'payment_confirmed' || notification.paymentStatus === 'paid' || notification.isPaid === true));
-
-    // Check if this is an admin response
-    const isAdminResponse = notification.type === 'admin_reply' || 
-                           notification.isAdminResponse === true ||
-                           (notification.subject && notification.subject.toLowerCase().includes('re:'));
-
-    // For free events or admin responses, add a hint to click for details
-    if (!requiresPayment || isAdminResponse) {
-      const hintText = isAdminResponse ? 
-        "To view admin response, click here" : 
-        "To see details, click here";
-      
-      messageDiv.innerHTML = `${notification.message || ''}<br><span style="color: #3e0408; font-style: italic; margin-top: 5px; display: block;">${hintText}</span>`;
-    } else {
-      messageDiv.textContent = notification.message || '';
+    // Add type-specific indicators
+    if (notification.type === 'monthly_payment' || notification.type === 'payment_approved' || notification.type === 'payment_rejected') {
+      const paymentStatus = document.createElement('div');
+      paymentStatus.className = 'payment-status';
+      paymentStatus.style.color = notification.type === 'payment_approved' ? '#28a745' : 
+                                notification.type === 'payment_rejected' ? '#dc3545' : '#ffc107';
+      paymentStatus.textContent = notification.type === 'payment_approved' ? 'Payment Approved' : 
+                                notification.type === 'payment_rejected' ? 'Payment Rejected' : 'Payment Pending';
+      contentWrapper.appendChild(paymentStatus);
     }
 
-    // Create timestamp element
-    const timestampDiv = document.createElement('div');
-    timestampDiv.className = 'notification-timestamp';
-    timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
-
-    // Add payment required indicator if needed
-    if (notification.type === 'payment_required') {
-      const paymentRequiredDiv = document.createElement('div');
-      paymentRequiredDiv.className = 'payment-required';
-      paymentRequiredDiv.textContent = 'Payment Required';
-      contentWrapper.appendChild(paymentRequiredDiv);
-    }
-    
     // Add admin response indicator if needed
-    if (isAdminResponse) {
+    if (notification.isAdminResponse) {
       const adminResponseDiv = document.createElement('div');
       adminResponseDiv.className = 'admin-response';
       adminResponseDiv.style.color = '#3e0408';
@@ -999,7 +974,14 @@ function updateNotificationList() {
       contentWrapper.appendChild(adminResponseDiv);
     }
 
-    // Add subject, message and timestamp to content wrapper
+    messageDiv.textContent = notification.message;
+
+    // Create timestamp element
+    const timestampDiv = document.createElement('div');
+    timestampDiv.className = 'notification-timestamp';
+    timestampDiv.textContent = new Date(notification.timestamp).toLocaleString();
+
+    // Add elements to content wrapper
     contentWrapper.appendChild(subjectDiv);
     contentWrapper.appendChild(messageDiv);
     contentWrapper.appendChild(timestampDiv);
@@ -1008,12 +990,13 @@ function updateNotificationList() {
     notificationItem.appendChild(checkbox);
     notificationItem.appendChild(contentWrapper);
 
-    // Add click event to show event details or admin response
+    // Add click event based on notification type
     notificationItem.addEventListener('click', (e) => {
       if (e.target !== checkbox) {
         switch (notification.type) {
-          case 'monthly_due':
-          case 'payment_required':
+          case 'monthly_payment':
+          case 'payment_approved':
+          case 'payment_rejected':
             showMonthlyPaymentModal(notification);
             break;
           case 'event_payment':
@@ -1027,7 +1010,6 @@ function updateNotificationList() {
             showAdminResponsePopup(notification);
             break;
           default:
-            // fallback: show details or error
             showEventDetailsModal(notification);
         }
       }
@@ -1039,9 +1021,93 @@ function updateNotificationList() {
 
 // Implement separate modal functions for each notification type
 function showMonthlyPaymentModal(notification) {
-  // Show a modal prompting for monthly dues payment
-  alert('Monthly Payment Due! Please pay your monthly dues.');
-  // You can replace this with your custom modal logic
+  // Create a modal for monthly payment details
+  const modal = document.createElement('div');
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  modal.style.display = 'flex';
+  modal.style.justifyContent = 'center';
+  modal.style.alignItems = 'center';
+  modal.style.zIndex = '1000';
+
+  const modalContent = document.createElement('div');
+  modalContent.style.backgroundColor = 'white';
+  modalContent.style.padding = '20px';
+  modalContent.style.borderRadius = '10px';
+  modalContent.style.maxWidth = '500px';
+  modalContent.style.width = '90%';
+
+  // Add payment details
+  const title = document.createElement('h3');
+  title.textContent = 'Monthly Payment Details';
+  title.style.color = '#af2630';
+  title.style.marginTop = '0';
+
+  const details = document.createElement('div');
+  details.style.marginTop = '20px';
+
+  // Add payment amount
+  const amountDiv = document.createElement('div');
+  amountDiv.style.marginBottom = '10px';
+  amountDiv.innerHTML = `<strong>Amount:</strong> ₱${notification.paymentDetails?.amount?.toFixed(2) || '0.00'}`;
+  details.appendChild(amountDiv);
+
+  // Add payment date
+  const paymentDateDiv = document.createElement('div');
+  paymentDateDiv.style.marginBottom = '10px';
+  paymentDateDiv.innerHTML = `<strong>Payment Date:</strong> ${new Date(notification.paymentDetails?.paymentDate).toLocaleDateString()}`;
+  details.appendChild(paymentDateDiv);
+
+  // Add next payment date
+  const nextPaymentDateDiv = document.createElement('div');
+  nextPaymentDateDiv.style.marginBottom = '10px';
+  nextPaymentDateDiv.innerHTML = `<strong>Next Payment Due:</strong> ${new Date(notification.paymentDetails?.nextPaymentDate).toLocaleDateString()}`;
+  details.appendChild(nextPaymentDateDiv);
+
+  // Add penalty if any
+  if (notification.paymentDetails?.penalty > 0) {
+    const penaltyDiv = document.createElement('div');
+    penaltyDiv.style.marginBottom = '10px';
+    penaltyDiv.style.color = '#af2630';
+    penaltyDiv.innerHTML = `<strong>Penalty:</strong> ₱${notification.paymentDetails.penalty.toFixed(2)}`;
+    details.appendChild(penaltyDiv);
+  }
+
+  // Add message
+  const messageDiv = document.createElement('div');
+  messageDiv.style.marginTop = '20px';
+  messageDiv.style.padding = '10px';
+  messageDiv.style.backgroundColor = '#f8f8f8';
+  messageDiv.style.borderRadius = '5px';
+  messageDiv.textContent = notification.message;
+
+  // Add close button
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'Close';
+  closeButton.style.backgroundColor = '#af2630';
+  closeButton.style.color = 'white';
+  closeButton.style.border = 'none';
+  closeButton.style.padding = '10px 15px';
+  closeButton.style.borderRadius = '5px';
+  closeButton.style.cursor = 'pointer';
+  closeButton.style.marginTop = '20px';
+  closeButton.onclick = () => {
+    document.body.removeChild(modal);
+  };
+
+  modalContent.appendChild(title);
+  modalContent.appendChild(details);
+  modalContent.appendChild(messageDiv);
+  modalContent.appendChild(closeButton);
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
+
+  // Mark notification as read
+  markNotificationAsRead(notification._id);
 }
 
 function showEventPaymentModal(notification) {

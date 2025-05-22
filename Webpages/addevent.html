@@ -1455,24 +1455,32 @@ document.addEventListener('DOMContentLoaded', function() {
             eventStartHour.max = '9';
             eventEndHour.min = '7';
             eventEndHour.max = '10';
+            eventStartAmPm.value = 'PM';
+            eventEndAmPm.value = 'PM';
         } else if (selectedAmenities.includes('Pool')) {
-            const poolType = document.getElementById('poolType').value;
+            const poolType = document.querySelector('input[name="poolType"]:checked')?.value || 'morning';
             if (poolType === 'morning') {
                 eventStartHour.min = '6';
                 eventStartHour.max = '4';
                 eventEndHour.min = '7';
                 eventEndHour.max = '5';
+                eventStartAmPm.value = 'AM';
+                eventEndAmPm.value = 'PM';
             } else {
                 eventStartHour.min = '5';
                 eventStartHour.max = '10';
                 eventEndHour.min = '6';
                 eventEndHour.max = '11';
+                eventStartAmPm.value = 'PM';
+                eventEndAmPm.value = 'PM';
             }
         } else if (selectedAmenities.includes('Clubhouse')) {
             eventStartHour.min = '6';
             eventStartHour.max = '9';
             eventEndHour.min = '7';
             eventEndHour.max = '10';
+            eventStartAmPm.value = 'AM';
+            eventEndAmPm.value = 'PM';
         }
     }
 
@@ -1488,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedAmenities.forEach(amenity => {
             switch(amenity) {
                 case 'Pool':
-                    const poolType = document.getElementById('poolType').value;
+                    const poolType = document.querySelector('input[name="poolType"]:checked')?.value || 'morning';
                     const guestCount = parseInt(guestNumber.value) || 0;
                     const basePayment = guestCount * 100;
                     const eveningFee = poolType === 'evening' ? 1000 : 0;
@@ -1542,18 +1550,41 @@ document.addEventListener('DOMContentLoaded', function() {
     amenityCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const amenity = this.value;
+            const isChecked = this.checked;
+            
+            // Update options visibility
             switch(amenity) {
                 case 'Pool':
-                    poolOptions.style.display = this.checked ? 'block' : 'none';
+                    poolOptions.style.display = isChecked ? 'block' : 'none';
                     break;
                 case 'Court':
-                    courtOptions.style.display = this.checked ? 'block' : 'none';
-                    guestListButton.style.display = this.checked ? 'none' : 'block';
+                    courtOptions.style.display = isChecked ? 'block' : 'none';
+                    guestListButton.style.display = isChecked ? 'none' : 'block';
                     break;
                 case 'Clubhouse':
-                    clubhouseOptions.style.display = this.checked ? 'block' : 'none';
+                    clubhouseOptions.style.display = isChecked ? 'block' : 'none';
                     break;
             }
+
+            // Update time constraints and payment calculations
+            updateTimeConstraints();
+            updatePayments();
+            
+            // Validate guest count for Pool
+            if (amenity === 'Pool' && isChecked) {
+                const currentGuests = parseInt(guestNumber.value) || 1;
+                if (currentGuests > 30) {
+                    guestNumber.value = '30';
+                    alert('Pool reservations are limited to 30 guests');
+                }
+            }
+        });
+    });
+
+    // Add event listeners for pool type selection
+    const poolTypeRadios = document.querySelectorAll('input[name="poolType"]');
+    poolTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
             updateTimeConstraints();
             updatePayments();
         });
@@ -1575,10 +1606,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const { totalPayment, paymentDetails } = updatePayments();
         const formData = {
+            username: document.getElementById('username').value,
+            eventName: document.getElementById('eventName').value,
+            eventDate: document.getElementById('date').value,
+            startTime: `${eventStartHour.value}:${eventStartMinute.value} ${eventStartAmPm.value}`,
+            endTime: `${eventEndHour.value}:${eventEndMinute.value} ${eventEndAmPm.value}`,
             amenities: selectedAmenities,
             paymentDetails,
             totalPayment,
-            // ... rest of your existing form data ...
+            guests: {
+                number: parseInt(guestNumber.value) || 1,
+                names: Array.from(document.querySelectorAll('.guest-name'))
+                    .map(input => input.value.trim())
+                    .filter(name => name)
+            }
         };
 
         try {

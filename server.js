@@ -1806,90 +1806,221 @@ app.get("/api/user-info", (req, res) => {
 
 // Update the existing addevent endpoint
 app.post("/addevent", async (req, res) => {
-  if (!req.session || !req.session.user || !req.session.user.username) {
-    return res.status(401).json({
-      success: false,
-      message: "User not authenticated",
-    });
-  }
-
-  const { HomeownerName, eventName, eventDate, startTime, endTime, amenity, eventType, guests, homeownerStatus } = req.body;
-
-  // Format the times
-  const formattedStartTime = formatTime(startTime);
-  const formattedEndTime = formatTime(endTime);
-
-  // Backend time validation
-  function parseHourMin(timeStr) {
-    if (!timeStr) return { hour: null, min: null, ampm: null };
-    const [time, ampm] = timeStr.split(" ");
-    const [hour, min] = time.split(":").map(Number);
-    return { hour, min, ampm };
-  }
-  const s = parseHourMin(formattedStartTime);
-  const e = parseHourMin(formattedEndTime);
-  let valid = true, message = "";
-  if (amenity === "Pool") {
-    if (req.body.poolNight) {
-      // Evening: 5PM-11PM
-      if (!(s.ampm === "PM" && s.hour >= 5 && e.ampm === "PM" && e.hour <= 11)) {
-        valid = false;
-        message = "Pool evening session must be between 5PM and 11PM.";
-      }
-    } else {
-      // Morning: 6AM-5PM
-      if (!(s.ampm === "AM" && s.hour >= 6 && e.ampm === "PM" && e.hour <= 5)) {
-        valid = false;
-        message = "Pool morning session must be between 6AM and 5PM.";
-      }
-    }
-  } else if (amenity === "Court") {
-    // 6PM-10PM
-    if (!(s.ampm === "PM" && s.hour >= 6 && e.ampm === "PM" && e.hour <= 10)) {
-      valid = false;
-      message = "Court is only available from 6PM to 10PM.";
-    }
-  } else if (amenity === "Clubhouse") {
-    // 6AM-10PM
-    if (!((s.ampm === "AM" && s.hour >= 6) || (s.ampm === "PM" && s.hour <= 10)) || !((e.ampm === "AM" && e.hour >= 6) || (e.ampm === "PM" && e.hour <= 10))) {
-      valid = false;
-      message = "Clubhouse is only available from 6AM to 10PM.";
-    }
-  }
-  if (!valid) {
-    return res.status(400).json({ success: false, message });
-  }
-
-  const username = req.session.user.username;
   try {
     const db = await connectToDatabase();
-    const eventsCollection = db.collection("events");
-    const newEvent = {
-      HomeownerName,
+    const aeventsCollection = db.collection("aevents");
+    const {
       username,
       eventName,
       eventDate,
-      startTime: formattedStartTime,
-      endTime: formattedEndTime,
-      amenity,
-      eventType,
-      guests: {
-        number: guests.number,
-        names: guests.names,
-      },
-      homeownerStatus,
-      createdAt: new Date(),
+      startTime,
+      endTime,
+      amenities,
+      guests,
+      poolOptions,
+      courtOptions,
+      clubhouseOptions
+    } = req.body;
+
+    // Validate required fields
+    if (!username || !eventName || !eventDate || !startTime || !endTime || !amenities || !guests) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Validate amenities array
+    if (!Array.isArray(amenities) || amenities.length === 0) {
+      return res.status(400).json({ success: false, message: "At least one amenity must be selected" });
+    }
+
+    // Validate time format and constraints
+    const startDateTime = new Date(`${eventDate} ${startTime}`);
+    const endDateTime = new Date(`${eventDate} ${endTime}`);
+
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid date or time format" });
+    }
+
+    if (endDateTime <= startDateTime) {
+      return res.status(400).json({ success: false, message: "End time must be after start time" });
+    }
+
+    // Validate amenity-specific constraints
+    for (const amenity of amenities) {
+      switch (amenity) {
+        case 'Pool':
+          if (poolOptions) {
+            const startHour = startDateTime.getHours();
+            const endHour = endDateTime.getHours();
+            
+            if (poolOptions.type === 'morning') {
+              if (startHour < 6 || endHour > 17) {
+                return res.status(400).json({ 
+                  success: false, 
+                  message: "Pool morning sessions are only available from 6 AM to 5 PM" 
+                });
+              }
+            } else {
+              if (startHour < 17 || endHour > 23) {
+                return res.status(400).json({ 
+                  success: false, 
+                  message: "Pool evening sessions are only available from 5 PM to 11 PM" 
+                });
+              }
+            }
+          }
+          
+          if (guests.number > 30) {
+            return res.status(400).json({ 
+              success: false, 
+              message: "Pool reservations are limited to 30 guests" 
+            });
+          }
+          break;
+
+        case 'Court':
+          if (courtOptions) {
+            const startHour = startDateTime.getHours();
+            const endHour = endDateTime.getHours();
+            
+            if (startHour < 18 || endHour > 22) {
+              return res.status(400).json({ 
+                success: false, 
+                message: "Court is only available from 6 PM to 10 PM" 
+              });
+            }
+            
+            const duration = (endDateTime - startDateTime) / (1000 * 60 * 60);
+            if (duration > 4) {
+              return res.status(400).json({ 
+                success: false, 
+                message: "Court reservations are limited to 4 hours" 
+              });
+            }
+          }
+          break;
+
+        case 'Clubhouse':
+          const startHour = startDateTime.getHours();
+          const endHour = endDateTime.getHours();
+          
+          if (startHour < 6 || endHour > 22) {
+            return res.status(400).json({ 
+              success: false, 
+              message: "Clubhouse is only available from 6 AM to 10 PM" 
+            });
+          }
+          
+          if (guests.number > 60) {
+            return res.status(400).json({ 
+              success: false, 
+              message: "Clubhouse reservations are limited to 60 guests" 
+            });
+          }
+          break;
+      }
+    }
+
+    // Check for overlapping reservations
+    const overlappingReservations = await aeventsCollection.find({
+      eventDate,
+      status: "approved",
+      $or: [
+        {
+          startTime: { $lt: endTime },
+          endTime: { $gt: startTime }
+        }
+      ],
+      amenities: { $in: amenities }
+    }).toArray();
+
+    if (overlappingReservations.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Selected time slot overlaps with existing reservations" 
+      });
+    }
+
+    // Calculate total payment
+    let totalPayment = 0;
+    const paymentDetails = [];
+
+    for (const amenity of amenities) {
+      switch (amenity) {
+        case 'Pool':
+          const poolBaseRate = 100;
+          const poolTotal = guests.number * poolBaseRate;
+          totalPayment += poolTotal;
+          paymentDetails.push(`Pool: ${guests.number} guests × ₱${poolBaseRate} = ₱${poolTotal}`);
+          
+          if (poolOptions?.isReserved) {
+            totalPayment += 1000;
+            paymentDetails.push('Private Pool Reservation: +₱1000');
+          }
+          break;
+
+        case 'Court':
+          const duration = (endDateTime - startDateTime) / (1000 * 60 * 60);
+          const courtBaseRate = 300;
+          const courtTotal = duration * courtBaseRate;
+          totalPayment += courtTotal;
+          paymentDetails.push(`Court: ${duration} hours × ₱${courtBaseRate} = ₱${courtTotal}`);
+          
+          if (courtOptions?.hasLighting) {
+            const lightingTotal = duration * 300;
+            totalPayment += lightingTotal;
+            paymentDetails.push(`Lighting: ${duration} hours × ₱300 = ₱${lightingTotal}`);
+          }
+          break;
+
+        case 'Clubhouse':
+          const clubhouseDuration = (endDateTime - startDateTime) / (1000 * 60 * 60);
+          const clubhouseBaseRate = 1000;
+          const clubhouseTotal = clubhouseDuration * clubhouseBaseRate;
+          totalPayment += clubhouseTotal;
+          paymentDetails.push(`Clubhouse: ${clubhouseDuration} hours × ₱${clubhouseBaseRate} = ₱${clubhouseTotal}`);
+          
+          if (clubhouseOptions?.hasCatering) {
+            totalPayment += 2000;
+            paymentDetails.push('Catering Service: +₱2000');
+          }
+          if (clubhouseOptions?.hasSetup) {
+            totalPayment += 1000;
+            paymentDetails.push('Setup/Cleanup Service: +₱1000');
+          }
+          break;
+      }
+    }
+
+    // Create the event
+    const event = {
+      username,
+      eventName,
+      eventDate,
+      startTime,
+      endTime,
+      amenities,
+      guests,
+      poolOptions,
+      courtOptions,
+      clubhouseOptions,
+      totalPayment,
+      paymentDetails,
+      status: "pending",
+      createdAt: new Date()
     };
-    await eventsCollection.insertOne(newEvent);
-    res.status(201).json({
-      success: true,
-      message: "Event created successfully.",
+
+    await aeventsCollection.insertOne(event);
+
+    res.json({ 
+      success: true, 
+      message: "Event created successfully", 
+      eventId: event._id 
     });
   } catch (error) {
     console.error("Error creating event:", error);
-    res.status(500).json({
-      success: false,
-      message: "An error occurred while creating the event.",
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to create event" 
     });
   }
 });
@@ -2385,22 +2516,43 @@ async function createNotification(userEmail, type, message, relatedId, subject, 
       }
     }
 
-    // Create the notification with all available data
+    // Create base notification object
     const notification = {
       userEmail,
       type,
       message,
       relatedId: relatedIdStr,
-      subject: subject,
-      amenity: amenity || eventDetails.amenity || null,
-      eventName: eventDetails.eventName || null,
-      eventDate: eventDetails.eventDate || null,
-      startTime: eventDetails.startTime || null,
-      endTime: eventDetails.endTime || null,
-      paymentStatus: paymentStatus,
       timestamp: new Date(),
       read: false,
-      isAdminResponse: isAdminResponse, // Add a flag to easily identify admin responses
+      isAdminResponse: isAdminResponse,
+    }
+
+    // Add type-specific fields
+    if (type === "monthly_payment" || type === "payment_approved" || type === "payment_rejected") {
+      // For monthly payment notifications, include payment-specific fields
+      const today = new Date()
+      const nextPaymentDate = new Date(today)
+      nextPaymentDate.setDate(today.getDate() + 30) // 30 days from now
+
+      notification.paymentDetails = {
+        amount: eventDetails.amount || null,
+        paymentDate: today,
+        nextPaymentDate: nextPaymentDate,
+        penalty: eventDetails.penalty || 0
+      }
+    } else if (type === "concern" || type === "new_concern" || type === "concern_reply") {
+      // For concern notifications, include concern-specific fields
+      notification.subject = subject
+      notification.replyDate = new Date()
+    } else if (type === "payment_required" || type === "payment_confirmed" || type === "event_confirmed") {
+      // For event notifications, include event-specific fields
+      notification.subject = subject
+      notification.amenity = amenity || eventDetails.amenity || null
+      notification.eventName = eventDetails.eventName || null
+      notification.eventDate = eventDetails.eventDate || null
+      notification.startTime = eventDetails.startTime || null
+      notification.endTime = eventDetails.endTime || null
+      notification.paymentStatus = paymentStatus
     }
 
     console.log("Creating notification:", JSON.stringify(notification))
@@ -4097,17 +4249,17 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
     let query = {}
 
     if (recipientType === "delinquent") {
-      query = { paymentStatus: "Delinquent" }
+      query = { PStatus: "Delinquent" }
     } else if (recipientType === "not_paid") {
-      query = { paymentStatus: "Not Paid" }
+      query = { PStatus: "Not Paid" }
     } else if (recipientType === "all_delinquent") {
       query = {
-        $or: [{ paymentStatus: "Delinquent" }, { paymentStatus: "Not Paid" }],
+        $or: [{ PStatus: "Delinquent" }],
       }
     } else {
       // Default to all delinquent homeowners
       query = {
-        $or: [{ paymentStatus: "Delinquent" }, { paymentStatus: "Not Paid" }],
+        $or: [{ PStatus: "Delinquent" }],
       }
     }
 
