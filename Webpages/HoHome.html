@@ -686,6 +686,64 @@ z-index: 1002; /* Ensure it's above the header */
     padding-top: 10px;
   }
 }
+
+.payments-section {
+  max-width: 900px;
+  margin: 40px auto 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 32px 24px 24px 24px;
+  margin-bottom: 40px;
+}
+.payments-title {
+  color: #AF2630;
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 18px;
+  text-align: center;
+}
+.payments-list {
+  min-height: 80px;
+}
+.payments-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.payments-table th, .payments-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: 1em;
+}
+.payments-table th {
+  background: #f5f5f5;
+  color: #AF2630;
+  font-weight: 600;
+}
+.payments-table tr:last-child td {
+  border-bottom: none;
+}
+.receipt-btn {
+  background: #AF2630;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 7px 18px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.receipt-btn:hover {
+  background: #8f1d25;
+}
+.payments-loading, .payments-empty {
+  text-align: center;
+  color: #888;
+  font-size: 1.1em;
+  margin: 30px 0;
+}
     </style>
   </head>
   <body>
@@ -817,6 +875,13 @@ z-index: 1002; /* Ensure it's above the header */
       <div class="event-actions" id="eventActions">
         <!-- Payment button will be added here if needed -->
       </div>
+    </div>
+  </div>
+
+  <div class="payments-section" id="paymentsSection">
+    <h2 class="payments-title">My Monthly Payments & Receipts</h2>
+    <div id="paymentsList" class="payments-list">
+      <div class="payments-loading">Loading your payment history...</div>
     </div>
   </div>
   </body>
@@ -1821,6 +1886,48 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 console.log("Script loaded successfully");
+
+// --- Payments Section Logic ---
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentsList = document.getElementById('paymentsList');
+  const username = localStorage.getItem('username');
+  if (!username) {
+    paymentsList.innerHTML = '<div class="payments-empty">Please log in to view your payment history.</div>';
+    return;
+  }
+  fetch(`/api/monthly-payments?status=approved&search="${encodeURIComponent(username)}"&limit=100`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success || !data.payments || data.payments.length === 0) {
+        paymentsList.innerHTML = '<div class="payments-empty">No payments found yet. Your receipts will appear here after you pay your monthly dues.</div>';
+        return;
+      }
+      // Build table
+      let html = '<table class="payments-table">';
+      html += '<tr><th>Date</th><th>Amount</th><th>Status</th><th>Receipt</th></tr>';
+      data.payments.forEach(payment => {
+        const date = new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString();
+        const amount = payment.amount || payment.monthlyDue || payment.MDAmount || '0.00';
+        const status = payment.status || 'Paid';
+        // Build receipt link with query params for MDR.html
+        const receiptUrl = `MDR.html?username=${encodeURIComponent(payment.userName||'')}` +
+          `&address=${encodeURIComponent(payment.address||'')}` +
+          `&amount=${encodeURIComponent(amount)}` +
+          `&period=${encodeURIComponent(payment.period||'')}`;
+        html += `<tr>` +
+          `<td>${date}</td>` +
+          `<td>₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>` +
+          `<td>${status}</td>` +
+          `<td><button class="receipt-btn" onclick="window.open('${receiptUrl}', '_blank')">View Receipt</button></td>` +
+          `</tr>`;
+      });
+      html += '</table>';
+      paymentsList.innerHTML = html;
+    })
+    .catch(err => {
+      paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
+    });
+});
   </script>
 </html>
 
