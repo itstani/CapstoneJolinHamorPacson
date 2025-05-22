@@ -1806,7 +1806,7 @@ app.get("/api/user-info", (req, res) => {
 
 // Update the existing addevent endpoint
 app.post("/addevent", async (req, res) => {
-  if (!req.session || !req.session.user || !req.session.user.email) {
+  if (!req.session || !req.session.user || !req.session.user.username) {
     return res.status(401).json({
       success: false,
       message: "User not authenticated",
@@ -1860,13 +1860,13 @@ app.post("/addevent", async (req, res) => {
     return res.status(400).json({ success: false, message });
   }
 
-  const userEmail = req.session.user.email;
+  const username = req.session.user.username;
   try {
     const db = await connectToDatabase();
     const eventsCollection = db.collection("events");
     const newEvent = {
       HomeownerName,
-      userEmail,
+      username,
       eventName,
       eventDate,
       startTime: formattedStartTime,
