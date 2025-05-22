@@ -366,11 +366,16 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log("MDPayment page loaded"); // Debug log
-            
-            const res = await fetch('/api/get-monthly-due');
+            const username = localStorage.getItem('username');
+            if (!username) {
+                console.error('Username not found in localStorage');
+                return;
+            }
+
+            const res = await fetch(`/api/get-monthly-due?username=${encodeURIComponent(username)}`);
             const data = await res.json();
-            if (data.success) {
+
+            if (data.success && data.homeowner) {
                 document.getElementById('userName').textContent = data.homeowner.username || 'N/A';
                 document.getElementById('homeownerName').textContent = `${data.homeowner.firstName || ''} ${data.homeowner.lastName || ''}`;
                 const address = data.homeowner.Address || {};
@@ -386,6 +391,8 @@
                 } else {
                     document.getElementById('extraFeesRow').style.display = 'none';
                 }
+            } else {
+                console.error('Error fetching homeowner data:', data.message || 'Unknown error');
             }
 
             document.getElementById('userNameInput').value = data.homeowner.username;
@@ -443,7 +450,7 @@
                     const fileFormData = new FormData();
                     fileFormData.append('receipt', receiptUpload.files[0]);
                     fileFormData.append('userName', data.homeowner.username);
-                    fileFormData.append('finalAmount', data.baseDue.toFixed(2));
+                    fileFormData.append('finalAmount', data.totalDue.toFixed(2));
                     fileFormData.append('paymentMethod', 'QR');
                     
                     console.log("Submitting payment to /api/monthly-dues-payment"); // Debug log

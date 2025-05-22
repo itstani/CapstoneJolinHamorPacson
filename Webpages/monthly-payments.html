@@ -1092,8 +1092,7 @@
           
           row.innerHTML = `
             <td>
-              ${payment.userName || 'N/A'}
-              <div class="small text-muted">${payment.userEmail || 'No email'}</div>
+              ${payment.firstName || 'N/A'} ${payment.lastName || 'N/A'}
             </td>
             <td>₱${payment.amount || '0.00'}</td>
             <td>${payment.paymentMethod || 'N/A'}</td>
@@ -1108,10 +1107,10 @@
               ${payment.status === 'pending' ? `
                 <button class="btn btn-sm btn-success ml-1" onclick="approvePayment('${payment._id || ''}')">
                   Approve
-              </button>
+                </button>
                 <button class="btn btn-sm btn-danger ml-1" onclick="rejectPayment('${payment._id || ''}')">
                   Reject
-              </button>
+                </button>
               ` : ''}
             </td>
           `;
@@ -1254,8 +1253,7 @@
           // Populate modal with payment details
           document.getElementById('paymentDetails').innerHTML = `
             <div class="payment-details">
-              <p><strong>Name:</strong> ${payment.userName || 'N/A'}</p>
-              <p><strong>Email:</strong> ${payment.userEmail || 'N/A'}</p>
+              <p><strong>Name:</strong> ${payment.firstName || 'N/A'} ${payment.lastName || 'N/A'}</p>
               <p><strong>Amount:</strong> ₱${payment.amount || '0.00'}</p>
               <p><strong>Payment Method:</strong> ${payment.paymentMethod || 'N/A'}</p>
               <p><strong>Date:</strong> ${new Date(payment.timestamp).toLocaleString()}</p>

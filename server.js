@@ -817,10 +817,11 @@ app.post("/api/login", async (req, res) => {
         });
       }
 
-        req.session.user = {
+      req.session.user = {
         username: user.username,
         email: user.email || null,
-        role: user.role || "homeowner"
+        role: user.role || "homeowner",
+        isDelinquent: user.isDelinquent || false
       };
 
       console.log("✅ Session set during login:", req.session);
@@ -841,7 +842,8 @@ app.post("/api/login", async (req, res) => {
           username: user.username,
           email: user.email || null,
           role: user.role || "homeowner",
-          redirectUrl: user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html",
+          isDelinquent: user.isDelinquent || false,
+          redirectUrl: user.isDelinquent ? "/Webpages/MDPayment.html" : (user.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html"),
         });
       });
     });
@@ -855,7 +857,6 @@ app.post("/api/login", async (req, res) => {
     });
   }
 });
-
 
 
 
@@ -1008,41 +1009,101 @@ app.post("/api/check-delinquent-status", async (req, res) => {
 });
 
 
+app.get('/api/get-monthly-due', async (req, res) => {
+  try {
+    const { username } = req.query; // Ensure we are using the username from the query
+    if (!username) {
+      return res.status(400).json({ success: false, message: "Username is required" });
+    }
+
+    const db = await connectToDatabase();
+    const homeownersCollection = db.collection('homeowners');
+    const addressCollection = db.collection('address');
+
+    // Find homeowner by username
+    const homeowner = await homeownersCollection.findOne({ username });
+    if (!homeowner) {
+      return res.status(404).json({ success: false, message: "Homeowner not found" });
+    }
+
+    // Find address
+    const addresses = await addressCollection.find({}).toArray();
+    const matchAddress = addresses.find(addr => {
+      const hBlock = String(homeowner.Address?.Block?.$numberInt || homeowner.Address?.Block || "");
+      const hLot = String(homeowner.Address?.Lot?.$numberInt || homeowner.Address?.Lot || "");
+      const hPhase = String(homeowner.Address?.Phase?.$numberInt || homeowner.Address?.Phase || "");
+      const aBlock = String(addr.Block?.$numberInt || addr.Block || "");
+      const aLot = String(addr.Lot?.$numberInt || addr.Lot || "");
+      const aPhase = String(addr.Phase?.$numberInt || addr.Phase || "");
+      return hBlock === aBlock && hLot === aLot && hPhase === aPhase;
+    });
+
+    const baseDue = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
+
+    // Calculate penalty
+    let penalty = 0;
+    let daysOverdue = 0;
+    if (homeowner.PStatus === "Delinquent" && homeowner.lastPaymentDate) {
+      const lastPayment = new Date(homeowner.lastPaymentDate);
+      const today = new Date();
+      daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
+      penalty = daysOverdue * 10;
+    }
+
+    res.json({
+      success: true,
+      baseDue,
+      penalty,
+      totalDue: baseDue + penalty,
+      daysOverdue,
+      address: matchAddress,
+      homeowner: {
+        firstName: homeowner.firstName,
+        lastName: homeowner.lastName,
+        email: homeowner.email,
+        username: homeowner.username
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
         message: "No receipt file uploaded",
-      })
+      });
     }
 
     // Read the uploaded file
-    const filePath = req.file.path
-    const fileBuffer = fs.readFileSync(filePath)
+    const filePath = req.file.path;
+    const fileBuffer = fs.readFileSync(filePath);
 
     // Convert the file to Base64
-    const base64Image = fileBuffer.toString("base64")
-    const mimeType = req.file.mimetype
+    const base64Image = fileBuffer.toString("base64");
+    const mimeType = req.file.mimetype;
 
     // Construct the MongoDB document
     const paymentData = {
-      username: req.body.username,
-      userName: req.body.userName,
-      amount: req.body.finalAmount,
+      username: req.body.userName,
+      amount: req.body.finalAmount, // Use the finalAmount from the request
       paymentMethod: req.body.paymentMethod,
       receiptImage: `data:${mimeType};base64,${base64Image}`,
       status: "pending", // Initial status is pending until admin approves
       timestamp: new Date(),
-    }
+    };
 
     // Save to MongoDB
-    const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
-    const result = await paymentsCollection.insertOne(paymentData)
+    const db = await connectToDatabase();
+    const paymentsCollection = db.collection("monthlyPayments");
+    const result = await paymentsCollection.insertOne(paymentData);
 
     // Update homeowner status if payment is submitted
-    const homeownersCollection = db.collection("homeowners")
+    const homeownersCollection = db.collection("homeowners");
     await homeownersCollection.updateOne(
       { email: paymentData.username },
       {
@@ -1051,11 +1112,11 @@ app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res)
           lastPaymentId: result.insertedId,
           lastPaymentDate: new Date(),
         },
-      },
-    )
+      }
+    );
 
     // Cleanup the temporary file
-    fs.unlinkSync(filePath)
+    fs.unlinkSync(filePath);
 
     // Create notification for admin
     await createNotification(
@@ -1063,30 +1124,30 @@ app.post("/api/monthly-dues-payment", upload.single("receipt"), async (req, res)
       "monthly_payment",
       `New monthly payment submitted by ${paymentData.userName} (${paymentData.username})`,
       result.insertedId,
-    )
+    );
 
     res.status(200).json({
       success: true,
       message: "Payment submitted successfully! Admin will review your payment.",
-    })
+    });
   } catch (err) {
-    console.error("Error handling monthly payment:", err)
+    console.error("Error handling monthly payment:", err);
 
     // Cleanup the temporary file if it exists
     if (req.file && req.file.path) {
       try {
-        fs.unlinkSync(req.file.path)
+        fs.unlinkSync(req.file.path);
       } catch (unlinkErr) {
-        console.error("Error deleting temporary file:", unlinkErr)
+        console.error("Error deleting temporary file:", unlinkErr);
       }
     }
 
     res.status(500).json({
       success: false,
       message: "Error processing payment. Please try again.",
-    })
+    });
   }
-})
+});
 
 app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, res) => {
   try {
@@ -1135,162 +1196,32 @@ app.post("/api/submit-monthly-payment", upload.single("receipt"), async (req, re
 
 app.get("/api/monthly-payments", async (req, res) => {
   try {
-    console.log("Monthly payments API called with status:", req.query.status)
-    const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
-    const homeownersCollection = db.collection("homeowners")
+    const db = await connectToDatabase();
+    const paymentsCollection = db.collection("monthlyPayments");
+    const homeownersCollection = db.collection("homeowners");
 
-    // Get query parameters for filtering
-    const status = req.query.status || "all"
-    const page = Number.parseInt(req.query.page) || 1
-    const limit = Number.parseInt(req.query.limit) || 10
-    const skip = (page - 1) * limit
-    const search = req.query.search || ""
+    // Fetch payments
+    const payments = await paymentsCollection.find({}).toArray();
 
-    console.log(`Processing request for status: ${status}, page: ${page}, search: "${search}"`)
+    // Fetch homeowner details for each payment
+    const paymentsWithHomeownerDetails = await Promise.all(payments.map(async (payment) => {
+      const homeowner = await homeownersCollection.findOne({ username: payment.username });
+      return {
+        ...payment,
+        firstName: homeowner ? homeowner.firstName : 'N/A',
+        lastName: homeowner ? homeowner.lastName : 'N/A',
+      };
+    }));
 
-    // Build the query
-    const query = {}
-    let payments = []
-    let totalPayments = 0
-
-    if (status === "due") {
-      console.log("Processing 'due' status request")
-      // For due payments, get homeowners with delinquent status
-      let homeownersQuery = {
-        $or: [
-          { PStatus: "Delinquent" },
-          { PStatus: "Almost Due" },
-          { paymentStatus: "Delinquent" },
-          { paymentStatus: "Not Paid" },
-          { homeownerStatus: "Delinquent" },
-        ],
-      }
-
-      // Add search functionality if provided
-      if (search) {
-        homeownersQuery = {
-          $and: [
-            homeownersQuery,
-            {
-              $or: [
-                { firstName: { $regex: search, $options: "i" } },
-                { lastName: { $regex: search, $options: "i" } },
-                { email: { $regex: search, $options: "i" } },
-              ],
-            },
-          ],
-        }
-      }
-
-      console.log("Homeowners query:", JSON.stringify(homeownersQuery))
-
-      // Get total count for pagination
-      totalPayments = await homeownersCollection.countDocuments(homeownersQuery)
-      console.log(`Found ${totalPayments} delinquent homeowners`)
-
-      // Get homeowners with pagination
-      const delinquentHomeowners = await homeownersCollection
-        .find(homeownersQuery)
-        .sort({ lastPaymentDate: 1 })
-        .skip(skip)
-        .limit(limit)
-        .toArray()
-
-      console.log(`Retrieved ${delinquentHomeowners.length} homeowners for this page`)
-
-      // Process each homeowner to add necessary fields
-      // IMPORTANT: We're bypassing the address lookup to avoid the $numberInt error
-      payments = delinquentHomeowners.map((homeowner) => {
-        // Calculate days since last payment
-        let daysSincePayment = 0
-        let delinquentSince = null
-
-        if (homeowner.lastPaymentDate) {
-          delinquentSince = new Date(homeowner.lastPaymentDate)
-          const today = new Date()
-          daysSincePayment = Math.floor((today - delinquentSince) / (1000 * 60 * 60 * 24))
-        } else if (homeowner.createdAt) {
-          delinquentSince = new Date(homeowner.createdAt)
-          const today = new Date()
-          daysSincePayment = Math.floor((today - delinquentSince) / (1000 * 60 * 60 * 24))
-        } else {
-          delinquentSince = new Date()
-          daysSincePayment = 0
-        }
-
-        // Log the Address object structure for debugging
-        if (homeowner.Address) {
-          console.log("Homeowner Address structure:", JSON.stringify(homeowner.Address))
-        }
-
-        // Use default values for address-related fields
-        // This avoids the problematic address lookup
-        return {
-          _id: homeowner._id,
-          userName: `${homeowner.firstName || ""} ${homeowner.lastName || ""}`.trim(),
-          email: homeowner.email,
-          amount: homeowner.monthlyDue || "1500.00", // Default amount
-          monthlyDue: homeowner.monthlyDue || "1500.00",
-          MDAmount: "1500.00", // Default MDAmount
-          paymentMethod: "N/A",
-          timestamp: homeowner.lastPaymentDate || homeowner.createdAt || new Date(),
-          lastPaymentDate: homeowner.lastPaymentDate || homeowner.createdAt,
-          status: homeowner.PStatus || homeowner.paymentStatus || homeowner.homeownerStatus || "Delinquent",
-          delinquentSince: delinquentSince,
-          daysSincePayment: daysSincePayment,
-          // Include original fields for reference
-          firstName: homeowner.firstName,
-          lastName: homeowner.lastName,
-        }
-      })
-
-      console.log(`Processed ${payments.length} payment objects`)
-    } else {
-      // For other statuses, use the existing logic
-      if (status !== "all") {
-        query.status = status
-      }
-
-      // Add search functionality
-      if (search) {
-        query.$or = [{ userName: { $regex: search, $options: "i" } }, { username: { $regex: search, $options: "i" } }]
-      }
-
-      console.log("Payments query:", JSON.stringify(query))
-
-      // Get total count for pagination
-      totalPayments = await paymentsCollection.countDocuments(query)
-      console.log(`Found ${totalPayments} payments matching query`)
-
-      // Get payments with pagination
-      payments = await paymentsCollection.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray()
-
-      console.log(`Retrieved ${payments.length} payments for this page`)
-    }
-
-    // Send the response with consistent format
-    const response = {
+    res.json({
       success: true,
-      payments: payments,
-      totalPayments: totalPayments,
-      perPage: limit,
-      itemsPerPage: limit, // Added for compatibility
-      currentPage: page,
-      totalPages: Math.ceil(totalPayments / limit) || 1,
-    }
-
-    console.log(`Sending response with ${payments.length} payments`)
-    res.json(response)
-  } catch (error) {
-    console.error("Error fetching monthly payments:", error)
-    res.status(500).json({
-      success: false,
-      message: "Error fetching payments",
-      error: error.message,
-    })
+      payments: paymentsWithHomeownerDetails,
+    });
+  } catch (err) {
+    console.error("Error fetching payments:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-})
+});
 
 // Add this function to your server.js to log the structure of the Address object
 function logAddressStructure(address) {
@@ -6362,67 +6293,6 @@ app.post("/api/admin/create-homeowner-account", async (req, res) => {
 
 // ... existing code ...
 
-// Endpoint to get monthly due and penalty for a homeowner
-app.get('/api/get-monthly-due', async (req, res) => {
-  try {
-    const { username } = req.query; // Ensure we are using the username from the query
-    if (!username) {
-      return res.status(400).json({ success: false, message: "Username is required" });
-    }
-
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection('homeowners');
-    const addressCollection = db.collection('address');
-
-    // Find homeowner by username
-    const homeowner = await homeownersCollection.findOne({ username });
-    if (!homeowner) {
-      return res.status(404).json({ success: false, message: "Homeowner not found" });
-    }
-
-    // Find address
-    const addresses = await addressCollection.find({}).toArray();
-    const matchAddress = addresses.find(addr => {
-      const hBlock = String(homeowner.Address?.Block?.$numberInt || homeowner.Address?.Block || "");
-      const hLot = String(homeowner.Address?.Lot?.$numberInt || homeowner.Address?.Lot || "");
-      const hPhase = String(homeowner.Address?.Phase?.$numberInt || homeowner.Address?.Phase || "");
-      const aBlock = String(addr.Block?.$numberInt || addr.Block || "");
-      const aLot = String(addr.Lot?.$numberInt || addr.Lot || "");
-      const aPhase = String(addr.Phase?.$numberInt || addr.Phase || "");
-      return hBlock === aBlock && hLot === aLot && hPhase === aPhase;
-    });
-
-    const baseDue = parseFloat(matchAddress?.MDAmount?.$numberDouble || matchAddress?.MDAmount || "1500.00");
-
-    // Calculate penalty
-    let penalty = 0;
-    let daysOverdue = 0;
-    if (homeowner.PStatus === "Delinquent" && homeowner.lastPaymentDate) {
-      const lastPayment = new Date(homeowner.lastPaymentDate);
-      const today = new Date();
-      daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
-      penalty = daysOverdue * 10;
-    }
-
-    res.json({
-      success: true,
-      baseDue,
-      penalty,
-      totalDue: baseDue + penalty,
-      daysOverdue,
-      address: matchAddress,
-      homeowner: {
-        firstName: homeowner.firstName,
-        lastName: homeowner.lastName,
-        email: homeowner.email,
-        username: homeowner.username
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 // ... existing code ...
 
 app.use("/images", express.static(path.join(__dirname, "images")))
@@ -6440,8 +6310,4 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "Webpages", "login.html"));
 });
 
-app.get('/api/get-monthly-due', (req, res) => {
-    const username = req.session.username; // Use session data
-    // Fetch and return the user's monthly due details
-});
 

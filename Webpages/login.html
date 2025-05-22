@@ -1054,8 +1054,8 @@
                     throw new Error('Session not established');
                 }
                 
-                // Redirect after ensuring session is established
-                const redirectUrl = `${baseUrl}/Webpages/MDPayment.html?username=${encodeURIComponent(data.username)}`;
+                // Redirect based on the response
+                const redirectUrl = data.redirectUrl || (data.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html");
                 console.log('Redirecting to:', redirectUrl); // Debug log
                 window.location.href = redirectUrl;
                 return false; // Prevent form submission
