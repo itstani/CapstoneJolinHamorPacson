@@ -900,21 +900,22 @@
               return;
             }
 
-            // Set username and email from localStorage
+            // Load user data if authenticated
             const username = localStorage.getItem('username');
             const email = localStorage.getItem('email');
-            if (username) document.getElementById('username').value = username;
-            if (email) document.getElementById('email').value = email;
-
-            // Initialize reservation details
-            updateReservationDetails();
+            if (username) {
+              document.getElementById('username').value = username;
+            }
+            if (email) {
+              document.getElementById('email').value = email;
+            }
           } catch (error) {
             console.error('Auth check failed:', error);
             window.location.href = '/login.html';
           }
         });
 
-        // Update form submission to include authentication
+        // Update form submission to include credentials
         document.getElementById('eventForm').addEventListener('submit', async function(event) {
           event.preventDefault();
 
@@ -930,32 +931,39 @@
               guests: {
                 number: parseInt(document.getElementById('guestNumber').value) || 1,
                 names: Array.from(document.querySelectorAll('.guest-name')).map(input => input.value.trim()).filter(name => name)
-              },
-              poolOptions: {
-                type: document.querySelector('input[name="poolType"]:checked')?.value,
-                isReserved: document.getElementById('poolReservation')?.checked
-              },
-              courtOptions: {
-                hasLighting: document.getElementById('courtLighting')?.checked
-              },
-              clubhouseOptions: {
-                hasCatering: document.getElementById('clubhouseCatering')?.checked,
-                hasSetup: document.getElementById('clubhouseSetup')?.checked
               }
             };
 
+            // Add amenity-specific options
+            if (formData.amenities.includes('Pool')) {
+              formData.poolOptions = {
+                type: document.querySelector('input[name="poolType"]:checked').value,
+                isReserved: document.getElementById('poolReservation').checked
+              };
+            }
+            if (formData.amenities.includes('Court')) {
+              formData.courtOptions = {
+                hasLighting: document.getElementById('courtLighting').checked
+              };
+            }
+            if (formData.amenities.includes('Clubhouse')) {
+              formData.clubhouseOptions = {
+                hasCatering: document.getElementById('clubhouseCatering').checked,
+                hasSetup: document.getElementById('clubhouseSetup').checked
+              };
+            }
+
             const response = await fetch('/addevent', {
               method: 'POST',
+              credentials: 'include',
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
               },
-              credentials: 'include',
               body: JSON.stringify(formData)
             });
 
             const result = await response.json();
-            
             if (result.success) {
               showSuccessModal();
             } else {
@@ -967,166 +975,104 @@
           }
         });
 
-        // Improve amenity details display
+        // Update the amenity details styling
+        const amenityDetailsConfig = {
+          Pool: `
+            <div class="amenity-details">
+              <div class="amenity-info" style="font-size:1.1em;margin-bottom:10px;">
+                <strong style="color:#AF2630;">Pool Reservation Details</strong>
+              </div>
+              <div class="amenity-info">• Morning Session: <strong>6AM - 5PM</strong></div>
+              <div class="amenity-info">• Evening Session: <strong>5PM - 11PM</strong> <span style="color:#AF2630;">(+₱1000)</span></div>
+              <div class="amenity-info">• Base Rate: <strong>₱100</strong> per guest</div>
+              <div class="amenity-info">• Private Reservation: <strong>+₱1000</strong></div>
+              <div class="amenity-info">• Maximum Capacity: <strong>30</strong> guests</div>
+            </div>
+          `,
+          Clubhouse: `
+            <div class="amenity-details">
+              <div class="amenity-info" style="font-size:1.1em;margin-bottom:10px;">
+                <strong style="color:#AF2630;">Clubhouse Reservation Details</strong>
+              </div>
+              <div class="amenity-info">• Available Hours: <strong>6AM - 10PM</strong></div>
+              <div class="amenity-info">• Base Rate: <strong>₱1000</strong> per hour</div>
+              <div class="amenity-info">• Catering Service: <strong>+₱2000</strong></div>
+              <div class="amenity-info">• Setup/Cleanup: <strong>+₱1000</strong></div>
+              <div class="amenity-info">• Maximum Capacity: <strong>60</strong> guests</div>
+            </div>
+          `,
+          Court: `
+            <div class="amenity-details">
+              <div class="amenity-info" style="font-size:1.1em;margin-bottom:10px;">
+                <strong style="color:#AF2630;">Court Reservation Details</strong>
+              </div>
+              <div class="amenity-info">• Available Hours: <strong>6PM - 10PM</strong></div>
+              <div class="amenity-info">• Lighting Fee: <strong>₱300</strong> per hour</div>
+              <div class="amenity-info">• No guest limit</div>
+              <div class="amenity-info">• First-come, first-served basis</div>
+            </div>
+          `
+        };
+
+        // Update the function to use amenityDetailsConfig
         function updateAmenityPreviewAndDetails() {
           const checked = Array.from(document.querySelectorAll('input[name="amenities"]:checked'));
-          const previewImage = document.getElementById('amenityPreview');
-          const detailsContainer = document.getElementById('amenityDetailsContainer');
+          let show = checked.length ? checked[checked.length-1].value : null;
+          if (!show) show = 'Pool'; // default
+
+          const amenityPreview = document.getElementById('amenityPreview');
+          const amenityDetailsContainer = document.getElementById('amenityDetailsContainer');
           
-          if (!previewImage || !detailsContainer) return;
-
-          let show = checked.length ? checked[checked.length-1].value : 'Pool';
-          previewImage.src = amenityImages[show];
-          previewImage.alt = show + ' Preview';
-
-          // Update details based on selected amenity
-          let details = '';
-          switch(show) {
-            case 'Pool':
-              const isEvening = document.querySelector('input[name="poolType"]:checked')?.value === 'evening';
-              const isReserved = document.getElementById('poolReservation')?.checked;
-              const guestCount = parseInt(document.getElementById('guestNumber').value) || 1;
-              
-              details = `
-                <div class="amenity-details">
-                  <div class="amenity-info">
-                    <strong>Session:</strong> ${isEvening ? 'Evening (5PM-11PM)' : 'Morning (6AM-5PM)'}
-                    ${isEvening ? ' <span style="color:#AF2630;">(+₱1000)</span>' : ''}
-                  </div>
-                  <div class="amenity-info">
-                    <strong>Base Rate:</strong> ₱100 per guest
-                  </div>
-                  <div class="amenity-info">
-                    <strong>Guests:</strong> ${guestCount} × ₱100 = ₱${guestCount * 100}
-                  </div>
-                  ${isReserved ? `
-                    <div class="amenity-info">
-                      <strong>Private Reservation:</strong> +₱1000
-                    </div>
-                  ` : ''}
-                  <div class="amenity-info">
-                    <strong>Max Capacity:</strong> 30 guests
-                  </div>
-                  <div class="amenity-info" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;">
-                    <strong>Total:</strong> ₱${calculatePoolTotal(guestCount, isEvening, isReserved)}
-                  </div>
-                </div>
-              `;
-              break;
-
-            case 'Court':
-              const hasLighting = document.getElementById('courtLighting')?.checked;
-              const courtHours = calculateHours();
-              
-              details = `
-                <div class="amenity-details">
-                  <div class="amenity-info">
-                    <strong>Hours:</strong> ${courtHours} hours
-                  </div>
-                  <div class="amenity-info">
-                    <strong>Base Rate:</strong> ₱300 per hour
-                  </div>
-                  ${hasLighting ? `
-                    <div class="amenity-info">
-                      <strong>Lighting Fee:</strong> ₱300 per hour
-                    </div>
-                  ` : ''}
-                  <div class="amenity-info">
-                    <strong>Time Slot:</strong> 6PM - 10PM
-                  </div>
-                  <div class="amenity-info" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;">
-                    <strong>Total:</strong> ₱${calculateCourtTotal(courtHours, hasLighting)}
-                  </div>
-                </div>
-              `;
-              break;
-
-            case 'Clubhouse':
-              const clubhouseHours = calculateHours();
-              const hasCatering = document.getElementById('clubhouseCatering')?.checked;
-              const hasSetup = document.getElementById('clubhouseSetup')?.checked;
-              
-              details = `
-                <div class="amenity-details">
-                  <div class="amenity-info">
-                    <strong>Hours:</strong> ${clubhouseHours} hours
-                  </div>
-                  <div class="amenity-info">
-                    <strong>Base Rate:</strong> ₱1000 per hour
-                  </div>
-                  ${hasCatering ? `
-                    <div class="amenity-info">
-                      <strong>Catering Service:</strong> +₱2000
-                    </div>
-                  ` : ''}
-                  ${hasSetup ? `
-                    <div class="amenity-info">
-                      <strong>Setup/Cleanup:</strong> +₱1000
-                    </div>
-                  ` : ''}
-                  <div class="amenity-info">
-                    <strong>Time Slot:</strong> 6AM - 10PM
-                  </div>
-                  <div class="amenity-info">
-                    <strong>Max Capacity:</strong> 60 guests
-                  </div>
-                  <div class="amenity-info" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;">
-                    <strong>Total:</strong> ₱${calculateClubhouseTotal(clubhouseHours, hasCatering, hasSetup)}
-                  </div>
-                </div>
-              `;
-              break;
+          if (amenityPreview) {
+            amenityPreview.src = amenityImages[show];
+            amenityPreview.alt = show + ' Preview';
           }
-          
-          detailsContainer.innerHTML = details;
-        }
 
-        // Helper functions for calculations
-        function calculatePoolTotal(guests, isEvening, isReserved) {
-          let total = guests * 100;
-          if (isEvening) total += 1000;
-          if (isReserved) total += 1000;
-          return total;
-        }
-
-        function calculateCourtTotal(hours, hasLighting) {
-          let total = hours * 300;
-          if (hasLighting) total += hours * 300;
-          return total;
-        }
-
-        function calculateClubhouseTotal(hours, hasCatering, hasSetup) {
-          let total = hours * 1000;
-          if (hasCatering) total += 2000;
-          if (hasSetup) total += 1000;
-          return total;
-        }
-
-        // Add event listeners for all inputs that affect the details
-        document.addEventListener('DOMContentLoaded', function() {
-          const inputs = [
-            ...document.querySelectorAll('input[name="amenities"]'),
-            ...document.querySelectorAll('input[name="poolType"]'),
-            document.getElementById('poolReservation'),
-            document.getElementById('courtLighting'),
-            document.getElementById('clubhouseCatering'),
-            document.getElementById('clubhouseSetup'),
-            document.getElementById('guestNumber')
-          ];
-
-          inputs.forEach(input => {
-            if (input) {
-              input.addEventListener('change', () => {
-                updateAmenityPreviewAndDetails();
-                updateReservationDetails();
-                validateTimeInputs();
-              });
+          if (amenityDetailsContainer) {
+            let details = amenityDetailsConfig[show];
+            if (checked.length > 1) {
+              details = '<div class="amenity-details">' +
+                '<div class="amenity-info" style="color:#AF2630;font-weight:bold;margin-bottom:10px;">' +
+                'Multiple amenities selected. See details below.</div>' +
+                checked.map(amenity => amenityDetailsConfig[amenity.value]).join('') +
+                '</div>';
             }
-          });
+            amenityDetailsContainer.innerHTML = details;
+          }
 
-          // Initial update
-          updateAmenityPreviewAndDetails();
-        });
+          // Show/hide appropriate options
+          document.getElementById('poolOptions').style.display = 
+            checked.some(cb => cb.value === 'Pool') ? 'block' : 'none';
+          document.getElementById('courtOptions').style.display = 
+            checked.some(cb => cb.value === 'Court') ? 'block' : 'none';
+          document.getElementById('clubhouseOptions').style.display = 
+            checked.some(cb => cb.value === 'Clubhouse') ? 'block' : 'none';
+
+          // Update reservation details
+          updateReservationDetails();
+        }
+
+        // Add styles for better amenity details display
+        const style = document.createElement('style');
+        style.textContent = `
+          .amenity-details {
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          .amenity-info {
+            color: white;
+            margin: 8px 0;
+            font-size: 0.95em;
+            line-height: 1.4;
+          }
+          .amenity-info strong {
+            color: #AF2630;
+          }
+        `;
+        document.head.appendChild(style);
       </script>
 
     <!-- guests --------------------------------------------------------->
@@ -1665,37 +1611,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Amenity preview and details logic
 const amenityPreview = document.getElementById('amenityPreview');
 const amenityDetailsContainer = document.getElementById('amenityDetailsContainer');
-const amenityDetails = {
-  Pool: `
-    <div class="amenity-details">
-      <div class="checkbox-container">
-        <input type="checkbox" id="poolNight" name="poolNight">
-        <label for="poolNight">Evening Session (5PM - 11PM)</label>
-      </div>
-      <div class="amenity-info">Morning: <strong>6AM - 5PM</strong></div>
-      <div class="amenity-info">Evening: <strong>5PM - 11PM</strong> <span style="color:#AF2630;">(+₱1000 fee)</span></div>
-      <div class="amenity-info">₱100 per guest</div>
-      <div class="amenity-info">Max 30 guests</div>
-      <div class="amenity-info">Shared use, no reservation needed for morning</div>
-    </div>
-  `,
-  Clubhouse: `
-    <div class="amenity-details">
-      <div class="amenity-info">Available: <strong>6AM - 10PM</strong></div>
-      <div class="amenity-info">₱1000 per hour</div>
-      <div class="amenity-info">Max 60 guests</div>
-      <div class="amenity-info">Normal reservation only</div>
-    </div>
-  `,
-  Court: `
-    <div class="amenity-details">
-      <div class="amenity-info">Available: <strong>6PM - 10PM</strong></div>
-      <div class="amenity-info">₱300 per hour (lighting fee)</div>
-      <div class="amenity-info">No guest limit</div>
-      <div class="amenity-info">Lighting fee applies after 6PM</div>
-    </div>
-  `
-};
 const amenityImages = {
   Pool: '/images/pool.jpg',
   Clubhouse: '/images/clubhouse.jpg',
@@ -1707,7 +1622,7 @@ function updateAmenityPreviewAndDetails() {
   if (!show) show = 'Pool'; // default
   amenityPreview.src = amenityImages[show];
   amenityPreview.alt = show + ' Preview';
-  amenityDetailsContainer.innerHTML = amenityDetails[show];
+  amenityDetailsContainer.innerHTML = amenityDetailsConfig[show];
 }
 document.querySelectorAll('input[name="amenities"]').forEach(cb => {
   cb.addEventListener('change', updateAmenityPreviewAndDetails);

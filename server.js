@@ -775,7 +775,7 @@ app.post("/api/login", async (req, res) => {
         });
       }
 
-        req.session.user = {
+      req.session.user = {
         username: user.username,
         email: user.email || null,
         role: user.role || "homeowner"
@@ -931,12 +931,12 @@ app.post("/api/check-delinquent-status", async (req, res) => {
         // Handle Delinquent or Almost Due (case-insensitive)
         const pStatus = (homeowner.PStatus || "").toLowerCase();
         if (pStatus === "delinquent") {
-          return res.json({
-            success: false,
-            isDelinquent: true,
-            username: user.username,
+        return res.json({
+          success: false,
+          isDelinquent: true,
+          username: user.username,
             dueAmount: mdAmount,
-            message: "Your account has outstanding dues that need to be paid.",
+          message: "Your account has outstanding dues that need to be paid.",
           });
         } else if (pStatus === "almost due") {
           return res.json({
