@@ -1927,6 +1927,20 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(err => {
       paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
     });
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+          try {
+            const response = await fetch("/logout", { method: "POST" });
+            if (response.ok) {
+              localStorage.clear(); // Clear user data
+              window.location.href = "login.html"; // Redirect to the login page
+            } else {
+              showCustomAlert("Logout failed. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error during logout:", error);
+            showCustomAlert("An error occurred during logout. Please try again.");
+          }
+        });
 });
   </script>
 </html>
