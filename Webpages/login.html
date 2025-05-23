@@ -1023,7 +1023,15 @@
                 
                 // Store user info
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('MDAmount', data.dueAmount || data.MDAmount || "1500.00");
+                // Calculate the increased amount if overdue by more than 31 days
+                let dueAmount = parseFloat(data.dueAmount || "1500.00");
+                console.log('Days overdue:', data.daysOverdue); // Debug log
+                console.log('Initial due amount:', dueAmount); // Debug log
+                if (data.daysOverdue > 31) {
+                    dueAmount += (data.daysOverdue - 31) * 10;
+                    console.log('Updated due amount after applying overdue penalty:', dueAmount); // Debug log
+                }
+                localStorage.setItem('MDAmount', dueAmount.toFixed(2));
                 
                 // Show success message
                 showError('Login successful! Redirecting...', true);
@@ -1057,10 +1065,15 @@
             } else if (data.isDelinquent) {
                 // Store user data in localStorage
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('MDAmount', data.dueAmount || "1500.00");
+                // Calculate the increased amount if overdue by more than 31 days
+                dueAmount = parseFloat(data.dueAmount || "1500.00");
+                if (data.daysOverdue > 31) {
+                    dueAmount += (data.daysOverdue - 31) * 10;
+                }
+                localStorage.setItem('MDAmount', dueAmount.toFixed(2));
 
                 // Show the delinquent modal and set the amount
-                document.getElementById('delinquentAmount').textContent = `₱${data.dueAmount || "1500.00"}`;
+                document.getElementById('delinquentAmount').textContent = `₱${dueAmount.toFixed(2)}`;
                 document.getElementById('delinquentModal').style.display = 'block';
                 return false;
             } else if (data.isAlmostDue) {

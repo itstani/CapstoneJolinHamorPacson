@@ -1020,7 +1020,13 @@ z-index: 1002; /* Ensure it's above the header */
       if (e.target !== checkbox) {
         switch (notification.type) {
           case 'eventPaymentRequired':
-            showEventPaymentRequiredModal(notification);
+            showEventPaymentRequiredModal({
+              ...notification,
+              button: {
+                text: 'Proceed to Payment',
+                action: () => window.location.href = '/Webpages/payment.html'
+              }
+            });
             break;
           case 'payment_reminder':
             showPaymentReminderModal(notification);
@@ -1028,7 +1034,11 @@ z-index: 1002; /* Ensure it's above the header */
           case 'payment_required':
             showDefaultModal({
               ...notification,
-              message: "Your monthly dues are due, please pay them at your earliest convenience."
+              message: "Your monthly dues are due, please pay them at your earliest convenience.",
+              button: {
+                text: 'Proceed to Payment',
+                action: () => window.location.href = '/Webpages/MDPayment.html'
+              }
             });
             break;
           case 'payment_approved':

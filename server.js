@@ -2656,7 +2656,7 @@ async function createNotification(username, type, message, relatedId, subject, a
 async function createEventNotification(username, type, message, relatedId, subject, amenity, eventDetails = {}) {
   try {
     const db = await connectToDatabase();
-    const notificationsCollection = db.collection("eventNotifications");
+    const notificationsCollection = db.collection("notifications");
 
     let relatedIdStr = relatedId;
     if (relatedId) {
@@ -3069,7 +3069,7 @@ app.put("/approveEvent/:eventName", async (req, res) => {
     // Create notification with complete details
     await createEventNotification(
       event.username,
-      "payment_required",
+      "eventPaymentRequired",
       `Your event "${eventName}" has been approved. Please proceed with the payment.`,
       result.insertedId,
       subject,
@@ -3156,13 +3156,13 @@ app.post("/api/approve-event/:eventId", async (req, res) => {
     if (username) {
       await createEventNotification(
         username,
-        "payment_required",
+        "eventPaymentRequired",
         `Your event "${eventName}" has been approved. Please proceed with the payment.`,
         insertResult.insertedId.toString(), // Use the new _id from aevents collection for relatedId
         `${eventName} on ${eventDate} ${timeRangeForSubject}`,
         amenity,
         { // Pass eventDetails for createNotification to use
-            eventName: eventName,
+          eventPaymentRequired: eventName,
             username: username,
             eventDate: eventDate,
             startTime: displayStartTime, // For notification consistency
