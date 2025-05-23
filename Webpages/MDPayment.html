@@ -378,10 +378,11 @@
                 return;
             }
 
+            let data;
             try {
                 const res = await fetch(`/api/get-monthly-due?username=${encodeURIComponent(username)}`);
                 console.log('Fetch response:', res); // Debug log
-                const data = await res.json();
+                data = await res.json();
                 console.log('Fetched data:', data); // Debug log
 
                 if (data.success && data.homeowner) {
@@ -472,6 +473,11 @@
             document.getElementById('duesPaymentForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
+                if (!data) {
+                    console.error('Data is not available');
+                    return;
+                }
+
                 // Show loading state
                 proceedButton.disabled = true;
                 proceedButton.textContent = 'Processing...';
