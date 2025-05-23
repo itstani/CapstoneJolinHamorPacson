@@ -1019,18 +1019,18 @@ z-index: 1002; /* Ensure it's above the header */
       console.log("Notification clicked:", notification);
       if (e.target !== checkbox) {
         switch (notification.type) {
-            case 'EventPaymentRequired':
-              showEventDetailsModal(notification);
-              break;
+          case 'eventPaymentRequired':
+            showEventPaymentRequiredModal(notification);
+            break;
           case 'payment_reminder':
             showPaymentReminderModal(notification);
             break;
-            case 'payment_required':
-              showDefaultModal({
-                ...notification,
-                message: "Your monthly dues are due, please pay them at your earliest convenience."
-              });
-              break;
+          case 'payment_required':
+            showDefaultModal({
+              ...notification,
+              message: "Your monthly dues are due, please pay them at your earliest convenience."
+            });
+            break;
           case 'payment_approved':
             showPaymentApprovedModal(notification);
             break;
@@ -1801,6 +1801,54 @@ async function clearSelectedNotifications() {
 
   function storePaymentId(paymentId) {
     sessionStorage.setItem('paymentId', paymentId);
+  }
+
+  function showEventPaymentRequiredModal(notification) {
+    // Create the modal element
+    const modal = document.createElement('div');
+    modal.className = 'event-details-modal';
+    modal.style.display = 'flex';
+
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'event-details-content';
+
+    // Add close button
+    const closeButton = document.createElement('span');
+    closeButton.className = 'close-event-details';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+      modal.style.display = 'none';
+      document.body.removeChild(modal);
+    };
+
+    // Add title
+    const title = document.createElement('h3');
+    title.id = 'eventDetailsTitle';
+    title.textContent = 'Event Payment Required';
+
+    // Add message
+    const message = document.createElement('div');
+    message.className = 'event-detail-value';
+    message.textContent = notification.message || 'Your event has been approved. Please proceed with the payment.';
+
+    // Add proceed to payment button
+    const proceedButton = document.createElement('button');
+    proceedButton.className = 'payment-button';
+    proceedButton.textContent = 'Proceed to Payment';
+    proceedButton.onclick = () => {
+      redirectToPaymentPage(notification.relatedId);
+    };
+
+    // Append elements
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(title);
+    modalContent.appendChild(message);
+    modalContent.appendChild(proceedButton);
+    modal.appendChild(modalContent);
+
+    // Append modal to body
+    document.body.appendChild(modal);
   }
  </script>
 </html>
