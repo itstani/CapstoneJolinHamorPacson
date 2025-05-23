@@ -397,7 +397,7 @@
                     console.log(`Block: ${block}, Lot: ${lot}, Phase: ${phase}`); // Debug log
                     document.getElementById('address').textContent = `Block ${block}, Lot ${lot}, Phase ${phase}`;
                     document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
-                    document.getElementById('totalAmount').textContent = data.totalDue.toFixed(2);
+                    document.getElementById('totalAmount').textContent = (data.baseDue + data.penalty).toFixed(2);
                     // Extra fees
                     const base = parseFloat(data.baseDue);
                     const total = parseFloat(data.totalDue);
@@ -420,6 +420,15 @@
                         console.warn('Last payment date is missing');
                         document.getElementById('lastPaymentDate').textContent = 'No Date Available';
                     }
+
+                    // Check if days overdue is greater than 30
+                    if (data.daysOverdue > 30) {
+                        data.baseDue *= 2; // Double the base due
+                    }
+
+                    // Update the UI with the new amounts
+                    document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
+                    document.getElementById('totalAmount').textContent = (data.baseDue + data.penalty).toFixed(2);
                 } else {
                     console.error('Error fetching homeowner data:', data.message || 'Unknown error');
                 }
