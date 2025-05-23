@@ -4402,18 +4402,18 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
     // Determine which homeowners to notify based on recipientType
     let query = {}
 
-    if (recipientType === "delinquent") {
-      query = { PStatus: "Delinquent" }
+    if (recipientType === "Almost Due") {
+      query = { PStatus: "Almost Due" }
     } else if (recipientType === "not_paid") {
-      query = { PStatus: "Not Paid" }
-    } else if (recipientType === "all_delinquent") {
+      query = { PStatus: "Almost Due" }
+    } else if (recipientType === "Almost Due") {
       query = {
-        $or: [{ PStatus: "Delinquent" }],
+        $or: [{ PStatus: "Almost Due" }],
       }
     } else {
       // Default to all delinquent homeowners
       query = {
-        $or: [{ PStatus: "Delinquent" }],
+        $or: [{ PStatus: "Almost Due" }],
       }
     }
 
@@ -4480,6 +4480,28 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
     })
   }
 })
+
+app.get('/api/monthly-payments-summary', async (req, res) => {
+  try {
+    const payments = await db.collection('monthlypayments').find({}, {
+      projection: {
+        amount: 1,
+        paymentMethod: 1,
+        receiptImage: 1,
+        status: 1,
+        timestamp: 1,
+        approvedAt: 1,
+        approvedBy: 1,
+        username: 1
+      }
+    }).toArray();
+    res.json({ success: true, payments });
+  } catch (error) {
+    console.error('Error fetching monthly payments summary:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch monthly payments summary' });
+  }
+});
+
 
 
 
@@ -6366,26 +6388,4 @@ app.get("*", (req, res) => {
   }
   res.sendFile(path.join(__dirname, "Webpages", "login.html"));
 });
-
-app.get('/api/monthly-payments-summary', async (req, res) => {
-  try {
-    const payments = await db.collection('monthlypayments').find({}, {
-      projection: {
-        amount: 1,
-        paymentMethod: 1,
-        receiptImage: 1,
-        status: 1,
-        timestamp: 1,
-        approvedAt: 1,
-        approvedBy: 1,
-        username: 1
-      }
-    }).toArray();
-    res.json({ success: true, payments });
-  } catch (error) {
-    console.error('Error fetching monthly payments summary:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch monthly payments summary' });
-  }
-});
-
 

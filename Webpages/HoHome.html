@@ -1023,7 +1023,8 @@ z-index: 1002; /* Ensure it's above the header */
             showEventPaymentRequiredModal({
               ...notification,
               button: {
-                text: 'Proceed to Payment',
+                text: 'Proceed to Event Payment',
+                className: 'proceed-to-event-payment-button',
                 action: () => window.location.href = '/Webpages/payment.html'
               }
             });
