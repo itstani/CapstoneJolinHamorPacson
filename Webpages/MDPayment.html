@@ -324,6 +324,10 @@
                 <div class="payment-label">Total Amount Due:</div>
                 <div class="payment-value">₱<span id="totalAmount">0.00</span></div>
             </div>
+            <div class="payment-row">
+                <div class="payment-label">Last Payment Date:</div>
+                <div class="payment-value" id="lastPaymentDate">loading...</div>
+            </div>
         </div>
         
         <!-- Payment instruction and QR code -->
@@ -401,6 +405,19 @@
                         document.getElementById('extraFeesRow').style.display = '';
                     } else {
                         document.getElementById('extraFeesRow').style.display = 'none';
+                    }
+                    const lastPaymentDateString = data.lastPaymentDate;
+                    if (lastPaymentDateString) {
+                        const lastPaymentDate = new Date(lastPaymentDateString);
+                        if (!isNaN(lastPaymentDate)) {
+                            document.getElementById('lastPaymentDate').textContent = lastPaymentDate.toLocaleDateString();
+                        } else {
+                            console.error('Invalid date format:', lastPaymentDateString);
+                            document.getElementById('lastPaymentDate').textContent = 'Invalid Date';
+                        }
+                    } else {
+                        console.warn('Last payment date is missing');
+                        document.getElementById('lastPaymentDate').textContent = 'No Date Available';
                     }
                 } else {
                     console.error('Error fetching homeowner data:', data.message || 'Unknown error');

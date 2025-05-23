@@ -1062,7 +1062,8 @@ app.get('/api/get-monthly-due', async (req, res) => {
         lastName: homeowner.lastName,
         email: homeowner.email,
         username: homeowner.username
-      }
+      },
+      lastPaymentDate: homeowner.lastPaymentDate // Add this line
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
