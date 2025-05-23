@@ -1062,8 +1062,7 @@ app.get('/api/get-monthly-due', async (req, res) => {
         lastName: homeowner.lastName,
         email: homeowner.email,
         username: homeowner.username
-      },
-      lastPaymentDate: homeowner.lastPaymentDate // Add this line
+      }
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -2657,7 +2656,7 @@ async function createNotification(username, type, message, relatedId, subject, a
 async function createEventNotification(username, type, message, relatedId, subject, amenity, eventDetails = {}) {
   try {
     const db = await connectToDatabase();
-    const notificationsCollection = db.collection("notifications");
+    const notificationsCollection = db.collection("eventNotifications");
 
     let relatedIdStr = relatedId;
     if (relatedId) {
@@ -3070,7 +3069,7 @@ app.put("/approveEvent/:eventName", async (req, res) => {
     // Create notification with complete details
     await createEventNotification(
       event.username,
-      "eventPaymentRequired", // Changed from 'payment_required' to 'eventPaymentRequired'
+      "payment_required",
       `Your event "${eventName}" has been approved. Please proceed with the payment.`,
       result.insertedId,
       subject,
@@ -4658,15 +4657,9 @@ app.get("/api/generate-payment-report", async (req, res) => {
     const addresses = await addressCollection.find({}).toArray();
     const payments = await paymentsCollection.find({}).toArray();
 
-    // Build lookup maps
     const addressMap = Object.fromEntries(
       addresses.map(a => [a.homeownerId?.toString(), a])
     );
-
-    const homeownerMapByUsername = Object.fromEntries(
-      homeowners.map(h => [h.username, h])
-    );
-
 
     const excel = officegen("xlsx");
     const sheet = excel.makeNewSheet();
@@ -4734,48 +4727,42 @@ app.get("/api/generate-payment-report", async (req, res) => {
       headers = [
         "Homeowner", "Email", "Amount", "Payment Method", "Date", "Status"
       ];
-    
+
       payments.forEach(p => {
         const paymentDate = new Date(p.timestamp);
         if (fromDate && (paymentDate < fromDate || paymentDate > toDate)) return;
-    
-        const homeowner = homeownerMapByUsername[p.username];
-        const fullName = homeowner ? `${homeowner.firstName || ""} ${homeowner.lastName || ""}`.trim() : "Unknown";
-    
+
         rows.push([
-          fullName,
-          String(p.username || ""),
+          String(p.userName || ""),
+          String(p.userEmail || ""),
           p.amount || 0,
           String(p.paymentMethod || ""),
           paymentDate.toLocaleDateString(),
           String(p.status || "")
         ]);
       });
-    }
-    else if (type === "homeowner_details") {
+
+    } else if (type === "homeowner_details") {
       headers = [
-        "Last Name", "First Name", "Username", "Phone", "Landline", "Address",
+        "Last Name", "First Name", "Email", "Phone", "Landline", "Address",
         "Homeowner Status", "Car Sticker Status", "Monthly Due"
       ];
-    
+
       homeowners.forEach(h => {
-        const matchedAddr = findMatchingAddress(h.Address || addressMap[h._id?.toString()]);
-        const mdAmount = matchedAddr?.MDAmount?.$numberDouble || matchedAddr?.MDAmount || 0;
-    
         const addr = formatAddress(h.Address || addressMap[h._id?.toString()]);
-    
         rows.push([
           String(h.lastName || ""),
           String(h.firstName || ""),
-          String(h.username || ""),
+          String(h.email || ""),
           String(h.phoneNumber || ""),
-          String(h.landline || ""),
+          String(h.landLine || ""),
           addr,
-          String(h.HStatus || ""),
-          String(h.carSticker || "Undetermined"),
-          mdAmount
+          String(h.homeownerStatus || ""),
+          String(h.carStickerStatus || "Undetermined"),
+          h.MDAmount || 0
         ]);
       });
+
     } else if (type === "monthly_summary") {
       headers = [
         "Month", "Total Payments", "Total Amount Collected"
@@ -4829,8 +4816,6 @@ app.get("/api/generate-payment-report", async (req, res) => {
     });
   }
 });
-
-
 
 // CONCERN REPLY-----------------------------------------------
 
@@ -6380,6 +6365,27 @@ app.get("*", (req, res) => {
     return res.status(404).json({ success: false, message: "API endpoint not found" });
   }
   res.sendFile(path.join(__dirname, "Webpages", "login.html"));
+});
+
+app.get('/api/monthly-payments-summary', async (req, res) => {
+  try {
+    const payments = await db.collection('monthlypayments').find({}, {
+      projection: {
+        amount: 1,
+        paymentMethod: 1,
+        receiptImage: 1,
+        status: 1,
+        timestamp: 1,
+        approvedAt: 1,
+        approvedBy: 1,
+        username: 1
+      }
+    }).toArray();
+    res.json({ success: true, payments });
+  } catch (error) {
+    console.error('Error fetching monthly payments summary:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch monthly payments summary' });
+  }
 });
 
 
