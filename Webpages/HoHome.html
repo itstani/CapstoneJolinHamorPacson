@@ -695,6 +695,7 @@ z-index: 1002; /* Ensure it's above the header */
   box-shadow: 0 2px 12px rgba(0,0,0,0.07);
   padding: 32px 24px 24px 24px;
   margin-bottom: 40px;
+  border: 1px solid red; /* Temporary for debugging */
 }
 .payments-title {
   color: #AF2630;
@@ -884,6 +885,12 @@ z-index: 1002; /* Ensure it's above the header */
       <div class="payments-loading">Loading your payment history...</div>
     </div>
   </div>
+
+  <div id="paymentDetails">
+    <div id="lastPaymentDate"></div>
+    <div id="paymentStatus"></div>
+    <div id="MDAmount"></div>
+  </div>
   </body>
   <script>
   let notifications = [];
@@ -1024,6 +1031,9 @@ z-index: 1002; /* Ensure it's above the header */
                 message: "Your monthly dues are due, please pay them at your earliest convenience."
               });
               break;
+          case 'payment_approved':
+            showPaymentApprovedModal(notification);
+            break;
           default:
             showDefaultModal(notification);
         }
@@ -1582,7 +1592,7 @@ async function clearSelectedNotifications() {
     proceedButton.className = 'payment-button';
     proceedButton.textContent = 'Proceed to Payment';
     proceedButton.onclick = () => {
-      window.location.href = 'MDPayment.html';
+      redirectToPaymentPage(notification.relatedId);
     };
 
     // Append elements
@@ -1706,6 +1716,59 @@ async function clearSelectedNotifications() {
     document.body.appendChild(modal);
   }
 
+  function showPaymentApprovedModal(notification) {
+    // Create the modal element
+    const modal = document.createElement('div');
+    modal.className = 'event-details-modal';
+    modal.style.display = 'flex';
+
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'event-details-content';
+
+    // Add close button
+    const closeButton = document.createElement('span');
+    closeButton.className = 'close-event-details';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        modal.style.display = 'none';
+        document.body.removeChild(modal);
+    };
+
+    // Add title
+    const title = document.createElement('h3');
+    title.id = 'eventDetailsTitle';
+    title.textContent = 'Payment Approved';
+
+    // Add message
+    const message = document.createElement('div');
+    message.className = 'event-detail-value';
+    message.textContent = notification.message || 'Your payment has been approved.';
+
+    // Add proceed to MDR button
+    const proceedButton = document.createElement('button');
+    proceedButton.className = 'payment-button';
+    proceedButton.textContent = 'View Receipt';
+    proceedButton.onclick = () => {
+        const paymentId = notification.relatedId; // Use relatedId as paymentId
+        if (paymentId) {
+            window.location.href = `MDR.html?paymentId=${encodeURIComponent(paymentId)}`;
+        } else {
+            console.error('Payment ID not found in notification');
+        }
+    };
+
+    // Append elements
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(title);
+    modalContent.appendChild(message);
+    modalContent.appendChild(proceedButton);
+    modal.appendChild(modalContent);
+
+    // Append modal to body
+    document.body.appendChild(modal);
+  }
+
   async function fetchHomeownerPaymentDetails() {
     try {
       const response = await fetch('/api/homeowner-payment-details');
@@ -1720,7 +1783,7 @@ async function clearSelectedNotifications() {
         // Display the fetched data
         document.getElementById('lastPaymentDate').textContent = new Date(lastPaymentDate).toLocaleString();
         document.getElementById('paymentStatus').textContent = paymentStatus;
-        document.getElementById('MDAmount').textContent = `₱${MDAmount.toFixed(2)}`;
+        document.getElementById('MDAmount').textContent = `₱${(MDAmount || 0).toFixed(2)}`;
       } else {
         console.error('Invalid data received:', data);
       }
@@ -1731,5 +1794,13 @@ async function clearSelectedNotifications() {
 
   // Call the function to fetch and display the payment details
   fetchHomeownerPaymentDetails();
+
+  function redirectToPaymentPage(paymentId) {
+    window.location.href = `/Webpages/MDPayment.html?paymentId=${paymentId}`;
+  }
+
+  function storePaymentId(paymentId) {
+    sessionStorage.setItem('paymentId', paymentId);
+  }
  </script>
 </html>

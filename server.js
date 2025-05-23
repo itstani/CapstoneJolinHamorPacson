@@ -1254,40 +1254,89 @@ function logAddressStructure(address) {
 
 app.get("/api/monthly-payments/:id", async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
     if (!id) {
       return res.status(400).json({
         success: false,
         message: "Payment ID is required",
-      })
+      });
     }
 
-    const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
+    const db = await connectToDatabase();
+    const paymentsCollection = db.collection("monthlyPayments");
+    const homeownersCollection = db.collection("homeowners");
 
     // Find the payment by ID
-    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
+    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) });
 
     if (!payment) {
       return res.status(404).json({
         success: false,
         message: "Payment not found",
-      })
+      });
     }
+
+    // Find the homeowner details
+    const homeowner = await homeownersCollection.findOne({ username: payment.username });
 
     res.json({
       success: true,
-      payment,
-    })
+      payment: {
+        ...payment,
+        firstName: homeowner ? homeowner.firstName : 'N/A',
+        lastName: homeowner ? homeowner.lastName : 'N/A',
+        address: homeowner ? `Block ${homeowner.Address.Block}, Lot ${homeowner.Address.Lot}, Phase ${homeowner.Address.Phase}` : 'N/A',
+      },
+    });
   } catch (error) {
-    console.error("Error fetching payment details:", error)
+    console.error("Error fetching payment details:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching payment details",
-    })
+    });
   }
-})
+});
+
+app.get('/api/monthly-reciept/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await connectToDatabase();
+    const paymentsCollection = db.collection('monthlyPayments');
+    const homeownersCollection = db.collection('homeowners');
+
+    // Find the payment by ID
+    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    // Find the homeowner by username
+    const homeowner = await homeownersCollection.findOne({ username: payment.username });
+
+    if (!homeowner) {
+      return res.status(404).json({ success: false, message: 'Homeowner not found' });
+    }
+
+    // Respond with payment and homeowner details
+    res.json({
+      success: true,
+      payment: {
+        ...payment,
+        homeowner: {
+          firstName: homeowner.firstName,
+          lastName: homeowner.lastName,
+          Address: homeowner.Address,
+          lastPaymentDate: homeowner.lastPaymentDate
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching payment details:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 
 app.get("/api/monthly-payment-search", async (req, res) => {
   try {
@@ -1297,11 +1346,9 @@ app.get("/api/monthly-payment-search", async (req, res) => {
     const { status, search, limit } = req.query;
 
     const query = {};
-
     if (status) {
       query.status = status;
     }
-
     if (search) {
       query.$or = [
         { userName: { $regex: new RegExp(search, 'i') } },
@@ -1316,9 +1363,15 @@ app.get("/api/monthly-payment-search", async (req, res) => {
 
     const payments = await collection.find(query, options).toArray();
 
+    // Transform the payments to include the paymentId explicitly
+    const transformedPayments = payments.map(payment => ({
+      ...payment,
+      paymentId: payment._id.toString() // Convert ObjectId to string if needed
+    }));
+
     res.json({
       success: true,
-      payments
+      payments: transformedPayments
     });
   } catch (error) {
     console.error("Error fetching monthly payments:", error);
@@ -1440,22 +1493,32 @@ app.post("/api/check-address-exists", async (req, res) => {
 // Approve payment endpoint
 app.post("/api/monthly-payments/:id/approve", async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
-    const db = await connectToDatabase()
-    const paymentsCollection = db.collection("monthlyPayments")
-    const homeownersCollection = db.collection("homeowners")
-    const addressCollection = db.collection("address")
+    const db = await connectToDatabase();
+    const paymentsCollection = db.collection("monthlyPayments");
+    const homeownersCollection = db.collection("homeowners");
 
     // Find the payment
-    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) })
+    const payment = await paymentsCollection.findOne({ _id: new ObjectId(id) });
 
     if (!payment) {
       return res.status(404).json({
         success: false,
         message: "Payment not found",
-      })
+      });
     }
+
+    // Generate a random 6-digit receipt number
+    const receiptNumber = Math.floor(100000 + Math.random() * 900000);
+
+    // Retrieve homeowner's address
+    const homeowner = await homeownersCollection.findOne({ username: payment.username });
+    const address = homeowner ? homeowner.Address : {};
+    const block = address.Block?.["$numberInt"] || address.Block || "";
+    const lot = address.Lot?.["$numberInt"] || address.Lot || "";
+    const phase = address.Phase?.["$numberInt"] || address.Phase || "";
+    const customerCode = `${block}${lot}${phase}`;
 
     // Update payment status
     await paymentsCollection.updateOne(
@@ -1465,48 +1528,56 @@ app.post("/api/monthly-payments/:id/approve", async (req, res) => {
           status: "approved",
           approvedAt: new Date(),
           approvedBy: req.session?.user?.username || "admin",
+          receiptNumber: receiptNumber,
+          customerCode: customerCode,
         },
       },
-    )
+    );
 
-    // Update homeowner status using username or fallback to email
-    const updateQuery = payment.username ? { username: payment.username } : { email: payment.username }
-    await homeownersCollection.updateOne(
-      updateQuery,
-      {
-        $set: {
-          PStatus: "Compliant",
-          paymentStatus: "Compliant",
-          PtStatus: "Compliant",
-          HStatus: "Compliant",
+    // Update homeowner status
+    const updateQuery = payment.username ? { username: payment.username } : { email: payment.username };
+    try {
+      const updateResult = await homeownersCollection.updateOne(
+        updateQuery,
+        {
+          $set: {
+            PStatus: "Compliant",
+            lastPaymentDate: new Date(),
+          },
         },
-      },
-    )
+      );
+
+      console.log("Update result:", updateResult);
+    } catch (error) {
+      console.error("Error updating homeowner status:", error);
+    }
 
     // Log the approval
-    await logActivity("paymentApproval", `Monthly dues payment for ${payment.username || payment.username} approved`)
+    await logActivity("paymentApproval", `Monthly dues payment for ${payment.username || payment.username} approved`);
 
-    // Create notification for the user using username or email
-    const notificationRecipient = payment.username || payment.username
+    // Create notification for the user
+    const notificationRecipient = payment.username || payment.username;
     await createNotification(
       notificationRecipient,
       "payment_approved",
       "Your monthly dues payment has been approved. Your account is now active.",
       payment._id,
-    )
+    );
 
     res.json({
       success: true,
       message: "Payment approved successfully",
-    })
+      receiptNumber: receiptNumber,
+      customerCode: customerCode,
+    });
   } catch (error) {
-    console.error("Error approving payment:", error)
+    console.error("Error approving payment:", error);
     res.status(500).json({
       success: false,
       message: "Error approving payment",
-    })
+    });
   }
-})
+});
 
 // Reject payment endpoint
 app.post("/api/monthly-payments/:id/reject", async (req, res) => {

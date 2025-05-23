@@ -174,6 +174,7 @@
         <div class="receipt-actions">
             <button onclick="window.print()">Print Receipt</button>
             <button onclick="downloadPDF()">Download as PDF</button>
+            <button onclick="window.location.href='HoHome.html'">Back Home</button>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -191,33 +192,49 @@
             return str.trim();
         }
 
-        // Fill receipt with data from localStorage or query params
-        function fillReceipt() {
-            // Try to get from localStorage (fallback to query params)
-            const ownerName = localStorage.getItem('username') || getQuery('username') || '-';
-            const ownerAddress = localStorage.getItem('address') || getQuery('address') || '-';
-            const amount = localStorage.getItem('MDAmount') || getQuery('amount') || '1550.00';
-            const period = getQuery('period') || 'August 2024';
-            const receiptNo = Math.floor(80000 + Math.random() * 10000); // Random for demo
-            const customerCode = Math.floor(2000 + Math.random() * 1000);
-            const date = new Date().toLocaleDateString();
-            const amountWords = `One Thousand Five Hundred Fifty Pesos Only`;
+        // Fetch payment details and populate the receipt
+        async function fetchPaymentDetails() {
+            const paymentId = getQuery('paymentId');
+            if (!paymentId) {
+                console.error('Payment ID not found in query parameters');
+                return;
+            }
 
-            document.getElementById('ownerName').textContent = ownerName;
-            document.getElementById('ownerAddress').textContent = ownerAddress;
-            document.getElementById('amount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
-            document.getElementById('totalAmount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
-            document.getElementById('amountWords').textContent = amountWords;
-            document.getElementById('period').textContent = period;
-            document.getElementById('receiptNo').textContent = receiptNo;
-            document.getElementById('customerCode').textContent = customerCode;
-            document.getElementById('receiptDate').textContent = date;
+            try {
+                const response = await fetch(`/api/monthly-reciept/${paymentId}`);
+                const data = await response.json();
+
+                if (data.success && data.payment) {
+                    const { homeowner, amount, lastPaymentDate, customerCode, receiptNumber } = data.payment;
+                    const address = homeowner.Address || {};
+                    const block = address.Block?.$numberInt || address.Block || "";
+                    const lot = address.Lot?.$numberInt || address.Lot || "";
+                    const phase = address.Phase?.$numberInt || address.Phase || "";
+
+                    document.getElementById('ownerName').textContent = `${homeowner.firstName} ${homeowner.lastName}`;
+                    document.getElementById('ownerAddress').textContent = `Block ${block}, Lot ${lot}, Phase ${phase}`;
+                    document.getElementById('amount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
+                    document.getElementById('totalAmount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
+                    document.getElementById('receiptDate').textContent = new Date(lastPaymentDate).toLocaleDateString();
+                    document.getElementById('amountWords').textContent = numberToWords(amount);
+                    document.getElementById('customerCode').textContent = customerCode || '-';
+                    document.getElementById('receiptNo').textContent = receiptNumber || '-';
+                } else {
+                    console.error('Failed to fetch payment details:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching payment details:', error);
+            }
         }
+
+        // Helper function to get query parameters
         function getQuery(key) {
             const url = new URL(window.location.href);
             return url.searchParams.get(key);
         }
-        fillReceipt();
+
+        // Call the function to fetch and display the payment details
+        fetchPaymentDetails();
 
         // Download as PDF using jsPDF
         function downloadPDF() {

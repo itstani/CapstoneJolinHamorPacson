@@ -1250,15 +1250,25 @@
         if (data.success) {
           const payment = data.payment;
           
+          // Fetch homeowner details using username
+          const homeownerResponse = await fetch(`/api/homeowner-details?username=${payment.username}`);
+          const homeownerData = await homeownerResponse.json();
+          const homeowner = homeownerData.homeowner || {};
+          
+          const address = homeowner.Address || {};
+          const block = address.Block?.["$numberInt"] || address.Block || "";
+          const lot = address.Lot?.["$numberInt"] || address.Lot || "";
+          const phase = address.Phase?.["$numberInt"] || address.Phase || "";
+          
           // Populate modal with payment details
           document.getElementById('paymentDetails').innerHTML = `
             <div class="payment-details">
-              <p><strong>Name:</strong> ${payment.firstName || 'N/A'} ${payment.lastName || 'N/A'}</p>
+              <p><strong>Name:</strong> ${homeowner.firstName || 'N/A'} ${homeowner.lastName || 'N/A'}</p>
               <p><strong>Amount:</strong> ₱${payment.amount || '0.00'}</p>
               <p><strong>Payment Method:</strong> ${payment.paymentMethod || 'N/A'}</p>
               <p><strong>Date:</strong> ${new Date(payment.timestamp).toLocaleString()}</p>
               <p><strong>Status:</strong> ${payment.status || 'unknown'}</p>
-              <p><strong>Address:</strong> ${payment.address || 'N/A'}</p>
+              <p><strong>Address: </strong> Block <strong>${block}</strong> Lot <strong>${lot}</strong> Phase <strong>${phase}</strong></p>
               ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
             </div>
             ${payment.receiptImage ? `

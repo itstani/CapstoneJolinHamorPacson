@@ -506,6 +506,13 @@
                    
                 }
             })();
+
+            function getQueryParameter(name) {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(name);
+            }
+
+            const paymentId = sessionStorage.getItem('paymentId');
         });
 
         function logout() {
