@@ -1240,64 +1240,51 @@
     async function viewPayment(paymentId) {
       try {
         const response = await fetch(`/api/monthly-payments/${paymentId}`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const responseText = await response.text();
+        console.log("Response text:", responseText);
+
+        if (responseText.trim().toLowerCase().startsWith('<!doctype html>')) {
+            console.log("Session expired, redirecting to login page");
+            window.location.href = '/Webpages/login.html';
+            return;
         }
-        
-        const data = await response.json();
-        
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error("Error parsing JSON:", parseError);
+            throw new Error("Invalid JSON response from server");
+        }
+
         if (data.success) {
-          const payment = data.payment;
-          
-          // Fetch homeowner details using username
-          const homeownerResponse = await fetch(`/api/homeowner-details?username=${payment.username}`);
-          const homeownerData = await homeownerResponse.json();
-          const homeowner = homeownerData.homeowner || {};
-          
-          const address = homeowner.Address || {};
-          const block = address.Block?.["$numberInt"] || address.Block || "";
-          const lot = address.Lot?.["$numberInt"] || address.Lot || "";
-          const phase = address.Phase?.["$numberInt"] || address.Phase || "";
-          
-          // Populate modal with payment details
-          document.getElementById('paymentDetails').innerHTML = `
-            <div class="payment-details">
-              <p><strong>Name:</strong> ${homeowner.firstName || 'N/A'} ${homeowner.lastName || 'N/A'}</p>
-              <p><strong>Amount:</strong> ₱${payment.amount || '0.00'}</p>
-              <p><strong>Payment Method:</strong> ${payment.paymentMethod || 'N/A'}</p>
-              <p><strong>Date:</strong> ${new Date(payment.timestamp).toLocaleString()}</p>
-              <p><strong>Status:</strong> ${payment.status || 'unknown'}</p>
-              <p><strong>Address: </strong> Block <strong>${block}</strong> Lot <strong>${lot}</strong> Phase <strong>${phase}</strong></p>
-              ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
-            </div>
-            ${payment.receiptImage ? `
-              <div class="receipt-container">
-                <h3>Receipt</h3>
-                <img src="${payment.receiptImage}" class="receipt-image" alt="Receipt">
-              </div>
-            ` : ''}
-          `;
-          
-          // Show modal
-          document.getElementById('viewModal').style.display = 'block';
-          
-          // Set up close button
-          document.getElementById('closeViewButton').onclick = function() {
-            document.getElementById('viewModal').style.display = 'none';
-          };
-          
-          document.getElementById('closeViewModal').onclick = function() {
-            document.getElementById('viewModal').style.display = 'none';
-          };
+            const payment = data.payment;
+            // Populate modal with payment details
+            document.getElementById('paymentDetails').innerHTML = `
+                <div class="payment-details">
+                    <p><strong>Name:</strong> ${payment.firstName || 'N/A'} ${payment.lastName || 'N/A'}</p>
+                    <p><strong>Amount:</strong> ₱${payment.amount || '0.00'}</p>
+                    <p><strong>Payment Method:</strong> ${payment.paymentMethod || 'N/A'}</p>
+                    <p><strong>Date:</strong> ${new Date(payment.timestamp).toLocaleString()}</p>
+                    <p><strong>Status:</strong> ${payment.status || 'unknown'}</p>
+                </div>
+                ${payment.receiptImage ? `
+                    <div class="receipt-container">
+                        <h3>Receipt</h3>
+                        <img src="${payment.receiptImage}" class="receipt-image" alt="Receipt">
+                    </div>
+                ` : '<p>No receipt image available.</p>'}
+            `;
+            // Show modal
+            document.getElementById('viewModal').style.display = 'block';
         } else {
-          throw new Error(data.message || 'Failed to load payment details');
+            throw new Error(data.message || 'Failed to load payment details');
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Error loading payment details:', error);
         alert('Error loading payment details. Please try again.');
-      }
     }
+}
 
     // Function to approve payment
     async function approvePayment(paymentId) {
@@ -1482,11 +1469,9 @@
         }
     }
 
-    document.getElementById('closeViewButton').onclick = function () {
-  document.getElementById('viewModal').style.display = 'none';
-};
-
-
+    document.getElementById('closeViewButton').onclick = function() {
+        document.getElementById('viewModal').style.display = 'none';
+    };
 
   </script>
   
