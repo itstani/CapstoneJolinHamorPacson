@@ -778,20 +778,47 @@ app.post("/api/login", async (req, res) => {
 
       console.log(`PStatus for ${user.username}: ${pStatus}`);
 
-      if (pStatus === "delinquent") {
-        console.log(`User ${user.username} is delinquent.`);
-        // Calculate overdue days and penalty
-        const lastPaymentDate = new Date(homeowner.lastPaymentDate);
-        const today = new Date();
-        const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
-        const penalty = daysOverdue > 0 ? daysOverdue * 10 : 0;
+     if (pStatus === "delinquent") {
+    console.log(`User ${user.username} is delinquent.`);
+
+    const lastPaymentDate = new Date(homeowner.lastPaymentDate);
+    const today = new Date();
+
+    // Calculate months overdue
+    let monthsOverdue = (today.getFullYear() - lastPaymentDate.getFullYear()) * 12;
+    monthsOverdue += today.getMonth() - lastPaymentDate.getMonth();
+
+    // If the day of the month today is less than the payment day, subtract one month
+    if (today.getDate() < lastPaymentDate.getDate()) {
+        monthsOverdue -= 1;
+    }
+
+    // Ensure monthsOverdue is at least 0
+    monthsOverdue = Math.max(0, monthsOverdue);
+
+    // Calculate base penalty for months missed
+    const basePenalty = monthsOverdue * 1500;
+
+    // Calculate daily penalty after full months
+    const lastFullMonth = new Date(lastPaymentDate);
+    lastFullMonth.setMonth(lastFullMonth.getMonth() + monthsOverdue);
+    const daysOverdue = Math.floor((today - lastFullMonth) / (1000 * 60 * 60 * 24));
+    const dailyPenalty = daysOverdue > 0 ? daysOverdue * 10 : 0;
+
+    const totalPenalty = basePenalty + dailyPenalty;
+
+    console.log(`Months overdue: ${monthsOverdue}`);
+    console.log(`Daily penalty days: ${daysOverdue}`);
+    console.log(`Total penalty for ${user.username}: ₱${totalPenalty}`);
+
+
 
         return res.json({
           success: false,
           isDelinquent: true,
           username: user.username,
           email: user.email || user.username,
-          dueAmount: dueAmount + penalty,
+          dueAmount: dueAmount + totalPenalty,
           message: "Account is delinquent. Please pay your monthly dues.",
         });
       } else if (pStatus === "Almost Due") {

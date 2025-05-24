@@ -215,7 +215,10 @@
                     document.getElementById('ownerAddress').textContent = `Block ${block}, Lot ${lot}, Phase ${phase}`;
                     document.getElementById('amount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
                     document.getElementById('totalAmount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
-                    document.getElementById('receiptDate').textContent = new Date(lastPaymentDate).toLocaleDateString();
+                    const dateOnly = new Date(lastPaymentDate).toISOString().split('T')[0];
+                    document.getElementById('receiptDate').textContent = dateOnly;
+
+
                     document.getElementById('amountWords').textContent = numberToWords(amount);
                     document.getElementById('customerCode').textContent = customerCode || '-';
                     document.getElementById('receiptNo').textContent = receiptNumber || '-';

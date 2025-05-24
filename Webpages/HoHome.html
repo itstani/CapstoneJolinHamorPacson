@@ -1025,7 +1025,7 @@ z-index: 1002; /* Ensure it's above the header */
               button: {
                 text: 'Proceed to Event Payment',
                 className: 'proceed-to-event-payment-button',
-                action: () => window.location.href = '/Webpages/payment.html'
+                action: () => window.location.href = './payment.html'
               }
             });
             break;
@@ -1764,6 +1764,18 @@ async function clearSelectedNotifications() {
         const paymentId = notification.relatedId; // Use relatedId as paymentId
         if (paymentId) {
             window.location.href = `MDR.html?paymentId=${encodeURIComponent(paymentId)}`;
+        } else {
+            console.error('Payment ID not found in notification');
+        }
+    };
+
+    const proceedeventButton = document.createElement('button');
+    proceedButton.className = 'proceed-to-payment-button';
+    proceedButton.textContent = 'View Receipt';
+    proceedButton.onclick = () => {
+        const paymentId = notification.relatedId; // Use relatedId as paymentId
+        if (paymentId) {
+            window.location.href = `payment.html?paymentId=${encodeURIComponent(paymentId)}`;
         } else {
             console.error('Payment ID not found in notification');
         }

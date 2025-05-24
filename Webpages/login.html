@@ -988,54 +988,64 @@
 
     // Handle form submission
     async function handleLoginSubmit(event) {
-        console.log('handleLoginSubmit function called'); // Debug log
-        if (event) {
-            event.preventDefault();
-        }
-        
-        const email = document.getElementById('login').value;
-        const password = document.getElementById('password').value;
-        
-        try {
-            const baseUrl = window.location.origin;
-            console.log('Attempting login...', { email, baseUrl }); // Debug log
-            
-            const response = await fetch(`${baseUrl}/api/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ login: email, password: password }),
-                credentials: 'include'
-            });
+    console.log('handleLoginSubmit function called');
+    if (event) {
+        event.preventDefault();
+    }
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+    const email = document.getElementById('login').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const baseUrl = window.location.origin;
+        console.log('Attempting login...', { email, baseUrl });
+
+        const response = await fetch(`${baseUrl}/api/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ login: email, password: password }),
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Login response:', data);
+
+        if (data.success || data.isDelinquent) {
+            // Save user info
+            localStorage.setItem('username', data.username);
+
+            // Calculate due amount
+            let dueAmount = parseFloat(data.dueAmount || "1500.00");
+
+            if (data.daysOverdue && data.daysOverdue > 31) {
+                // Add ₱1500 per month missed + ₱10 per extra day (as discussed earlier)
+                const monthsOverdue = Math.floor(data.daysOverdue / 30);
+                const extraDays = data.daysOverdue % 30;
+                dueAmount = (monthsOverdue * 1500) + (extraDays * 10);
             }
 
-            const data = await response.json();
-            console.log('Login response:', data); // Debug log
+            // Store and display delinquent info if applicable
+            if (data.isDelinquent) {
+                localStorage.setItem('MDAmount', dueAmount.toFixed(2));
+                document.getElementById('delinquentAmount').textContent = `₱${dueAmount.toFixed(2)}`;
+                document.getElementById('delinquentModal').style.display = 'block';
+                return false;
+            }
 
             if (data.success) {
-                // Reset login attempts on successful login
                 resetLoginAttempts();
-                
-                // Store user info
-                localStorage.setItem('username', data.username);
-                // Calculate the increased amount if overdue by more than 31 days
-                let dueAmount = parseFloat(data.dueAmount || "1500.00");
-                console.log('Days overdue:', data.daysOverdue); // Debug log
-                console.log('Initial due amount:', dueAmount); // Debug log
-                if (data.daysOverdue > 31) {
-                    dueAmount += (data.daysOverdue - 31) * 10;
-                    console.log('Updated due amount after applying overdue penalty:', dueAmount); // Debug log
-                }
+
                 localStorage.setItem('MDAmount', dueAmount.toFixed(2));
-                
-                // Show success message
+
                 showError('Login successful! Redirecting...', true);
-                
+
                 // Wait for session to be established
                 const authCheckResponse = await fetch(`${baseUrl}/api/check-auth`, {
                     method: 'GET',
@@ -1046,50 +1056,30 @@
                     }
                 });
 
-                if (!authCheckResponse.ok) {
-                    throw new Error('Failed to establish session');
-                }
-
                 const authData = await authCheckResponse.json();
-                console.log('Auth check response:', authData);
-
                 if (!authData.authenticated) {
                     throw new Error('Session not established');
                 }
-                
-                // Redirect based on the response
-                const redirectUrl = data.redirectUrl || (data.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html");
-                console.log('Redirecting to:', redirectUrl); // Debug log
-                window.location.href = redirectUrl;
-                return false; // Prevent form submission
-            } else if (data.isDelinquent) {
-                // Store user data in localStorage
-                localStorage.setItem('username', data.username);
-                // Calculate the increased amount if overdue by more than 31 days
-                dueAmount = parseFloat(data.dueAmount || "1500.00");
-                if (data.daysOverdue > 31) {
-                    dueAmount += (data.daysOverdue - 31) * 10;
-                }
-                localStorage.setItem('MDAmount', dueAmount.toFixed(2));
 
-                // Show the delinquent modal and set the amount
-                document.getElementById('delinquentAmount').textContent = `₱${dueAmount.toFixed(2)}`;
-                document.getElementById('delinquentModal').style.display = 'block';
+                // Redirect
+                const redirectUrl = data.redirectUrl || (data.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html");
+                window.location.href = redirectUrl;
                 return false;
-            } else if (data.isAlmostDue) {
-                // Show a different modal or message for "almost due" status
-                alert("Your dues are almost due. Would you like to pay now?");
-                // Optionally, redirect to a payment page or show a modal
-                return false;
-            } else {
-                showError(data.message || 'Login failed. Please check your credentials.');
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            showError('An error occurred during login. Please try again.');
+        } else if (data.isAlmostDue) {
+            alert("Your dues are almost due. Would you like to pay now?");
+            return false;
+        } else {
+            showError(data.message || 'Login failed. Please check your credentials.');
         }
-        return false;
+
+    } catch (error) {
+        console.error('Login error:', error);
+        showError('An error occurred during login. Please try again.');
     }
+
+    return false;
+}
 
     // Check lockout status on page load
     document.addEventListener('DOMContentLoaded', () => {
@@ -1396,7 +1386,7 @@
                     // Store user info and redirect to payment page
                     localStorage.setItem('username', data.username);
                     localStorage.setItem('email', email);
-                    localStorage.setItem('dueAmount', duesData.dueAmount || "5000.00");
+                    localStorage.setItem('dueAmount', duesData.dueAmount || "1500");
                     window.location.href = 'MDPayment.html';
                 } else {
                     errorMessage.textContent = 'You have no unpaid dues for this month';
@@ -1406,7 +1396,7 @@
                 // User is delinquent, redirect to payment page
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('email', data.email);
-                localStorage.setItem('dueAmount', data.dueAmount || "5000.00");
+                localStorage.setItem('dueAmount', data.dueAmount || "1500");
                 window.location.href = 'MDPayment.html';
             } else {
                 errorMessage.textContent = 'Invalid credentials';
