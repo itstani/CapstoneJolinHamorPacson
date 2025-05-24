@@ -1058,7 +1058,7 @@
                 }
                 
                 // Redirect based on the response
-                const redirectUrl = data.redirectUrl || (data.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/HoHome.html");
+                const redirectUrl = data.redirectUrl || (data.role === "admin" ? "/Webpages/AdHome.html" : "/Webpages/UserSide/HoHome.html");
                 console.log('Redirecting to:', redirectUrl); // Debug log
                 window.location.href = redirectUrl;
                 return false; // Prevent form submission
