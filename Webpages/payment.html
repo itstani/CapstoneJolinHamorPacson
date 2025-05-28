@@ -107,13 +107,13 @@
     <div class="payment-container">
       <h2>Finalize Your Payment</h2>
       <div class="detail">
-        <p><strong>User Email:</strong> <span id="userEmail"></span></p>
+        <p><strong>User Email:</strong> <span id="username"></span></p>
         <p><strong>Event Name:</strong> <span id="eventName"></span></p>
         <p><strong>Event Date:</strong> <span id="eventDate"></span></p>
         <p><strong>Start Time:</strong> <span id="eventStartTime"></span></p>
         <p><strong>End Time:</strong> <span id="eventEndTime"></span></p>
         <p><strong>Amenity:</strong> <span id="eventAmenity"></span></p>
-        <p><strong>Base Amount:</strong> <span id="baseAmount"></span></p>
+        <p><strong>Amount Description:</strong> <span id="baseAmount"></span></p>
         <p><strong>Final Amount:</strong> <span id="finalAmount"></span></p>
     
       </div>
@@ -135,13 +135,15 @@
         </p>
         
         <input type="hidden" id="finalAmountInput" name="finalAmount" value="0" />
-        <input type="hidden" name="userEmail" id="userEmailInput" />
+        <input type="hidden" name="username" id="usernameInput" />
         <input type="hidden" name="eventName" id="eventNameInput" />
         <input type="hidden" name="eventDate" id="eventDateInput" />
         <input type="hidden" name="startTime" id="startTimeInput" />
         <input type="hidden" name="endTime" id="endTimeInput" />
         <input type="hidden" name="notificationId" id="notificationIdInput" />
         <input type="hidden" name="eventId" id="eventIdInput" />
+        <input type="hidden" name="amount" id="amountInput" value="0" />
+        <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="" />
         
         <button type="submit" id="proceedButton" class="proceed-button" disabled>
           Proceed
@@ -150,173 +152,166 @@
     </div>
 
     <script>
-      document.addEventListener('DOMContentLoaded', async function() {
-        // Get event data from sessionStorage
-        const eventData = JSON.parse(sessionStorage.getItem('eventData') || '{}');
-        const notificationData = JSON.parse(sessionStorage.getItem('notificationData') || '{}');
-        console.log('Event data to use:', eventData);
-        console.log('Notification data to use:', notificationData);
+  let fetchedEventDetails = null;
 
-        if (!eventData || !eventData.eventName) {
-          // Display error message if no event data
-          const container = document.querySelector('.payment-container');
-          const errorDiv = document.createElement('div');
-          errorDiv.className = 'error-message';
-          errorDiv.innerHTML = `
-            <h3>Error: Missing Event Information</h3>
-            <p>We couldn't find the event details needed for payment.</p>
-            <p>Please go back and try again.</p>
-            <button onclick="window.location.href='HoHome.html'" class="proceed-button" style="margin-top: 10px;">
-              Back to Home
-            </button>
-          `;
-          container.innerHTML = '';
-          container.appendChild(errorDiv);
-          return;
-        }
+  document.addEventListener('DOMContentLoaded', async function() {
+    const eventData = JSON.parse(sessionStorage.getItem('eventData') || '{}');
+    const notificationData = JSON.parse(sessionStorage.getItem('notificationData') || '{}');
+    console.log('Event data to use:', eventData);
+    console.log('Notification data to use:', notificationData);
 
-        try {
-          // Fetch event details from the server
-          const response = await fetch(`/api/aevents/${eventData._id}`);
-          if (!response.ok) throw new Error('Failed to fetch event details');
+    if (!eventData || !eventData._id) {
+      const container = document.querySelector('.payment-container');
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-message';
+      errorDiv.innerHTML = `
+        <h3>Error: Missing Event Information</h3>
+        <p>We couldn't find the event details needed for payment.</p>
+        <p>Please go back and try again.</p>
+        <button onclick="window.location.href='HoHome.html'" class="proceed-button" style="margin-top: 10px;">
+          Back to Home
+        </button>
+      `;
+      container.innerHTML = '';
+      container.appendChild(errorDiv);
+      return;
+    }
 
-          const eventDetails = await response.json();
-          console.log('Fetched event details:', eventDetails);
+    try {
+      const response = await fetch(`/api/aevents/${eventData._id}`);
+      if (!response.ok) throw new Error('Failed to fetch event details');
 
-          // Check if totalPayment is defined
-          const totalPayment = eventDetails.event.totalPayment || 0; // Default to 0 if undefined
+      // ✅ Assign to global variable
+      fetchedEventDetails = await response.json();
+      const eventDetails = fetchedEventDetails;
 
-          document.getElementById('eventName').textContent = eventDetails.event.eventName || 'N/A';
-          document.getElementById('eventDate').textContent = eventDetails.event.eventDate || 'N/A';
-          document.getElementById('eventStartTime').textContent = eventDetails.event.startTime || 'N/A';
-          document.getElementById('eventEndTime').textContent = eventDetails.event.endTime || 'N/A';
-          document.getElementById('eventAmenity').textContent = eventDetails.event.amenity || 'N/A';
+      const totalPayment = eventDetails.event.totalPayment || 0;
+      const username = eventDetails.event.username || 'N/A';
+      document.getElementById('username').textContent = username;
+      document.getElementById('eventName').textContent = eventDetails.event.eventName || 'N/A';
+      document.getElementById('eventDate').textContent = eventDetails.event.eventDate || 'N/A';
+      document.getElementById('eventStartTime').textContent = eventDetails.event.startTime || 'N/A';
+      document.getElementById('eventEndTime').textContent = eventDetails.event.endTime || 'N/A';
+      document.getElementById('eventAmenity').textContent = eventDetails.event.amenity || 'N/A';
 
-          // Add guests display if number is present
-          if (eventDetails.event.guests && eventDetails.event.guests.number) {
-            const guestsElement = document.createElement('p');
-            guestsElement.innerHTML = `<strong>Guests:</strong> <span>${eventDetails.event.guests.number}</span>`;
-            document.querySelector('.detail').insertBefore(guestsElement, document.getElementById('baseAmount').parentElement);
+      if (eventDetails.event.guests && eventDetails.event.guests.number) {
+        const guestsElement = document.createElement('p');
+        guestsElement.innerHTML = `<strong>Guests:</strong> <span>${eventDetails.event.guests.number}</span>`;
+        document.querySelector('.detail').insertBefore(guestsElement, document.getElementById('baseAmount').parentElement);
+      }
+
+      let baseAmountText = '';
+      let extraFeesText = '';
+      let totalAmountText = '';
+
+      if (Array.isArray(eventDetails.event.paymentDetails)) {
+        const lines = eventDetails.event.paymentDetails;
+        baseAmountText = lines[0] || '';
+        extraFeesText = lines.slice(1).join(', ');
+      }
+
+      const startTime = new Date(`2000-01-01T${eventDetails.event.startTime}:00`);
+      const endTime = new Date(`2000-01-01T${eventDetails.event.endTime}:00`);
+      const nightStart = new Date('2000-01-01T18:00:00');
+      const nightEnd = new Date('2000-01-01T22:00:00');
+
+      switch (eventDetails.event.amenity) {
+        case 'Pool':
+          baseAmountText = `₱100 per person`;
+          if (startTime < nightEnd && endTime > nightStart) {
+            extraFeesText = `₱1000 (Night swimming)`;
+            totalAmountText = (100 + 1000).toFixed(2);
           }
-
-          // Update display based on amenity type
-          let baseAmountText = '';
-          let extraFeesText = '';
-          let totalAmountText = totalPayment.toFixed(2);
-
-          const startTime = new Date(`2000-01-01T${eventDetails.event.startTime}:00`);
-          const endTime = new Date(`2000-01-01T${eventDetails.event.endTime}:00`);
-          const nightStart = new Date('2000-01-01T18:00:00');
-          const nightEnd = new Date('2000-01-01T22:00:00');
-
-          switch (eventDetails.event.amenity) {
-            case 'Pool':
-              let poolBaseAmount = 100;
-              let poolExtraFees = 1000;
-              baseAmountText = `₱${poolBaseAmount} per person`;
-              if (startTime < nightEnd && endTime > nightStart) {
-                extraFeesText = `₱${poolExtraFees} (Night swimming)`;
-              }
-              break;
-            case 'Court':
-              let courtBaseAmount = 0;
-              let courtExtraFees = 300;
-              if (startTime < nightEnd && endTime > nightStart) {
-                extraFeesText = `₱${courtExtraFees} (Night time)`;
-              } else {
-                baseAmountText = `₱${courtBaseAmount} per hour`;
-              }
-              break;
-            case 'Clubhouse':
-              let clubhouseBaseAmount = 1000;
-              let clubhouseExtraFees = 0;
-              baseAmountText = `₱${clubhouseBaseAmount} per hour`;
-              if (clubhouseExtraFees > 0) {
-                extraFeesText = `₱${clubhouseExtraFees}`;
-              }
-              break;
-            default:
-              baseAmountText = `₱${eventDetails.event.baseAmount.toFixed(2)}`;
+          break;
+        case 'Court':
+          baseAmountText = `₱0 per hour`;
+          if (startTime < nightEnd && endTime > nightStart) {
+            extraFeesText = `₱300 (Night time)`;
+            totalAmountText = (0 + 300).toFixed(2);
           }
+          break;
+        case 'Clubhouse':
+          baseAmountText = `₱1000 per hour`;
+          totalAmountText = '1000.00';
+          break;
+        default:
+          baseAmountText = `₱${eventDetails.event.baseAmount.toFixed(2)}`;
+      }
 
-          document.getElementById('baseAmount').textContent = baseAmountText;
-          document.getElementById('finalAmount').textContent = extraFeesText;
-          document.getElementById('totalAmount').textContent = totalAmountText;
+      document.getElementById('baseAmount').textContent = baseAmountText;
+      document.getElementById('finalAmount').textContent = extraFeesText;
+      document.getElementById('totalAmount').textContent = totalAmountText;
 
-          // Set hidden input values
-          document.getElementById('finalAmountInput').value = totalPayment;
-          document.getElementById('eventNameInput').value = eventDetails.event.eventName || '';
-          document.getElementById('eventDateInput').value = eventDetails.event.eventDate || '';
-          document.getElementById('startTimeInput').value = eventDetails.event.startTime || '';
-          document.getElementById('endTimeInput').value = eventDetails.event.endTime || '';
-          document.getElementById('notificationIdInput').value = notificationData._id || '';
-          document.getElementById('eventIdInput').value = eventData._id || '';
-        } catch (error) {
-          console.error('Error fetching event details:', error);
-          alert('Error fetching event details. Please try again later.');
-        }
+      document.getElementById('finalAmountInput').value = totalPayment;
+      document.getElementById('eventNameInput').value = eventDetails.event.eventName || '';
+      document.getElementById('eventDateInput').value = eventDetails.event.eventDate || '';
+      document.getElementById('startTimeInput').value = eventDetails.event.startTime || '';
+      document.getElementById('endTimeInput').value = eventDetails.event.endTime || '';
+      document.getElementById('notificationIdInput').value = notificationData._id || '';
+      document.getElementById('eventIdInput').value = eventData._id || '';
+      document.getElementById('amountInput').value = totalAmountText;
+      document.getElementById('paymentMethodInput').value = 'YourPaymentMethod';
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+      alert('Error fetching event details. Please try again later.');
+    }
 
-        // Handle file upload
-        const receiptUpload = document.getElementById('receiptUpload');
-        const proceedButton = document.getElementById('proceedButton');
+    const receiptUpload = document.getElementById('receiptUpload');
+    const proceedButton = document.getElementById('proceedButton');
+    receiptUpload.addEventListener('change', function() {
+      proceedButton.disabled = !this.files.length;
+    });
 
-        receiptUpload.addEventListener('change', function() {
-          proceedButton.disabled = !this.files.length;
+    // ✅ FORM SUBMIT HANDLER
+    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      try {
+        const response = await fetch('/upload-receipt', {
+          method: 'POST',
+          body: formData
         });
 
-        // Handle form submission
-        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
-          e.preventDefault();
-          
-          const formData = new FormData(this);
-          try {
-            // First upload the receipt
-            const response = await fetch('/upload-receipt', {
-              method: 'POST',
-              body: formData
-            });
+        const result = await response.json();
+        if (result.success) {
+          const notificationUpdateData = {
+            notificationId: notificationData._id,
+            eventId: eventData._id,
+            eventName: fetchedEventDetails.event.eventName,
+            eventDate: fetchedEventDetails.event.eventDate,
+            startTime: fetchedEventDetails.event.startTime,
+            endTime: fetchedEventDetails.event.endTime
+          };
 
-            const result = await response.json();
-            if (result.success) {
-              // Then update the notification
-              const notificationUpdateData = {
-                notificationId: notificationData._id,
-                eventId: eventData._id,
-                eventName: eventData.eventName,
-                eventDate: eventData.eventDate,
-                startTime: eventData.startTime,
-                endTime: eventData.endTime
-              };
-              
-              const notificationResponse = await fetch('/api/updateNotificationAfterPayment', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(notificationUpdateData)
-              });
-              
-              const notificationResult = await notificationResponse.json();
-              
-              if (notificationResult.success) {
-                alert('Payment processed successfully!');
-                sessionStorage.removeItem('eventData'); // Clear the event data
-                sessionStorage.removeItem('notificationData'); // Clear the notification data
-                window.location.href = 'HoHome.html';
-              } else {
-                alert('Payment processed but notification update failed. Please check your notifications.');
-                window.location.href = 'HoHome.html';
-              }
-            } else {
-              alert('Error processing payment. Please try again.');
-            }
-          } catch (error) {
-            console.error('Error:', error);
-            alert('Error processing payment. Please try again.');
+          const notificationResponse = await fetch('/api/updateNotificationAfterPayment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(notificationUpdateData)
+          });
+
+          const notificationResult = await notificationResponse.json();
+          if (notificationResult.success) {
+            alert('Payment processed successfully!');
+            sessionStorage.removeItem('eventData');
+            sessionStorage.removeItem('notificationData');
+            window.location.href = 'HoHome.html';
+          } else {
+            alert('Payment processed but notification update failed.');
+            window.location.href = 'HoHome.html';
           }
-        });
-      });
-    </script>
+        } else {
+          alert('Error processing payment.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing payment. Please try again.');
+      }
+    });
+  });
+  </script>
   </body>
 </html>
 

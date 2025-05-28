@@ -537,10 +537,10 @@ app.post("/upload-receipt", upload.single("receipt"), async (req, res) => {
 
     // Construct the MongoDB document
     const paymentData = {
-      username: req.body.username, // Include username in the payment data
+      username: req.body.username,
       eventName: req.body.eventName,
       eventDate: req.body.eventDate,
-      amount: req.body.finalAmount,
+      amount: req.body.totalAmount, // This should be req.body.amount
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       paymentMethod: req.body.paymentMethod,
@@ -2073,6 +2073,11 @@ app.post("/addevent", async (req, res) => {
           totalPayment += 1000;
           paymentDetails.push('Private Pool Reservation: +₱1000');
         }
+        if (poolOptions?.type === 'night') {
+          totalPayment += 1000;
+          paymentDetails.push('Night Swimming Fee: +₱1000');
+        }
+        
         break;
 
       case 'Court':
@@ -2528,7 +2533,7 @@ app.post("/update-payment-status", async (req, res) => {
       // Create notification for payment confirmation
       await createNotification(
         event.username,
-        "payment_confirmed",
+        "eventPayment_confirmed",
         `Payment confirmed for your event "${eventName}"`,
         event._id,
       )
@@ -4529,7 +4534,25 @@ app.get('/api/monthly-payments-summary', async (req, res) => {
   }
 });
 
+app.get('/api/payment/:eventId', async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const db = await connectToDatabase();
+    const paymentsCollection = db.collection('eventpayments');
 
+    // Find the payment document by eventId
+    const payment = await paymentsCollection.findOne({ eventId: eventId });
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    res.status(200).json({ success: true, receiptImage: payment.receiptImage });
+  } catch (error) {
+    console.error('Error fetching payment details:', error);
+    res.status(500).json({ success: false, message: 'Error fetching payment details' });
+  }
+});
 
 
 app.get("/api/payment-report", async (req, res) => {

@@ -796,58 +796,31 @@
             try {
                 modalContent.innerHTML = '<div style="text-align: center; padding: 20px;">Loading event details...</div>';
 
-                const response = await fetch(`/api/event/${eventId}`, {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // Fetch event details
+                const eventResponse = await fetch(`/api/event/${eventId}`);
+                if (!eventResponse.ok) throw new Error('Failed to fetch event details');
+                const eventData = await eventResponse.json();
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                // Fetch receipt image
+                const paymentResponse = await fetch(`/api/payment/${eventId}`);
+                if (!paymentResponse.ok) throw new Error('Failed to fetch payment details');
+                const paymentData = await paymentResponse.json();
 
-                const data = await response.json();
-                console.log('Event details received:', data);
-                
-                if (!data.success || !data.event) {
-                    throw new Error('Failed to fetch event details');
-                }
+                const event = eventData.event;
+                const receiptImage = paymentData.receiptImage;
 
-                const event = data.event;
-                const guestList = event.guests && event.guests.names ? event.guests.names.join(', ') : 'No guest list provided';
-                
                 const detailsHtml = `
                     <div style="padding: 20px;">
                         <h3 style="color: #AF2630; margin-bottom: 20px;">${event.eventName || event.name}</h3>
                         <div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <p><strong>Homeowner Name:</strong> ${event.HomeownerName || 'Not specified'}</p>
                             <p><strong>Date:</strong> ${new Date(event.eventDate).toLocaleDateString()}</p>
                             <p><strong>Time:</strong> ${formatTime(event.startTime)} - ${formatTime(event.endTime)}</p>
                             <p><strong>Amenity:</strong> ${event.amenity || 'Not specified'}</p>
-                            <p><strong>Event Type:</strong> ${event.eventType || 'Not specified'}</p>
-                            <p><strong>Number of Guests:</strong> ${event.guests ? event.guests.number : 0}</p>
-                            <p><strong>Guest List:</strong> ${guestList}</p>
-                            <p><strong>Homeowner Status:</strong> ${event.homeownerStatus || 'Not specified'}</p>
-                            <p><strong>Payment Status:</strong> ${event.isPaid ? 'Paid' : 'Pending Payment'}</p>
+                            <img src="${receiptImage}" alt="Receipt Image" style="max-width: 100%; border-radius: 8px;" />
                         </div>
-                        ${event.userEmail === userEmail ? `
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button onclick="editEvent('${event._id}')" 
-                                        style="background-color: #AF2630; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px; cursor: pointer;">
-                                    Edit Event
-                                </button>
-                                <button onclick="deleteEvent('${event._id}')"
-                                        style="background-color: #666; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                                    Delete Event
-                                </button>
-                            </div>
-                        ` : ''}
                     </div>
                 `;
-                
+
                 modalContent.innerHTML = detailsHtml;
             } catch (error) {
                 console.error('Error:', error);

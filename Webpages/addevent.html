@@ -621,7 +621,7 @@
 
     <div class="time-input-group">
       <div class="time-input-container">
-          <input type="number" class="time-input" id="eventStartHour" min="1" max="12" placeholder="1">
+          <input type="number" class="time-input" id="eventStartHour" min="1" max="12" placeholder="6">
           <span class="time-separator">:</span>
           <input type="number" class="time-input" id="eventStartMinute" min="0" max="59" placeholder="00">
           <select class="time-ampm" id="eventStartAmPm">
@@ -703,6 +703,7 @@
         const guestPopup = document.getElementById('guest-popup');
         const amenityPreviewImg = document.getElementById('amenityPreview');
         const amenityDetailsContainerDiv = document.getElementById('amenityDetailsContainer');
+        const previewImage = document.getElementById('amenityPreview');
 
         const amenityImages = {
             Pool: '/images/pool.jpg',
@@ -771,6 +772,7 @@
             return;
         }
 
+
         // --- Amenity Card Click Logic ---
         document.querySelectorAll('.amenity-card').forEach(card => {
             const checkbox = card.querySelector('input[type="checkbox"]');
@@ -788,6 +790,34 @@
                 });
             }
         });
+
+        function getSessionType(startHour24, endHour24, amenity) {
+            const poolOptions = { type: '', isReserved: false };
+            const courtOptions = { session: '', price: 0 };
+
+            if (amenity === 'Pool') {
+                if (startHour24 >= 6 && endHour24 <= 17.99) {
+                    poolOptions.type = 'morning';
+                } else if (startHour24 >= 17 && endHour24 <= 23) {
+                    poolOptions.type = 'night';
+                }
+                return { poolOptions };
+            }
+
+            if (amenity === 'Court') {
+                if (startHour24 >= 6 && endHour24 <= 17.99) {
+                    courtOptions.session = 'morning';
+                    courtOptions.price = 0;
+                } else if (startHour24 >= 18 && endHour24 <= 23) {
+                    courtOptions.session = 'night';
+                    courtOptions.price = 300;
+                }
+                return { courtOptions };
+            }
+
+            return {};
+        }
+
 
         // --- Time Input Logic ---
         function validateAndFormatTime(hourInput, minuteInput, ampmSelect) {
@@ -867,46 +897,19 @@
 
         // --- Amenity Preview and Details ---
         function updateAmenityPreviewAndDetails() {
-            const checkedAmenity = document.querySelector('input[name="amenity"]:checked');
-            let detailsHTML = '';
-            let previewSrc = '/images/pool.jpg'; // Default preview
-            let previewAlt = 'Amenity Preview';
-
-            if (checkedAmenity) {
-                const selectedAmenityValue = checkedAmenity.value;
-                previewSrc = amenityImages[selectedAmenityValue] || previewSrc;
-                previewAlt = `${selectedAmenityValue} Preview`;
-                detailsHTML = amenityDetailsConfig[selectedAmenityValue] || `<p>Details for ${selectedAmenityValue} not configured.</p>`;
-
-                // Automatic fee notifications
-                if (selectedAmenityValue === 'Pool') {
-                    const startHour = parseInt(eventStartHourInput.value);
-                    const endHour = parseInt(eventEndHourInput.value);
-                    const isEvening = startHour >= 18 || endHour <= 22;
-                    if (isEvening) {
-                        detailsHTML += '<p>Note: Evening pool reservations incur an additional fee of ₱1000.</p>';
-                    }
-                } else if (selectedAmenityValue === 'Court') {
-                    const startHour = parseInt(eventStartHourInput.value);
-                    const endHour = parseInt(eventEndHourInput.value);
-                    const isNight = startHour >= 18 || endHour <= 22;
-                    if (isNight) {
-                        detailsHTML += '<p>Note: Night court reservations incur an additional lighting fee of ₱300 per hour.</p>';
-                    }
-                }
-            } else {
-                // Default details or empty
-                detailsHTML = amenityDetailsConfig['Pool']; // Show pool details by default or a generic message
-            }
-
-            if (amenityPreviewImg) {
-                amenityPreviewImg.src = previewSrc;
-                amenityPreviewImg.alt = previewAlt;
-            }
-            if (amenityDetailsContainerDiv) {
-                amenityDetailsContainerDiv.innerHTML = detailsHTML;
-            }
+            // Add logic to update the amenity preview and details
+            console.log("Updating amenity preview and details...");
         }
+
+        function convertTo24Hour(hour, minute, ampm) {
+            hour = parseInt(hour);
+            minute = parseInt(minute);
+            if (ampm === 'PM' && hour < 12) hour += 12;
+            if (ampm === 'AM' && hour === 12) hour = 0;
+            return hour + minute / 60;
+        }
+
+
         
         amenityRadios.forEach(rb => rb.addEventListener('change', updateAmenityPreviewAndDetails));
         updateAmenityPreviewAndDetails(); // Initial call
@@ -932,28 +935,29 @@
                         },
                        
                     };
+                    const startHour24 = convertTo24Hour(eventStartHourInput.value, eventStartMinuteInput.value, eventStartAmPmSelect.value);
+                    const endHour24 = convertTo24Hour(eventEndHourInput.value, eventEndMinuteInput.value, eventEndAmPmSelect.value);
+                    const sessionResult = getSessionType(startHour24, endHour24, formData.amenity);
 
                     if (formData.amenity === 'Pool') {
-                        formData.poolOptions = {
-                            type: document.querySelector('input[name="poolType"]:checked')?.value || 'morning',
-                            isReserved: document.querySelector('#poolReservation')?.checked || false
-                        };
+                        formData.poolOptions = sessionResult.poolOptions || { type: 'morning', isReserved: false };
+                        formData.courtOptions = null;
+                        formData.clubhouseOptions = null;
                     }
+
                     if (formData.amenity === 'Court') {
-                        formData.courtOptions = {
-                            hasLighting: document.querySelector('#courtLighting')?.checked || false
-                        };
+                        formData.courtOptions = sessionResult.courtOptions || { session: 'morning', price: 0 };
+                        formData.poolOptions = null;
+                        formData.clubhouseOptions = null;
                     }
+
                     if (formData.amenity === 'Clubhouse') {
                         formData.clubhouseOptions = {
                             hasCatering: document.querySelector('#clubhouseCatering')?.checked || false,
                             hasSetup: document.querySelector('#clubhouseSetup')?.checked || false
                         };
-                    }
-
-                    if (formData.amenity === '') {
-                        alert("Please select an amenity.");
-                        return;
+                        formData.poolOptions = null;
+                        formData.courtOptions = null;
                     }
 
                     // Log the formData to the console for debugging
@@ -1051,6 +1055,7 @@
             dateInput.value = '';
         }
     }
+    const dateInput = document.getElementById('date');
 
     dateInput.addEventListener('change', validateDate);
       </script>
