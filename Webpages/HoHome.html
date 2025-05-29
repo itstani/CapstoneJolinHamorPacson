@@ -1014,6 +1014,7 @@ z-index: 1002; /* Ensure it's above the header */
 
     // Add click event
     notificationItem.addEventListener('click', (e) => {
+      markNotificationAsRead(notification._id);
       console.log("Notification clicked:", notification);
       if (e.target !== checkbox) {
         switch (notification.type) {
@@ -1081,13 +1082,30 @@ function updateClearButtons() {
 function handleNoNotifications() {
   console.log("Handling no notifications");
   notifications = [];
-  const notificationCountElement = document.getElementById('notificationCount');
-  if (notificationCountElement) {
-    notificationCountElement.textContent = '0';
+    const countEl = document.getElementById('notificationCount');
+  if (countEl && +countEl.textContent > 0) {
+    countEl.textContent = (+countEl.textContent - 1).toString();
   }
+
   updateNotificationList();
   updateClearButtons();
 }
+
+async function markNotificationAsRead(notificationId) {
+  try {
+    const response = await fetch(`/api/mark-notification-read/${notificationId}`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to mark notification as read:', response.status);
+    }
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+  }
+}
+
 
 // Function to show error messages
 function showErrorMessage(message) {

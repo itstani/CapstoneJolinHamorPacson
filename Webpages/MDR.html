@@ -205,7 +205,7 @@
                 const data = await response.json();
 
                 if (data.success && data.payment) {
-                    const { homeowner, amount, lastPaymentDate, customerCode, receiptNumber } = data.payment;
+                    const { homeowner, amount, timestamp, customerCode, receiptNumber } = data.payment;
                     const address = homeowner.Address || {};
                     const block = address.Block?.$numberInt || address.Block || "";
                     const lot = address.Lot?.$numberInt || address.Lot || "";
@@ -215,7 +215,7 @@
                     document.getElementById('ownerAddress').textContent = `Block ${block}, Lot ${lot}, Phase ${phase}`;
                     document.getElementById('amount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
                     document.getElementById('totalAmount').textContent = parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
-                    const dateOnly = new Date(lastPaymentDate).toISOString().split('T')[0];
+                    const dateOnly = new Date(timestamp).toISOString().split('T')[0];
                     document.getElementById('receiptDate').textContent = dateOnly;
 
 

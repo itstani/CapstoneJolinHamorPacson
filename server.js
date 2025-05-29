@@ -1351,16 +1351,18 @@ app.get('/api/monthly-reciept/:id', async (req, res) => {
     res.json({
       success: true,
       payment: {
-        ...payment,
         homeowner: {
           firstName: homeowner.firstName,
           lastName: homeowner.lastName,
-          Address: homeowner.Address,
-          lastPaymentDate: homeowner.lastPaymentDate,
-          receiptNumber: homeowner.receiptNumber,
-          customerCode: homeowner.customerCode,
-        }
+          Address: homeowner.Address
+        },
+        amount: payment.amount,
+        timestamp: payment.timestamp,
+        receiptNumber: payment.receiptNumber,
+        customerCode: payment.customerCode
       }
+      
+      
     });
   } catch (error) {
     console.error('Error fetching payment details:', error);
@@ -4131,6 +4133,28 @@ app.post("/api/markNotificationAsRead", async (req, res) => {
     })
   }
 })
+app.post('/api/mark-notification-read/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await connectToDatabase();
+    const notifications = db.collection('notifications');
+
+    const result = await notifications.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { read: true } }
+    );
+
+    if (result.modifiedCount === 1) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, message: 'Notification not found or already read' });
+    }
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 
 // Declare notifications and showEventDetails variables
 const notifications = []
@@ -4230,6 +4254,8 @@ function updateNotificationList() {
     notificationList.appendChild(notificationItem)
   })
 }
+
+
 
 app.get("/api/calendar-events", async (req, res) => {
   try {
