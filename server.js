@@ -4073,7 +4073,7 @@ app.post("/api/updateNotificationAfterPayment", async (req, res) => {
       username: req.session.user.username,
       message: `Your payment for "${eventName}" has been processed successfully.`,
       subject: `${eventName} on ${eventDate} ${startTime}-${endTime}`,
-      type: "payment_confirmed",
+      type: "eventPayment_confirmed",
       relatedId: eventId,
       timestamp: new Date(),
       read: false,
@@ -4511,14 +4511,23 @@ app.post("/api/send-delinquent-notifications", async (req, res) => {
 
     for (const homeowner of homeowners) {
       if (homeowner.username) {
+        // Calculate days until due
+        const lastPaymentDate = new Date(homeowner.lastPaymentDate);
+        const today = new Date();
+        const daysSinceLastPayment = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+        const daysUntilDue = 30 - daysSinceLastPayment;
+
+        // Append daysUntilDue to the message
+        const personalizedMessage = `${message} You have ${daysUntilDue} days left to make your payment.`;
+
         notifications.push({
           username: homeowner.username,
           type: type || "payment_reminder",
           subject,
-          message,
+          message: personalizedMessage,
           timestamp: new Date(),
           read: false,
-        })
+        });
       }
     }
 

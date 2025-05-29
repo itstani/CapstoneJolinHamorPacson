@@ -873,9 +873,7 @@ z-index: 1002; /* Ensure it's above the header */
         </div>
       </div>
       
-      <div class="event-actions" id="eventActions">
-        <!-- Payment button will be added here if needed -->
-      </div>
+  
     </div>
   </div>
 
@@ -1044,7 +1042,6 @@ z-index: 1002; /* Ensure it's above the header */
             break;
 
           case 'eventPayment_confirmed':
-          case 'eventpayment_confirmed':
             showEventPaymentConfirmedModal(notification);
             break;
           default:
@@ -1251,66 +1248,107 @@ function proceedToEventPayment(notification) {
   }
 };
 
+function convert24HourTo12HourFormat(timeStr) {
+  if (!timeStr) return "";
+  const [hours, minutes] = timeStr.split(':');
+  const h = parseInt(hours, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${minutes} ${ampm}`;
+}
+
+
 function showEventPaymentConfirmedModal(notification) {
-  const modal = document.createElement('div');
-  modal.classList.add('modal');
-  modal.style.display = 'flex';
-  modal.style.justifyContent = 'center';
-  modal.style.alignItems = 'center';
-  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  console.log("Fetching event details for modal:", notification);
 
-  const modalContent = document.createElement('div');
-  modalContent.className = 'event-details-content';
+  const eventId = notification.relatedId;
+  if (!eventId) {
+    alert("No event ID provided for this notification.");
+    return;
+  }
 
-  const closeButton = document.createElement('span');
-  closeButton.className = 'close-event-details';
-  closeButton.innerHTML = '&times;';
-  closeButton.onclick = () => {
-    modal.style.display = 'none';
-    document.body.removeChild(modal);
-  };
+  fetch(`/api/aevents/${eventId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success || !data.event) {
+        throw new Error("Event not found");
+      }
 
-  const title = document.createElement('h3');
-  title.id = 'eventDetailsTitle';
-  title.textContent = 'Event Payment Confirmed';
+      const event = data.event;
 
-  const details = [
-    { label: 'Event Name:', value: notification.eventName },
-    { label: 'Event Date:', value: notification.eventDate },
-    { label: 'Amount:', value: `₱${notification.amount}` },
-    { label: 'Time:', value: `${convert24HourTo12HourFormat(notification.startTime)} - ${convert24HourTo12HourFormat(notification.endTime)}` },
-    { label: 'Payment Date:', value: new Date(notification.timestamp.$date).toLocaleString() },
-  ];
+      // Create modal container
+      const modal = document.createElement('div');
+      modal.classList.add('event-details-modal');
+      modal.style.display = 'flex';
+      modal.style.justifyContent = 'center';
+      modal.style.alignItems = 'center';
+      modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
 
-  details.forEach(detail => {
-    const row = document.createElement('div');
-    row.className = 'event-detail-row';
+      // Modal content
+      const modalContent = document.createElement('div');
+      modalContent.className = 'event-details-content';
 
-    const label = document.createElement('div');
-    label.className = 'event-detail-label';
-    label.textContent = detail.label;
+      // Close button
+      const closeButton = document.createElement('span');
+      closeButton.className = 'close-event-details';
+      closeButton.innerHTML = '&times;';
+      closeButton.onclick = () => {
+        modal.style.display = 'none';
+        document.body.removeChild(modal);
+      };
 
-    const value = document.createElement('div');
-    value.className = 'event-detail-value';
-    value.textContent = detail.value;
+      // Title
+      const title = document.createElement('h3');
+      title.id = 'eventDetailsTitle';
+      title.textContent = 'Event Payment Confirmed';
 
-    row.appendChild(label);
-    row.appendChild(value);
-    modalContent.appendChild(row);
-  });
+      modalContent.appendChild(closeButton);
+      modalContent.appendChild(title);
 
-  const receiptImage = document.createElement('img');
-  receiptImage.src = notification.receiptImage;
-  receiptImage.alt = 'Receipt Image';
-  receiptImage.style.maxWidth = '100%';
-  receiptImage.style.marginTop = '10px';
+      // Event details rows
+      const details = [
+        { label: 'Event Name:', value: event.eventName || 'N/A' },
+        { label: 'Event Date:', value: event.eventDate || 'N/A' },
+        { label: 'Time:', value: `${convert24HourTo12HourFormat(event.startTime)} - ${convert24HourTo12HourFormat(event.endTime)}` },
+        { label: 'Amenity:', value: event.amenity || 'N/A' },
+        { label: 'Amount Paid:', value: `₱${event.totalPayment || '0.00'}` },
+        { label: 'Payment Date:', value: new Date(notification.timestamp?.$date || Date.now()).toLocaleString() },
+      ];
 
-  modalContent.appendChild(receiptImage);
-  modalContent.appendChild(closeButton);
-  modalContent.appendChild(title);
-  modal.appendChild(modalContent);
+      details.forEach(detail => {
+        const row = document.createElement('div');
+        row.className = 'event-detail-row';
 
-  document.body.appendChild(modal);
+        const label = document.createElement('div');
+        label.className = 'event-detail-label';
+        label.textContent = detail.label;
+
+        const value = document.createElement('div');
+        value.className = 'event-detail-value';
+        value.textContent = detail.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        modalContent.appendChild(row);
+      });
+
+      // Optional: Receipt image
+      if (notification.receiptImage) {
+        const receiptImage = document.createElement('img');
+        receiptImage.src = notification.receiptImage;
+        receiptImage.alt = 'Receipt Image';
+        receiptImage.style.maxWidth = '100%';
+        receiptImage.style.marginTop = '10px';
+        modalContent.appendChild(receiptImage);
+      }
+
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+    })
+    .catch(err => {
+      console.error("Error fetching event details:", err);
+      alert("Failed to load event details. Please try again later.");
+    });
 }
 
 // Function to clear all notifications
