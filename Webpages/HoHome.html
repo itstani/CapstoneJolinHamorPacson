@@ -1626,40 +1626,73 @@ async function clearSelectedNotifications() {
 
    // --- Payments Section Logic ---
    const usernameForPayments = localStorage.getItem('username');
-   if (paymentsList && usernameForPayments) {
-     fetch(`/api/monthly-payment-search?status=approved&search=${encodeURIComponent(usernameForPayments)}&limit=100`)
-       .then(res => res.json())
-       .then(data => {
-         if (!data.success || !data.payments || data.payments.length === 0) {
-           paymentsList.innerHTML = '<div class="payments-empty">No payments found yet. Your receipts will appear here after you pay your monthly dues.</div>';
-           return;
-         }
-         let html = '<table class="payments-table">';
-         html += '<tr><th>Date</th><th>Amount</th><th>Status</th><th>Receipt</th></tr>';
-         data.payments.forEach(payment => {
-           const date = new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString();
-           const amount = payment.amount || payment.monthlyDue || payment.MDAmount || '0.00';
-           const status = payment.status || 'Paid';
-           const receiptUrl = `MDR.html?username=${encodeURIComponent(payment.username||payment.userName||'')}` + // Added payment.userName as fallback
-             `&address=${encodeURIComponent(payment.address||'')}` +
-             `&amount=${encodeURIComponent(amount)}`;
-           html += `<tr>` +
-             `<td>${date}</td>` +
-             `<td>₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>` +
-             `<td>${status}</td>` +
-             `<td><button class="receipt-btn" onclick="window.open('${receiptUrl}', '_blank')">View Receipt</button></td>` +
-             `</tr>`;
-         });
-         html += '</table>';
-         paymentsList.innerHTML = html;
-       })
-       .catch(err => {
-         console.error("Error loading payment history:", err);
-         paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
-       });
-   } else if (paymentsList && !usernameForPayments) {
-       paymentsList.innerHTML = '<div class="payments-empty">Please log in to view your payment history.</div>';
-   }
+if (paymentsList && usernameForPayments) {
+  fetch(`/api/monthly-payment-search?status=approved&search=${encodeURIComponent(usernameForPayments)}&limit=100`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success || !data.payments || data.payments.length === 0) {
+        paymentsList.innerHTML = '<div class="payments-empty">No payments found yet. Your receipts will appear here after you pay your monthly dues.</div>';
+        return;
+      }
+
+      let payments = data.payments.sort((a, b) => new Date(b.timestamp || b.lastPaymentDate) - new Date(a.timestamp || a.lastPaymentDate));
+      let currentPage = 1;
+      const rowsPerPage = 5;
+
+      function renderPaymentsPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const paginatedPayments = payments.slice(start, end);
+
+        let html = '<table class="payments-table">';
+        html += '<tr><th>Date</th><th>Amount</th><th>Status</th><th>Receipt</th></tr>';
+
+        paginatedPayments.forEach(payment => {
+          const date = new Date(payment.timestamp || payment.lastPaymentDate).toLocaleDateString();
+          const amount = payment.amount || payment.monthlyDue || payment.MDAmount || '0.00';
+          const status = payment.status || 'Paid';
+          const receiptUrl = `MDR.html?paymentId=${encodeURIComponent(payment.paymentId)}`; // ✅ use paymentId only
+
+          html += `<tr>
+            <td>${date}</td>
+            <td>₱${parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+            <td>${status}</td>
+            <td><button class="receipt-btn" onclick="window.open('${receiptUrl}', '_blank')">View Receipt</button></td>
+          </tr>`;
+        });
+
+        html += '</table>';
+
+        // Pagination controls
+        html += `
+          <div style="text-align:center; margin-top:15px;">
+            <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+            <span style="margin: 0 10px;">Page ${currentPage} of ${Math.ceil(payments.length / rowsPerPage)}</span>
+            <button onclick="changePage(${currentPage + 1})" ${end >= payments.length ? 'disabled' : ''}>Next</button>
+          </div>
+        `;
+
+        paymentsList.innerHTML = html;
+      }
+
+      window.changePage = function(newPage) {
+        if (newPage >= 1 && newPage <= Math.ceil(payments.length / rowsPerPage)) {
+          currentPage = newPage;
+          renderPaymentsPage(currentPage);
+        }
+      };
+
+      renderPaymentsPage(currentPage);
+    })
+    .catch(err => {
+      console.error("Error loading payment history:", err);
+      paymentsList.innerHTML = '<div class="payments-empty">Failed to load payment history. Please try again later.</div>';
+    });
+} else if (paymentsList && !usernameForPayments) {
+  paymentsList.innerHTML = '<div class="payments-empty">Please log in to view your payment history.</div>';
+}
+
+
    
    // --- Initial Fetch of Notifications ---
    console.log("Performing initial notification fetch after setup.");

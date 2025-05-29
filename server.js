@@ -1356,7 +1356,9 @@ app.get('/api/monthly-reciept/:id', async (req, res) => {
           firstName: homeowner.firstName,
           lastName: homeowner.lastName,
           Address: homeowner.Address,
-          lastPaymentDate: homeowner.lastPaymentDate
+          lastPaymentDate: homeowner.lastPaymentDate,
+          receiptNumber: homeowner.receiptNumber,
+          customerCode: homeowner.customerCode,
         }
       }
     });
@@ -1379,7 +1381,7 @@ app.get("/api/monthly-payment-search", async (req, res) => {
     }
     if (search) {
       query.$or = [
-        { userName: { $regex: new RegExp(search, 'i') } },
+        { username: { $regex: new RegExp(search, 'i') } },
         { userEmail: { $regex: new RegExp(search, 'i') } }
       ];
     }
@@ -1410,9 +1412,6 @@ app.get("/api/monthly-payment-search", async (req, res) => {
     });
   }
 });
-
-
-
 
 app.post("/api/check-address-exists", async (req, res) => {
   try {
