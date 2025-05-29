@@ -589,14 +589,14 @@
   <div class="side-bar">
     <div class="Home">
       <button type="button" id="homebutton" name="homebutton" aria-label="home" onclick="window.location.href='HoHome.html'">
-        <img src="/images/house.png" alt="Home">
+        <img src="../images/house.png" alt="Home">
       </button>
       <p>Home</p>
     </div>
 
     <div class="Calendar">
       <button type="button" id="calendarbutton" name="calendarbutton" aria-label="calendar" onclick="window.location.href='calender.html'">
-        <img src="/images/Calendar.png" alt="calendar">
+        <img src="../images/Calendar.png" alt="calendar">
       </button>
       <p>Calendar</p>
     </div>
@@ -606,7 +606,7 @@
 
   <div class="Welcome">
     <h1>Add new event</h1>
-    <img src="/images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
+    <img src="../images/AvidaSettingsLogo.png" alt="Avida Settings Logo" class="avidalogo">
   </div>
 
   <div class="form-image-container">
@@ -662,19 +662,19 @@
         <div>
             <input type="radio" id="amenityPool" name="amenity" value="Pool" checked>
             <label for="amenityPool">
-                <img src="/images/pool.png" alt="Pool">
+                <img src="../images/pool.png" alt="Pool">
             </label>
         </div>
         <div>
             <input type="radio" id="amenityClubhouse" name="amenity" value="Clubhouse">
             <label for="amenityClubhouse">
-                <img src="/images/clubhouse.png" alt="Clubhouse">
+                <img src="../images/clubhouse.png" alt="Clubhouse">
             </label>
         </div>
         <div>
             <input type="radio" id="amenityCourt" name="amenity" value="Court">
             <label for="amenityCourt">
-                <img src="/images/court.png" alt="Court">
+                <img src="../images/court.png" alt="Court">
             </label>
         </div>
     </div>
@@ -710,6 +710,28 @@
             Clubhouse: '/images/clubhouse.jpg',
             Court: '/images/Court.jpg' // Corrected path
         };
+
+        const amenity = document.querySelectorAll('input[name="amenity"]');
+
+        amenity.forEach(amenity => {
+            amenity.addEventListener('change', function() {
+                if (this.checked) {
+                    let selectedImage;
+                    switch (this.value) {
+                        case 'Pool':
+                            selectedImage = '../images/pool.jpg';
+                            break;
+                        case 'Clubhouse':
+                            selectedImage = '../images/clubhouse.jpg';
+                            break;
+                        case 'Court':
+                            selectedImage = '../images/Court.jpg';
+                            break;
+                    }
+                    previewImage.src = selectedImage; // ❌ This breaks
+                }
+            });
+        });
 
         const amenityDetailsConfig = {
             Pool: `
@@ -1022,29 +1044,8 @@
         });
     }
 
-    const amenity = document.querySelectorAll('input[name="amenity"]');
-    const previewImage = document.getElementById('amenityPreview');
+    
 
-    // Event listener for changing the image preview based on selected amenity
-    amenity.forEach(amenity => {
-        amenity.addEventListener('change', function() {
-            if (this.checked) {
-                let selectedImage;
-                switch (this.value) {
-                    case 'Pool':
-                        selectedImage = '/images/pool.png';
-                        break;
-                    case 'Clubhouse':
-                        selectedImage = '/images/clubhouse.png';
-                        break;
-                    case 'Court':
-                        selectedImage = '/images/court.png';
-                        break;
-                }
-                previewImage.src = selectedImage;
-            }
-        });
-    });
 
     // Add date validation
     function validateDate() {
@@ -1094,7 +1095,7 @@
     </form>
   
     <!-- Preview Image -->
-    <img id="amenityPreview" src="/images/pool.jpg" alt="Amenity Preview" class="amenity-preview">
+    <img id="amenityPreview" src="../images/pool.jpg" alt="Amenity Preview" class="amenity-preview">
     <div id="amenityDetailsContainer"></div>
   </div>
 
