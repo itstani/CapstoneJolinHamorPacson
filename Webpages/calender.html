@@ -797,17 +797,11 @@
                 modalContent.innerHTML = '<div style="text-align: center; padding: 20px;">Loading event details...</div>';
 
                 // Fetch event details
-                const eventResponse = await fetch(`/api/event/${eventId}`);
+                const eventResponse = await fetch(`/api/aevents/${eventId}`);
                 if (!eventResponse.ok) throw new Error('Failed to fetch event details');
                 const eventData = await eventResponse.json();
 
-                // Fetch receipt image
-                const paymentResponse = await fetch(`/api/payment/${eventId}`);
-                if (!paymentResponse.ok) throw new Error('Failed to fetch payment details');
-                const paymentData = await paymentResponse.json();
-
                 const event = eventData.event;
-                const receiptImage = paymentData.receiptImage;
 
                 const detailsHtml = `
                     <div style="padding: 20px;">
@@ -816,7 +810,8 @@
                             <p><strong>Date:</strong> ${new Date(event.eventDate).toLocaleDateString()}</p>
                             <p><strong>Time:</strong> ${formatTime(event.startTime)} - ${formatTime(event.endTime)}</p>
                             <p><strong>Amenity:</strong> ${event.amenity || 'Not specified'}</p>
-                            <img src="${receiptImage}" alt="Receipt Image" style="max-width: 100%; border-radius: 8px;" />
+                            <p><strong>Guests:</strong> ${event.guests?.number || 0}</p>
+                           
                         </div>
                     </div>
                 `;
@@ -835,6 +830,7 @@
                 `;
             }
         }
+
 
         // Add functions for editing and deleting events
         function editEvent(eventId) {

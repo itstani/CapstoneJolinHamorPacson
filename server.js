@@ -1071,7 +1071,7 @@ app.get('/api/get-monthly-due', async (req, res) => {
     let penalty = 0;
     let daysOverdue = 0;
     if (homeowner.PStatus === "Delinquent" && homeowner.lastPaymentDate) {
-      const lastPayment = new Date(homeowner.lastPaymentDate);
+      const lastPayment = new Date(homeowner.lastPaymentDate);  
       const today = new Date();
       daysOverdue = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
       penalty = daysOverdue * 10;
@@ -1088,7 +1088,8 @@ app.get('/api/get-monthly-due', async (req, res) => {
         firstName: homeowner.firstName,
         lastName: homeowner.lastName,
         email: homeowner.email,
-        username: homeowner.username
+        username: homeowner.username,
+        lastPaymentDate: homeowner.lastPaymentDate
       }
     });
   } catch (err) {
@@ -3040,7 +3041,53 @@ app.get("/api/event/:id", async (req, res) => {
     })
   }
 })
+app.get("/api/aevents/:id", async (req, res) => {
+  try {
+    const eventId = req.params.id;
 
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: "Event ID is required",
+      });
+    }
+
+    const db = await connectToDatabase();
+    const eventsCollection = db.collection("aevents"); // ✅ Correct collection
+
+    let objectId;
+    try {
+      objectId = new ObjectId(eventId);
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await eventsCollection.findOne({ _id: objectId });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found in 'aevents' collection",
+      });
+    }
+
+    res.json({
+      success: true,
+      event,
+    });
+
+  } catch (error) {
+    console.error("Error fetching event from 'aevents':", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching event details",
+      error: error.message,
+    });
+  }
+});
 // Add this to server.js
 app.get("/api/debug/notifications", async (req, res) => {
   try {
@@ -4701,33 +4748,36 @@ app.post("/api/homeowners/generate-account", async (req, res) => {
 app.get("/api/generate-payment-report", async (req, res) => {
   try {
     const { type, range, format, startDate, endDate } = req.query;
-
-    const db = await connectToDatabase();
-    const homeownersCollection = db.collection("homeowners");
-    const addressCollection = db.collection("address");
-    const paymentsCollection = db.collection("payments");
-
-    // Setup date filter
+    const normalizedRange = range?.replace(/_/g, "-");
     let fromDate = null;
     let toDate = new Date();
 
-    if (range === "last-month") {
+    // ✅ Fixed: Handle current-month correctly
+    if (normalizedRange === "current-month") {
+      const now = new Date();
+      fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (normalizedRange === "last-month") {
       fromDate = new Date();
       fromDate.setMonth(fromDate.getMonth() - 1);
-    } else if (range === "last-quarter") {
+    } else if (normalizedRange === "last-quarter") {
       fromDate = new Date();
       fromDate.setMonth(fromDate.getMonth() - 3);
-    } else if (range === "last-year") {
+    } else if (normalizedRange === "last-year") {
       fromDate = new Date();
       fromDate.setFullYear(fromDate.getFullYear() - 1);
-    } else if (range === "custom" && startDate && endDate) {
+    } else if (normalizedRange === "custom" && startDate && endDate) {
       fromDate = new Date(startDate);
       toDate = new Date(endDate);
+    } else if (normalizedRange === "all-time") {
+      fromDate = null;
     }
 
-    const homeowners = await homeownersCollection.find({}).toArray();
-    const addresses = await addressCollection.find({}).toArray();
-    const payments = await paymentsCollection.find({}).toArray();
+    const db = await connectToDatabase();
+    const homeowners = await db.collection("homeowners").find({}).toArray();
+    const addresses = await db.collection("address").find({}).toArray();
+    const payments = await db.collection("monthlyPayments").find({}).toArray();
+
 
     const addressMap = Object.fromEntries(
       addresses.map(a => [a.homeownerId?.toString(), a])
@@ -4735,7 +4785,7 @@ app.get("/api/generate-payment-report", async (req, res) => {
 
     const excel = officegen("xlsx");
     const sheet = excel.makeNewSheet();
-    sheet.name = "Report"; 
+    sheet.name = "Report";
 
     const formatAddress = (addr) => {
       if (!addr) return "";
@@ -4744,30 +4794,23 @@ app.get("/api/generate-payment-report", async (req, res) => {
       const phase = addr.Phase?.$numberInt || addr.Phase || "";
       return `Block ${block} Lot ${lot} Phase ${phase}`.trim();
     };
+
     const findMatchingAddress = (homeownerAddress) => {
       if (!homeownerAddress) return null;
-    
       const block1 = homeownerAddress.Block?.$numberInt || homeownerAddress.Block || "";
       const lot1 = homeownerAddress.Lot?.$numberInt || homeownerAddress.Lot || "";
       const phase1 = homeownerAddress.Phase?.$numberInt || homeownerAddress.Phase || "";
-    
+
       return addresses.find(addr => {
         const block2 = addr.Block?.$numberInt || addr.Block || "";
         const lot2 = addr.Lot?.$numberInt || addr.Lot || "";
         const phase2 = addr.Phase?.$numberInt || addr.Phase || "";
-    
-        const match = block1 == block2 && lot1 == lot2 && phase1 == phase2;
-        if (match) {
-          console.log(`✅ Match found: Block ${block2}, Lot ${lot2}, Phase ${phase2}, Amount: ${addr.MDAmount}`);
-        }
-        return match;
+        return block1 == block2 && lot1 == lot2 && phase1 == phase2;
       });
     };
-    
 
     let headers = [];
     let rows = [];
-
     if (type === "delinquent_owners") {
       headers = [
         "Last Name", "First Name", "Address", "Phone Number", "Landline",
@@ -4779,25 +4822,39 @@ app.get("/api/generate-payment-report", async (req, res) => {
         if (status !== "delinquent") return;
     
         const matchedAddr = findMatchingAddress(h.Address);
+        const currentMonthDue = 1500;
+    
+        const lastPaid = new Date(h.lastPaymentDate);
+        const today = new Date();
+        const daysOverdue = Math.floor((today - lastPaid) / (1000 * 60 * 60 * 24));
+    
+        let totalDue = currentMonthDue;
 
+        if (daysOverdue > 30) {
+          const missedMonthDue = 1500;
+          const penalty = daysOverdue * 10;  // fixed here
+          totalDue = currentMonthDue + missedMonthDue + penalty;
+        }
+
+    
         rows.push([
           h.lastName || "",
           h.firstName || "",
           formatAddress(h.Address),
           h.phoneNumber || "",
           h.landline || "",
-          matchedAddr?.MDAmount?.$numberDouble || matchedAddr?.MDAmount || 0,
+          totalDue.toFixed(2),
           h.lastPaymentDate ? new Date(h.lastPaymentDate).toLocaleDateString() : "",
           h.PStatus || "",
           h.HStatus || "",
           h.carSticker || "Undetermined"
         ]);
-        
       });
-    }
-    else if (type === "payment_history") {
+    
+
+    } else if (type === "payment_history") {
       headers = [
-        "Homeowner", "Email", "Amount", "Payment Method", "Date", "Status"
+        "Homeowner","Amount", "Payment Method", "Date", "Status"
       ];
 
       payments.forEach(p => {
@@ -4805,8 +4862,7 @@ app.get("/api/generate-payment-report", async (req, res) => {
         if (fromDate && (paymentDate < fromDate || paymentDate > toDate)) return;
 
         rows.push([
-          String(p.userName || ""),
-          String(p.userEmail || ""),
+          String(p.username || ""),
           p.amount || 0,
           String(p.paymentMethod || ""),
           paymentDate.toLocaleDateString(),
@@ -4815,24 +4871,28 @@ app.get("/api/generate-payment-report", async (req, res) => {
       });
 
     } else if (type === "homeowner_details") {
+      // ✅ Fixed: removed email and added landline, status, sticker
       headers = [
-        "Last Name", "First Name", "Email", "Phone", "Landline", "Address",
+        "Last Name", "First Name", "Phone", "Landline", "Address",
         "Homeowner Status", "Car Sticker Status", "Monthly Due"
       ];
 
       homeowners.forEach(h => {
         const addr = formatAddress(h.Address || addressMap[h._id?.toString()]);
+        const matchedAddr = h.Address || addressMap[h._id?.toString()];
+        const mdAmount = matchedAddr?.MDAmount?.$numberDouble || matchedAddr?.MDAmount || 0;
+
         rows.push([
           String(h.lastName || ""),
           String(h.firstName || ""),
-          String(h.email || ""),
           String(h.phoneNumber || ""),
-          String(h.landLine || ""),
-          addr,
-          String(h.homeownerStatus || ""),
-          String(h.carStickerStatus || "Undetermined"),
-          h.MDAmount || 0
+          String(h.landline || ""),
+          formatAddress(matchedAddr),
+          String(h.HStatus || h.homeownerStatus || ""),
+          String(h.carSticker || h.carStickerStatus || "Undetermined"),
+          mdAmount
         ]);
+        
       });
 
     } else if (type === "monthly_summary") {
@@ -4841,7 +4901,6 @@ app.get("/api/generate-payment-report", async (req, res) => {
       ];
 
       const summaryMap = {};
-
       payments.forEach(p => {
         const paymentDate = new Date(p.timestamp);
         if (fromDate && (paymentDate < fromDate || paymentDate > toDate)) return;
@@ -4861,9 +4920,13 @@ app.get("/api/generate-payment-report", async (req, res) => {
       ]);
     }
 
-    // Final check: align rows to headers
+    // Final row check
     const expectedCols = headers.length;
     rows = rows.filter(r => Array.isArray(r) && r.length === expectedCols);
+
+    console.log("Received query:", { type, range, format, startDate, endDate });
+    console.log("Final row count:", rows.length);
+    console.log("Sample row:", rows[0]);
 
     sheet.data[0] = headers;
     rows.forEach((row, idx) => {
@@ -4871,12 +4934,10 @@ app.get("/api/generate-payment-report", async (req, res) => {
     });
 
     const filename = `report-${type}-${Date.now()}.${format === "csv" ? "csv" : "xlsx"}`;
-    if (format === "csv") {
-      res.setHeader("Content-Type", "text/csv");
-    } else {
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    }
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.setHeader("Content-Type", format === "csv"
+      ? "text/csv"
+      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
     excel.generate(res);
   } catch (error) {

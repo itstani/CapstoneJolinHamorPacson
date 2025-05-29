@@ -407,8 +407,8 @@
                     } else {
                         document.getElementById('extraFeesRow').style.display = 'none';
                     }
-                    const lastPaymentDateString = data.lastPaymentDate;
-                    if (lastPaymentDateString) {
+                    const lastPaymentDateString = data.homeowner.lastPaymentDate;
+                        if (lastPaymentDateString) {
                         const lastPaymentDate = new Date(lastPaymentDateString);
                         if (!isNaN(lastPaymentDate)) {
                             document.getElementById('lastPaymentDate').textContent = lastPaymentDate.toLocaleDateString();
@@ -416,10 +416,10 @@
                             console.error('Invalid date format:', lastPaymentDateString);
                             document.getElementById('lastPaymentDate').textContent = 'Invalid Date';
                         }
-                    } else {
-                        console.warn('Last payment date is missing');
+                        } else {
                         document.getElementById('lastPaymentDate').textContent = 'No Date Available';
-                    }
+                        }
+
 
                     // Check if days overdue is greater than 30
                     if (data.daysOverdue > 31) {
@@ -429,6 +429,9 @@
                     // Update the UI with the new amounts
                     document.getElementById('dueAmount').textContent = data.baseDue.toFixed(2);
                     document.getElementById('totalAmount').textContent = (data.baseDue + data.penalty).toFixed(2);
+
+                    const finalAmount = (data.baseDue + data.penalty).toFixed(2);
+                    document.getElementById('finalAmountInput').value = finalAmount;
                 } else {
                     console.error('Error fetching homeowner data:', data.message || 'Unknown error');
                 }
@@ -496,8 +499,13 @@
                     const fileFormData = new FormData();
                     fileFormData.append('receipt', receiptUpload.files[0]);
                     fileFormData.append('userName', data.homeowner.username);
-                    fileFormData.append('finalAmount', data.totalDue.toFixed(2));
+
+                    // Recalculate total due before submitting
+                    const recalculatedFinalAmount = (data.baseDue + data.penalty).toFixed(2);
+                    fileFormData.append('finalAmount', recalculatedFinalAmount);
+
                     fileFormData.append('paymentMethod', 'QR');
+
                     
                     console.log("Submitting payment to /api/monthly-dues-payment"); // Debug log
                     
