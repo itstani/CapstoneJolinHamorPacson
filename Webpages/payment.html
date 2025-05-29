@@ -214,13 +214,14 @@
       const endTime = new Date(`2000-01-01T${eventDetails.event.endTime}:00`);
       const nightStart = new Date('2000-01-01T18:00:00');
       const nightEnd = new Date('2000-01-01T22:00:00');
+      const phead = eventDetails.event.guests.number * 100;
 
       switch (eventDetails.event.amenity) {
         case 'Pool':
           baseAmountText = `₱100 per person`;
           if (startTime < nightEnd && endTime > nightStart) {
             extraFeesText = `₱1000 (Night swimming)`;
-            totalAmountText = (100 + 1000).toFixed(2);
+            totalAmountText = (phead + 1000).toFixed(2);
           }
           break;
         case 'Court':
